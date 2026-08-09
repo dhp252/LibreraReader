@@ -233,18 +233,20 @@ import java.util.List;
         AppSP.get().lastBookPage = page;
 
         Intent intent = playBookIntent(page, path, anchor);
-        //UserDefinedFileAttributeView
-//        PendingIntent play = PendingIntent.getService(LibreraApp.context, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-//        try {
-//            play.send();
-//        } catch (CanceledException e) {
-//            LOG.e(e);
-//        }
 
         if (Build.VERSION.SDK_INT >= 26) {
             LibreraApp.context.startForegroundService(intent);
         } else {
             LibreraApp.context.startService(intent);
+        }
+    }
+
+    public static void playBookPageParagraph(int page, int paragraphIndex, DocumentController controller) {
+        AppSP.get().lastBookParagraph = paragraphIndex;
+        if (controller != null && controller.getCurrentBook() != null) {
+            playBookPage(page, controller.getCurrentBook().getPath(), "", controller.getBookWidth(), controller.getBookHeight(), BookCSS.get().fontSizeSp, controller.getTitle());
+        } else {
+            playBookPage(page, AppSP.get().lastBookPath, "", AppSP.get().lastBookWidth, AppSP.get().lastBookHeight, AppSP.get().lastFontSize, AppSP.get().lastBookTitle);
         }
     }
 
@@ -698,6 +700,17 @@ import java.util.List;
                          .setOnUtteranceProgressListener(new UtteranceProgressListener() {
                              @Override public void onStart(String utteranceId) {
                                  LOG.d(TAG, "onUtteranceCompleted onStart", utteranceId);
+                                 if (utteranceId != null && utteranceId.startsWith(TTSEngine.FINISHED_SIGNAL)) {
+                                     try {
+                                         int pIndex = Integer.parseInt(utteranceId.replace(TTSEngine.FINISHED_SIGNAL, ""));
+                                         if (TxtUtils.isEmpty(preText1)) {
+                                             AppSP.get().lastBookParagraph = pIndex;
+                                         }
+                                         EventBus.getDefault().post(new TtsStatus(pIndex));
+                                     } catch (Exception e) {
+                                         LOG.e(e);
+                                     }
+                                 }
                              }
 
                              @Override public void onError(String utteranceId) {

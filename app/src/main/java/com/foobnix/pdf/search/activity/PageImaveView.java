@@ -42,6 +42,9 @@ import com.foobnix.pdf.search.activity.msg.MovePageAction;
 import com.foobnix.pdf.search.activity.msg.TextWordsMessage;
 import com.foobnix.sys.ClickUtils;
 import com.foobnix.sys.TempHolder;
+import com.foobnix.tts.TTSEngine;
+import com.foobnix.tts.TTSService;
+import com.foobnix.tts.TTSHighlightHelper;
 
 import org.ebookdroid.core.codec.Annotation;
 import org.ebookdroid.core.codec.PageLink;
@@ -385,6 +388,35 @@ public class PageImaveView extends View {
             if (selectedWords != null) {
                 for (TextWord tw : selectedWords) {
                     drawWord(canvas, tw);
+                }
+            }
+
+            if (TTSEngine.get().isPlaying() && AppSP.get().lastBookPage == pageNumber) {
+                int parIndex = AppSP.get().lastBookParagraph;
+                TextWord[][] pageText = getPageText(0);
+                if (pageText != null) {
+                    StringBuilder sb = new StringBuilder();
+                    for (TextWord[] line : pageText) {
+                        if (line != null) {
+                            for (TextWord tw : line) {
+                                if (tw != null && TxtUtils.isNotEmpty(tw.getWord())) {
+                                    sb.append(tw.getWord()).append(" ");
+                                }
+                            }
+                        }
+                    }
+                    List<TextWord> ttsWords = TTSHighlightHelper.getHighlightWordsForParagraph(sb.toString(), parIndex, pageText);
+                    if (ttsWords != null && !ttsWords.isEmpty()) {
+                        int prevColor = paintWrods.getColor();
+                        int prevAlpha = paintWrods.getAlpha();
+                        paintWrods.setColor(Color.rgb(255, 193, 7));
+                        paintWrods.setAlpha(100);
+                        for (TextWord tw : ttsWords) {
+                            drawWord(canvas, tw);
+                        }
+                        paintWrods.setColor(prevColor);
+                        paintWrods.setAlpha(prevAlpha);
+                    }
                 }
             }
 
@@ -776,7 +808,29 @@ public class PageImaveView extends View {
                 } else if (AppState.get().doubleClickAction1 == AppState.DOUBLE_CLICK_CLOSE_HIDE_APP) {
                     Apps.showDesctop(getContext());
                 } else if (AppState.get().doubleClickAction1 == AppState.DOUBLE_CLICK_START_STOP_TTS) {
-                    EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_PLAY_PAUSE, e.getX(), e.getY()));
+                    if (TTSEngine.get().isPlaying()) {
+                        TextWord[][] pageText = getPageText(0);
+                        selectText(e.getX(), e.getY(), e.getX(), e.getY());
+                        List<TextWord> tappedWords = PageImageState.get().getSelectedWords(pageNumber);
+                        if (tappedWords != null && !tappedWords.isEmpty() && pageText != null) {
+                            StringBuilder sb = new StringBuilder();
+                            for (TextWord[] line : pageText) {
+                                if (line != null) {
+                                    for (TextWord tw : line) {
+                                        if (tw != null && TxtUtils.isNotEmpty(tw.getWord())) {
+                                            sb.append(tw.getWord()).append(" ");
+                                        }
+                                    }
+                                }
+                            }
+                            int pIndex = TTSHighlightHelper.getParagraphIndexForWord(sb.toString(), tappedWords.get(0));
+                            TTSService.playBookPageParagraph(pageNumber, pIndex, null);
+                        } else {
+                            EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_PLAY_PAUSE, e.getX(), e.getY()));
+                        }
+                    } else {
+                        EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_PLAY_PAUSE, e.getX(), e.getY()));
+                    }
                 } else if (AppState.get().doubleClickAction1 == AppState.DOUBLE_CLICK_SHARE_PAGE) {
                     EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_SHARE_PAGE, e.getX(), e.getY()));
                 } else if (AppState.get().doubleClickAction1 == AppState.DOUBLE_CLICK_CENTER_HORIZONTAL) {

@@ -19,6 +19,11 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.tts.TTSEngine;
+import com.foobnix.tts.TTSHighlightHelper;
+import org.ebookdroid.droids.mupdf.codec.TextWord;
+import java.util.List;
 
 import org.ebookdroid.core.codec.PageLink;
 import org.ebookdroid.ui.viewer.IActivityController;
@@ -150,6 +155,7 @@ public class EventDraw implements IEvent {
         // drawSomething(page);
         // drawHighlights(page);
         drawSelectedText(page);
+        drawTTSHighlight(page);
 
         return res;
     }
@@ -267,6 +273,41 @@ public class EventDraw implements IEvent {
             canvas.drawRect(rect, p);
         }
 
+    }
+
+    private void drawTTSHighlight(final Page page) {
+        if (!TTSEngine.get().isPlaying()) {
+            return;
+        }
+        if (AppSP.get().lastBookPage != page.index.viewIndex) {
+            return;
+        }
+        if (page.texts == null || page.texts.length == 0) {
+            return;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (TextWord[] line : page.texts) {
+            if (line != null) {
+                for (TextWord tw : line) {
+                    if (tw != null && TxtUtils.isNotEmpty(tw.getWord())) {
+                        sb.append(tw.getWord()).append(" ");
+                    }
+                }
+            }
+        }
+        List<TextWord> ttsWords = TTSHighlightHelper.getHighlightWordsForParagraph(sb.toString(), AppSP.get().lastBookParagraph, page.texts);
+        if (ttsWords == null || ttsWords.isEmpty()) {
+            return;
+        }
+        final Paint p = new Paint();
+        p.setColor(Color.rgb(255, 193, 7));
+        p.setAlpha(100);
+
+        for (TextWord selected : ttsWords) {
+            final RectF rect = page.getPageRegion(pageBounds, new RectF(selected));
+            rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
+            canvas.drawRect(rect, p);
+        }
     }
 
 }

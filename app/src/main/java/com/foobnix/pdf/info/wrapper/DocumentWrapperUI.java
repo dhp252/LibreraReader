@@ -427,10 +427,10 @@ public class DocumentWrapperUI {
     public void onTTSStatus(TtsStatus status) {
         try {
             ttsActive.setVisibility(TxtUtils.visibleIf(!TTSEngine.get().isShutdown()));
+            updateUI();
         } catch (Exception e) {
             LOG.e(e);
         }
-
     }
 
     public void onSingleTap() {

@@ -1342,6 +1342,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     public void onTTSStatus(TtsStatus status) {
         try {
             ttsActive.setVisibility(TxtUtils.visibleIf(!TTSEngine.get().isShutdown()));
+            EventBus.getDefault().post(new InvalidateMessage());
         } catch (Exception e) {
             LOG.e(e);
         }
