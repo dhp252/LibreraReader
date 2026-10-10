@@ -102,7 +102,9 @@ import com.foobnix.pdf.search.view.CloseAppDialog;
 import com.foobnix.pdf.search.view.VerticalViewPager;
 import com.foobnix.sys.ClickUtils;
 import com.foobnix.sys.TempHolder;
+import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.tts.MessagePageNumber;
+import com.foobnix.tts.MessageTtsReadFrom;
 import com.foobnix.tts.TTSControlsView;
 import com.foobnix.tts.TTSEngine;
 import com.foobnix.tts.TTSNotification;
@@ -1394,6 +1396,15 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         } catch (Exception e) {
             LOG.e(e);
         }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onTtsReadFrom(MessageTtsReadFrom event) {
+        if (dc == null || dc.getCurrentBook() == null) {
+            return;
+        }
+        TTSService.playBookPage(event.page, dc.getCurrentBook().getPath(), event.anchor, event.position,
+                dc.getBookWidth(), dc.getBookHeight(), BookCSS.get().fontSizeSp, dc.getTitle());
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)

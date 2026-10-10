@@ -28,15 +28,20 @@ import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.PageUrl;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.AnnotationType;
+import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.model.OutlineLinkWrapper;
 import com.foobnix.pdf.info.view.MyProgressDialog;
 import com.foobnix.pdf.info.widget.PrefDialogs;
 import com.foobnix.pdf.info.wrapper.DocumentController;
 import com.foobnix.pdf.search.activity.msg.MessagePageXY;
+import com.foobnix.tts.TTSEngine;
+import com.foobnix.tts.TTSHighlight;
+import com.foobnix.tts.TTSService;
 
 import org.ebookdroid.common.settings.CoreSettings;
 import org.ebookdroid.common.settings.SettingsManager;
 import org.ebookdroid.core.Page;
+import org.ebookdroid.core.PageText;
 import org.ebookdroid.core.codec.Annotation;
 import org.ebookdroid.core.codec.CodecDocument;
 import org.ebookdroid.core.codec.CodecPage;
@@ -475,6 +480,46 @@ public class VerticalModeController extends DocumentController {
         }
     }
 
+    @Override
+    public boolean readAloudFromTap(int x, int y) {
+        if (!AppState.get().isTTSDoubleTapRead || !TTSEngine.get().isPlaying()) {
+            return false;
+        }
+        if (ctr == null || ctr.getDocumentController() == null || ctr.getDocumentModel() == null || getCurrentBook() == null) {
+            return false;
+        }
+        final float zoom = ctr.getZoomModel().getZoom();
+        final float slop = Dips.dpToPx(6);
+        final RectF tap = new RectF(x - slop, y - slop, x + slop, y + slop);
+        tap.offset(ctr.getDocumentController().getView().getScrollX(), ctr.getDocumentController().getView().getScrollY());
+
+        final int first = ctr.getDocumentController().getFirstVisiblePage();
+        final int last = ctr.getDocumentController().getLastVisiblePage() + 1;
+        for (Page page : ctr.getDocumentModel().getPages(first, last)) {
+            final RectF bounds = page.getBounds(zoom);
+            final TextWord[][] texts = PageText.of(page);
+            if (texts == null || !RectF.intersects(bounds, tap)) {
+                continue;
+            }
+            final List<TextWord> words = TTSHighlight.words(texts);
+            for (int i = 0; i < words.size(); i++) {
+                final RectF wordRect = page.getPageRegion(bounds, words.get(i));
+                if (wordRect != null && RectF.intersects(wordRect, tap)) {
+                    TTSService.playBookPage(page.index.docIndex, getCurrentBook().getPath(), TTSHighlight.anchorFrom(words, i),
+                            (float) i / words.size(), getBookWidth(), getBookHeight(), BookCSS.get().fontSizeSp, getTitle());
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void redrawReadAloud() {
+        if (ctr != null && ctr.getDocumentController() != null) {
+            ctr.getDocumentController().redrawView();
+        }
+    }
 
     @Override
     public void onAutoScroll() {

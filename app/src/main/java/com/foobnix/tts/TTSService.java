@@ -80,6 +80,7 @@ import java.util.List;
 @TargetApi(Build.VERSION_CODES.O) public class TTSService extends MediaBrowserServiceCompat {
     public static final String EXTRA_PATH = "EXTRA_PATH";
     public static final String EXTRA_ANCHOR = "EXTRA_ANCHOR";
+    public static final String EXTRA_ANCHOR_POSITION = "EXTRA_ANCHOR_POSITION";
     public static final String EXTRA_INT = "INT";
     private static final String TAG = "TTSService";
     public static String ACTION_PLAY_CURRENT_PAGE = "ACTION_PLAY_CURRENT_PAGE";
@@ -319,6 +320,17 @@ import java.util.List;
     @TargetApi(26)
     public static void playBookPage(int page, String path, String anchor, int width, int height, int fontSize,
                                     String title) {
+        playBookPage(page, path, anchor, -1, width, height, fontSize, title);
+    }
+
+    /**
+     * @param anchorPosition where the anchor words sit among the words of the page, 0..1: reading
+     *                       then starts at the sentence holding them ({@link TtsTextLocator#findReadingStart}).
+     *                       -1 keeps the plain text search for the anchor.
+     */
+    @TargetApi(26)
+    public static void playBookPage(int page, String path, String anchor, float anchorPosition, int width,
+                                    int height, int fontSize, String title) {
         LOG.d(TAG, "playBookPage1", page, path, width, height);
 
         TTSEngine.get()
@@ -329,8 +341,13 @@ import java.util.List;
         AppSP.get().lastFontSize = fontSize;
         AppSP.get().lastBookTitle = title;
         AppSP.get().lastBookPage = page;
+        if (anchorPosition >= 0) {
+            // the paragraphs are then counted from the anchor, not from the top of the page
+            AppSP.get().lastBookParagraph = 0;
+        }
 
         Intent intent = playBookIntent(page, path, anchor);
+        intent.putExtra(EXTRA_ANCHOR_POSITION, anchorPosition);
 
         try {
             if (Build.VERSION.SDK_INT >= 26) {
@@ -810,9 +827,10 @@ import java.util.List;
             int pageNumber = intent.getIntExtra(EXTRA_INT, -1);
             AppSP.get().lastBookPath = intent.getStringExtra(EXTRA_PATH);
             String anchor = intent.getStringExtra(EXTRA_ANCHOR);
+            float anchorPosition = intent.getFloatExtra(EXTRA_ANCHOR_POSITION, -1);
 
             if (pageNumber != -1) {
-                playPage("", pageNumber, anchor);
+                playPage("", pageNumber, anchor, anchorPosition);
             }
         }
 
@@ -955,8 +973,12 @@ import java.util.List;
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
     private void playPage(String preText, int pageNumber, String anchor) {
+        playPage(preText, pageNumber, anchor, -1);
+    }
+
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1)
+    private void playPage(String preText, int pageNumber, String anchor, float anchorPosition) {
         //releaseWakeLock();
         acquireWakeLock();
         mMediaSessionCompat.setActive(true);
@@ -1011,7 +1033,9 @@ import java.util.List;
             pageHTML = TxtUtils.replaceHTMLforTTS(pageHTML);
 
             if (TxtUtils.isNotEmpty(anchor)) {
-                int indexOf = pageHTML.indexOf(anchor);
+                int indexOf = anchorPosition >= 0
+                        ? TtsTextLocator.findReadingStart(pageHTML, Arrays.asList(anchor.trim().split("\\s+")), anchorPosition)
+                        : pageHTML.indexOf(anchor);
                 if (indexOf > 0) {
                     pageHTML = pageHTML.substring(indexOf);
                     LOG.d("find anchor new text", pageHTML);
@@ -1047,6 +1071,7 @@ import java.util.List;
                 }
             }
             final String preText1 = preText;
+            final int spokenPage = pageNumber;
 
             if (Build.VERSION.SDK_INT >= 15) {
                 TTSEngine.get()
@@ -1054,6 +1079,18 @@ import java.util.List;
                          .setOnUtteranceProgressListener(new UtteranceProgressListener() {
                              @Override public void onStart(String utteranceId) {
                                  LOG.d(TAG, "onUtteranceCompleted onStart", utteranceId);
+                                 if (utteranceId != null && utteranceId.startsWith(TTSEngine.FINISHED_SIGNAL)) {
+                                     TTSHighlight.get().onUtterance(spokenPage, TTSEngine.get().getUtteranceText(utteranceId));
+                                 }
+                             }
+
+                             // one utterance for the whole page (no pauses between sentences):
+                             // engines that report the spoken range get the sentence marked
+                             @Override public void onRangeStart(String utteranceId, int start, int end, int frame) {
+                                 if (TTSEngine.UTTERANCE_ID_DONE.equals(utteranceId)) {
+                                     TTSHighlight.get().onUtterance(spokenPage,
+                                             TtsTextLocator.sentenceAt(TTSEngine.get().getUtteranceText(utteranceId), start));
+                                 }
                              }
 
                              @Override public void onError(String utteranceId) {

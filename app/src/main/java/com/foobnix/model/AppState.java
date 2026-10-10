@@ -411,6 +411,10 @@ public class AppState {
     @IgnoreHashCode public boolean ttsReadBySentences = true;
     @IgnoreHashCode public String ttsSentecesDivs = TTS_PUNCUATIONS;
     @IgnoreHashCode public boolean ttsTunnOnLastWord = false;
+    // read-aloud: mark the sentence being spoken; double-tap a word to read from its sentence
+    @IgnoreHashCode public boolean isTTSHighlight = true;
+    @IgnoreHashCode public boolean isTTSDoubleTapRead = true;
+    @IgnoreHashCode public String ttsHighlightColor = "#FFC107";
     @IgnoreHashCode public boolean isEnalbeTTSReplacements = true;
     public boolean isReferenceMode = false;
     public boolean isShowPageNumbers = false;

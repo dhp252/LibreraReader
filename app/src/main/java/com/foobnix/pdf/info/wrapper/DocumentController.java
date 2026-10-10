@@ -1049,6 +1049,19 @@ public abstract class DocumentController {
         ui.doDoubleTap(x, y);
     }
 
+    /**
+     * While reading aloud, a double tap on a word continues reading from its sentence.
+     *
+     * @return true when the tap hit a word and reading moved there
+     */
+    public boolean readAloudFromTap(int x, int y) {
+        return false;
+    }
+
+    /** Repaints the pages so the read-aloud mark follows the voice. */
+    public void redrawReadAloud() {
+    }
+
     public abstract String getTextForPage(int page);
 
     public abstract String getPageHtml();

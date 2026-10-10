@@ -270,6 +270,18 @@
             android:text="@string/turn_the_page_on_the_last_word" />
 
         <CheckBox
+            android:id="@+id/isTTSHighlight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tts_highlight_spoken_text" />
+
+        <CheckBox
+            android:id="@+id/isTTSDoubleTapRead"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/tts_double_tap_read_from_here" />
+
+        <CheckBox
             android:id="@+id/stopReadingOnCall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

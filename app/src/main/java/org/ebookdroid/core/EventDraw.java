@@ -19,11 +19,13 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.tts.TTSHighlight;
 
 import org.ebookdroid.core.codec.PageLink;
 import org.ebookdroid.ui.viewer.IActivityController;
 import org.emdev.utils.LengthUtils;
 
+import java.util.List;
 import java.util.Queue;
 
 public class EventDraw implements IEvent {
@@ -150,8 +152,25 @@ public class EventDraw implements IEvent {
         // drawSomething(page);
         // drawHighlights(page);
         drawSelectedText(page);
+        drawReadAloud(page);
 
         return res;
+    }
+
+    /** Marks the sentence being read aloud, see {@link TTSHighlight}. */
+    private void drawReadAloud(final Page page) {
+        if (!TTSHighlight.isEnabled() || !TTSHighlight.get().isActive()) {
+            return;
+        }
+        final List<RectF> bands = TTSHighlight.get().bandsFor(page.index.docIndex, page.texts);
+        for (RectF band : bands) {
+            final RectF rect = page.getPageRegion(pageBounds, new RectF(band));
+            if (rect == null) {
+                continue;
+            }
+            rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
+            canvas.drawRect(rect, TTSHighlight.get().paint());
+        }
     }
 
     @Override

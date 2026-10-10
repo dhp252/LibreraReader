@@ -146,6 +146,7 @@ import com.foobnix.pdf.search.activity.msg.MovePageAction;
 import com.foobnix.pdf.search.menu.MenuBuilderM;
 import com.foobnix.pdf.search.view.ProgressTask;
 import com.foobnix.sys.TempHolder;
+import com.foobnix.tts.MessageTtsHighlight;
 import com.foobnix.tts.TTSControlsView;
 import com.foobnix.tts.TTSEngine;
 import com.foobnix.tts.TTSService;
@@ -1211,6 +1212,18 @@ public class DragingDialogs {
                         TTSEngine.get().stop();
                     }
                 });
+
+                CheckBox isTTSHighlight = view.findViewById(R.id.isTTSHighlight);
+                isTTSHighlight.setChecked(AppState.get().isTTSHighlight);
+                isTTSHighlight.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    AppState.get().isTTSHighlight = isChecked;
+                    EventBus.getDefault().post(new MessageTtsHighlight());
+                });
+
+                CheckBox isTTSDoubleTapRead = view.findViewById(R.id.isTTSDoubleTapRead);
+                isTTSDoubleTapRead.setChecked(AppState.get().isTTSDoubleTapRead);
+                isTTSDoubleTapRead.setOnCheckedChangeListener((buttonView, isChecked) ->
+                        AppState.get().isTTSDoubleTapRead = isChecked);
 
                 // TTS Play music File
                 ttsPlayMusicFile.setOnClickListener(new OnClickListener() {

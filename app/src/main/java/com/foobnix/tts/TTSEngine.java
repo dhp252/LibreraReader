@@ -48,8 +48,10 @@ import java.nio.ByteOrder;
 import java.text.DecimalFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TTSEngine {
 
@@ -66,6 +68,12 @@ public class TTSEngine {
     Object helpObject = new Object();
     HashMap<String, String> map = new HashMap<String, String>();
     HashMap<String, String> mapTemp = new HashMap<String, String>();
+    /** Text of each queued utterance by id, for {@link TTSHighlight}. */
+    private final Map<String, String> utteranceText = new ConcurrentHashMap<>();
+
+    public String getUtteranceText(String utteranceId) {
+        return utteranceId == null ? null : utteranceText.get(utteranceId);
+    }
 
     public boolean isInit() {
         return ttsEngine != null;
@@ -147,6 +155,7 @@ public class TTSEngine {
             }
             ttsEngine = null;
         }
+        TTSHighlight.get().clear();
 
     }
 
@@ -282,6 +291,7 @@ public class TTSEngine {
             ttsEngine = null;
         }
         AppSP.get().lastBookParagraph = 0;
+        TTSHighlight.get().clear();
     }
 
     public TextToSpeech setTTSWithEngine(String engine) {
@@ -344,6 +354,7 @@ public class TTSEngine {
         LOG.d(TAG, "Speek s", AppState.get().ttsSpeed);
         LOG.d(TAG, "Speek AppSP.get().lastBookParagraph", AppSP.get().lastBookParagraph);
 
+        utteranceText.clear();
         if (AppState.get().ttsPauseDuration > 0 && text.contains(TxtUtils.TTS_PAUSE)) {
             String[] parts = text.split(TxtUtils.TTS_PAUSE);
             ttsEngine.playSilence(0l, TextToSpeech.QUEUE_FLUSH, mapTemp);
@@ -377,6 +388,7 @@ public class TTSEngine {
                     HashMap<String, String> mapTemp1 = new HashMap<String, String>();
                     mapTemp1.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, FINISHED_SIGNAL + i);
 
+                    utteranceText.put(FINISHED_SIGNAL + i, big);
                     ttsEngine.speak(big, TextToSpeech.QUEUE_ADD, mapTemp1);
                     ttsEngine.playSilence(AppState.get().ttsPauseDuration, TextToSpeech.QUEUE_ADD, mapTemp);
                     LOG.d("pageHTML-parts", i, big);
@@ -386,6 +398,7 @@ public class TTSEngine {
         } else {
             String textToPlay = text.replace(TxtUtils.TTS_PAUSE, "");
             LOG.d("pageHTML-parts-single", text);
+            utteranceText.put(UTTERANCE_ID_DONE, textToPlay);
             ttsEngine.speak(textToPlay, TextToSpeech.QUEUE_FLUSH, map);
         }
 

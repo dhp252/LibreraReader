@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the features this fork adds to Librera. Kept out of strings.xml (like
+     strings_librerax.xml) so merges from upstream do not conflict with them. -->
+<resources>
+    <string name="tts_highlight_spoken_text">Highlight the sentence being read</string>
+    <string name="tts_double_tap_read_from_here">Double-tap a sentence to read from it</string>
+</resources>

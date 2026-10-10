@@ -75,6 +75,7 @@ import com.foobnix.pdf.search.activity.msg.NotifyAllFragments;
 import com.foobnix.pdf.search.view.CloseAppDialog;
 import com.foobnix.sys.TempHolder;
 import com.foobnix.tts.MessagePageNumber;
+import com.foobnix.tts.MessageTtsHighlight;
 import com.foobnix.tts.TTSControlsView;
 import com.foobnix.tts.TTSEngine;
 import com.foobnix.tts.TTSService;
@@ -433,6 +434,13 @@ public class DocumentWrapperUI {
             LOG.e(e);
         }
 
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onReadAloudChanged(MessageTtsHighlight event) {
+        if (dc != null) {
+            dc.redrawReadAloud();
+        }
     }
 
     public void onSingleTap() {
@@ -1505,6 +1513,9 @@ public class DocumentWrapperUI {
     }
 
     public void doDoubleTap(int x, int y) {
+        if (dc.readAloudFromTap(x, y)) {
+            return;
+        }
         if (dc.isMusicianMode()) {
             if (AppState.get().doubleClickAction1 == AppState.DOUBLE_CLICK_ADJUST_PAGE) {
                 dc.alignDocument();

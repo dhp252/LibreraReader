@@ -42,12 +42,17 @@ import com.foobnix.pdf.search.activity.msg.MovePageAction;
 import com.foobnix.pdf.search.activity.msg.TextWordsMessage;
 import com.foobnix.sys.ClickUtils;
 import com.foobnix.sys.TempHolder;
+import com.foobnix.tts.MessageTtsHighlight;
+import com.foobnix.tts.MessageTtsReadFrom;
+import com.foobnix.tts.TTSEngine;
+import com.foobnix.tts.TTSHighlight;
 
 import org.ebookdroid.core.codec.Annotation;
 import org.ebookdroid.core.codec.PageLink;
 import org.ebookdroid.droids.mupdf.codec.TextWord;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.util.Collections;
 import java.util.List;
@@ -279,6 +284,65 @@ public class PageImaveView extends View {
         invalidate();
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onReadAloudChanged(MessageTtsHighlight event) {
+        invalidate();
+    }
+
+    /** Marks the sentence being read aloud, see {@link TTSHighlight}. */
+    private void drawReadAloud(Canvas canvas) {
+        final TTSHighlight highlight = TTSHighlight.get();
+        if (!TTSHighlight.isEnabled() || !highlight.isActive()) {
+            return;
+        }
+        if (AppSP.get().isDouble) {
+            final int first = pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+            drawReadAloudBands(canvas, highlight.bandsFor(first, getPageText(1)), 1);
+            drawReadAloudBands(canvas, highlight.bandsFor(first + 1, getPageText(2)), 2);
+        } else {
+            drawReadAloudBands(canvas, highlight.bandsFor(pageNumber, getPageText(0)), 0);
+        }
+    }
+
+    private void drawReadAloudBands(Canvas canvas, List<RectF> bands, int number) {
+        for (RectF band : bands) {
+            canvas.drawRect(transform(band, number), TTSHighlight.get().paint());
+        }
+    }
+
+    /** While reading aloud, a double tap on a word continues reading from its sentence. */
+    private boolean readAloudFromTap(float x, float y) {
+        if (!AppState.get().isTTSDoubleTapRead || !TTSEngine.get().isPlaying() || AppSP.get().isCut) {
+            return false;
+        }
+        final RectF tr = new RectF();
+        imageMatrix().mapRect(tr);
+        final float[] f = new float[9];
+        imageMatrix().getValues(f);
+        final float scale = f[Matrix.MSCALE_X];
+        final float px = (x - tr.left) / scale;
+        final float py = (y - tr.top) / scale;
+
+        final int number = AppSP.get().isDouble ? (px < drawableWidth / 2 ? 1 : 2) : 0;
+        if (number == 0 && !isCropMappable(0)) {
+            return false;
+        }
+        final List<TextWord> words = TTSHighlight.words(getPageText(number));
+        final float slop = Dips.dpToPx(6) / scale;
+        for (int i = 0; i < words.size(); i++) {
+            final RectF wordRect = transform(words.get(i), number);
+            wordRect.inset(-slop, -slop);
+            if (wordRect.contains(px, py)) {
+                final int docPage = number == 0 ? pageNumber
+                        : pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0) + number - 1;
+                EventBus.getDefault().post(new MessageTtsReadFrom(docPage, TTSHighlight.anchorFrom(words, i),
+                        (float) i / words.size()));
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Subscribe
     public void onSelectTextByAnchors(MessagePageXY event) {
         if (pageNumber == event.getPage() && MessagePageXY.TYPE_SELECT_TEXT == event.getType()) {
@@ -423,6 +487,7 @@ public class PageImaveView extends View {
 //            }
 
             if (!AppSP.get().isCut && isCropMappable(0)) {
+                drawReadAloud(canvas);
 
                 paintWrods.setColor(AppState.get().isDayNotInvert ? Color.BLUE : Color.YELLOW);
                 paintWrods.setAlpha(60);
@@ -772,6 +837,11 @@ public class PageImaveView extends View {
             isIgronerClick = true;
             if (clickUtils.isClickCenter(e.getX(), e.getY())) {
                 isLognPress = true;
+
+                if (readAloudFromTap(e.getX(), e.getY())) {
+                    EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_DOUBLE_TAP, e.getX(), e.getY()));
+                    return true;
+                }
 
                 if (AppState.get().doubleClickAction1 == AppState.DOUBLE_CLICK_NOTHING) {
 
