@@ -37,6 +37,7 @@ import com.foobnix.pdf.info.TintUtil;
 import com.foobnix.sys.DoubleClickListener;
 import com.foobnix.ui2.MainTabs2;
 import com.foobnix.ui2.adapter.TabsAdapter2;
+import com.foobnix.webdav.WebDav;
 
 /**
  * To be used with ViewPager to provide a tab indicator component which give
@@ -344,7 +345,7 @@ public class SlidingTabLayout extends HorizontalScrollView {
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         LOG.d("onTouchEvent-ev", ev);
-        if (swipeRefreshLayout != null && AppSP.get().isEnableSync) {
+        if (swipeRefreshLayout != null && (AppSP.get().isEnableSync || WebDav.isEnabled(getContext()))) {
             final int action = ev.getAction();
 
             switch (action & MotionEvent.ACTION_MASK) {

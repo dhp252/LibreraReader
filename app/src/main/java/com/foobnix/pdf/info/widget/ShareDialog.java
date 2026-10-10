@@ -55,6 +55,7 @@ import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.FileMetaCore;
 import com.foobnix.ui2.MainTabs2;
 import com.foobnix.ui2.adapter.TabsAdapter2;
+import com.foobnix.webdav.WebDav;
 
 import org.ebookdroid.BookType;
 import org.ebookdroid.common.settings.books.SharedBooks;
@@ -343,7 +344,8 @@ public class ShareDialog {
             items.add(iconText(a, "\uD834\uDD1E", R.string.add_to_playlist));
         }
 
-        final boolean isSyncronized = AppsConfig.IS_FDROID || Clouds.isLibreraSyncFile(file);
+        // F-Droid has no Google Drive sync, but WebDAV sync uploads Librera/Books too
+        final boolean isSyncronized = (AppsConfig.IS_FDROID && !WebDav.isEnabled(a)) || Clouds.isLibreraSyncFile(file);
         if (!isSyncronized) {
             //items.add(a.getString(R.string.sync_book));
             items.add(iconText(a, "↻", R.string.sync_book));
@@ -512,7 +514,7 @@ public class ShareDialog {
                 } else if (!isSyncronized && which == i++) {
                     final File to = new File(AppProfile.SYNC_FOLDER_BOOKS, file.getName());
                     boolean result = IO.copyFile(file, to);
-                    if (result && AppSP.get().isEnableSync) {
+                    if (result && (AppSP.get().isEnableSync || WebDav.isEnabled(a))) {
 
                         AppDB.get()
                              .setIsSearchBook(file.getPath(), false);

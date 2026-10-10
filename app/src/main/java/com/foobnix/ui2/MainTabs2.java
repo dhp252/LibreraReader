@@ -81,6 +81,7 @@ import com.foobnix.ui2.fragment.PrefFragment2;
 import com.foobnix.ui2.fragment.RecentFragment2;
 import com.foobnix.ui2.fragment.SearchFragment2;
 import com.foobnix.ui2.fragment.UIFragment;
+import com.foobnix.webdav.WebDav;
 import com.foobnix.work.SearchAllBooksWorker;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.ump.ConsentDebugSettings;
@@ -180,7 +181,8 @@ public class MainTabs2 extends AdsFragmentActivity {
         if (a == null || swipeRefreshLayout == null) {
             return false;
         }
-        return AppSP.get().isEnableSync && GoogleSignIn.getLastSignedInAccount(a) != null && BookCSS.get().isSyncPullToRefresh;
+        final boolean drive = AppSP.get().isEnableSync && GoogleSignIn.getLastSignedInAccount(a) != null;
+        return (drive || WebDav.isEnabled(a)) && BookCSS.get().isSyncPullToRefresh;
     }
 
     public static void startActivity(Activity c, int tab) {

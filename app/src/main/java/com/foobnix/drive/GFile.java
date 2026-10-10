@@ -25,6 +25,7 @@ import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.BooksService;
 import com.foobnix.ui2.FileMetaCore;
+import com.foobnix.webdav.WebDav;
 import com.foobnix.work.SynctornizatoinWorker;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -1226,6 +1227,8 @@ public class GFile {
 
 
     public static void runSyncService(Activity a, boolean force) {
+        // WebDAV sync has its own switch and runs whether Google Drive sync is on or not
+        WebDav.runSyncService(a, force);
 
         try {
             if (AppSP.get().isEnableSync && !BooksService.isRunning) {

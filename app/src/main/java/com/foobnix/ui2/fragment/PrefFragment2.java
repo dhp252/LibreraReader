@@ -111,6 +111,7 @@ import com.foobnix.ui2.AdsFragmentActivity;
 import com.foobnix.ui2.BooksService;
 import com.foobnix.ui2.MainTabs2;
 import com.foobnix.ui2.MyContextWrapper;
+import com.foobnix.webdav.WebDavDialog;
 import com.foobnix.work.SearchAllBooksWorker;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.ump.ConsentForm;
@@ -263,6 +264,7 @@ public class PrefFragment2 extends UIFragment {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN) public void onSync(MessageSync msg) {
+        WebDavDialog.updatePreferences(getActivity(), inflate);
         if (AppSP.get().syncTime > 0) {
 
             final Date date = new Date(AppSP.get().syncTime);
@@ -366,6 +368,7 @@ public class PrefFragment2 extends UIFragment {
 
         inflate.findViewById(R.id.sectionSync)
                .setVisibility(AppsConfig.IS_FDROID ? View.GONE : View.VISIBLE);
+        WebDavDialog.bindPreferences(getActivity(), inflate);
         //inflate.findViewById(R.id.sectionSync).setVisibility(View.GONE);//TODO GDIVE need to fix
 
         section9 = inflate.findViewById(R.id.section9);

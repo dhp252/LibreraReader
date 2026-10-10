@@ -48,7 +48,7 @@ import okhttp3.ResponseBody;
  * with Basic or Digest authentication. Paths are relative to the root URL the client was made
  * with, use "/" and are not URL-encoded ("Books/Война и мир.epub").
  */
-public class WebDavClient {
+public class WebDavClient implements FolderSync.Remote {
 
     private static final String DAV = "DAV:";
     private static final MediaType XML = MediaType.parse("application/xml; charset=utf-8");
@@ -257,8 +257,23 @@ public class WebDavClient {
         }
     }
 
-    /** Creates the folder and its missing parents; existing folders are fine. */
+    /**
+     * Creates the folder and its missing parents below the root; existing folders are fine.
+     * {@code ""} creates the root folder itself (its parent must exist).
+     */
     public void mkdirs(String folder) throws IOException {
+        if (trimSlashes(folder).isEmpty()) {
+            if (!knownFolders.contains("")) {
+                final Request request = new Request.Builder().url(root).method("MKCOL", null).build();
+                try (Response response = http.newCall(request).execute()) {
+                    if (!response.isSuccessful() && response.code() != 405) {
+                        check(response, "MKCOL " + root);
+                    }
+                }
+                knownFolders.add("");
+            }
+            return;
+        }
         final String[] parts = trimSlashes(folder).split("/");
         final StringBuilder current = new StringBuilder();
         for (String part : parts) {
