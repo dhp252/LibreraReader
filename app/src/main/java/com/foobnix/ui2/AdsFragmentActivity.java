@@ -17,6 +17,7 @@ import com.foobnix.pdf.info.ADS;
 import com.foobnix.pdf.info.AppsConfig;
 import com.foobnix.pdf.info.IMG;
 import com.foobnix.pdf.info.R;
+import com.foobnix.pdf.info.wrapper.UITab;
 import com.foobnix.sys.TempHolder;
 import com.foobnix.tts.TTSEngine;
 import com.foobnix.tts.TTSNotification;
@@ -28,6 +29,26 @@ public abstract class AdsFragmentActivity extends FragmentActivity {
     Handler handler;
 
     boolean doubleBackToExitPressedOnce = false;
+
+    /**
+     * Set by a reader when back closes the book: back always leads to the library. A reader
+     * opened from another app (file manager, Zotero) or at app start has nothing of Librera
+     * under it, so the library is started as it finishes.
+     */
+    protected boolean backToLibrary;
+
+    @Override
+    public void finish() {
+        if (backToLibrary && !(this instanceof MainTabs2) && isTaskRoot()) {
+            backToLibrary = false;
+            try {
+                MainTabs2.startActivity(this, UITab.getCurrentTabIndex(UITab.SearchFragment));
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+        }
+        super.finish();
+    }
 
     public abstract void onFinishActivity();
 

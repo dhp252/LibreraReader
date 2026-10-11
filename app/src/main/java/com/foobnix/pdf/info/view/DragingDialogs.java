@@ -4019,6 +4019,9 @@ public class DragingDialogs {
                 });
 
                 CheckBox isShowLongBackDialog = inflate.findViewById(R.id.isShowLongBackDialog);
+                // back in a book always goes to the library now (the menu is on a long press),
+                // so the option has nothing left to switch
+                isShowLongBackDialog.setVisibility(View.GONE);
                 isShowLongBackDialog.setChecked(AppState.get().isShowLongBackDialog);
                 isShowLongBackDialog.setOnCheckedChangeListener(new OnCheckedChangeListener() {
                     @Override public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {

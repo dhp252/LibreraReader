@@ -426,14 +426,9 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
         }
 
         try {
-            if (AppState.get().isShowLongBackDialog) {
-                CloseAppDialog.showOnLongClickDialog(getController().getActivity(),
-                        null,
-                        getController().getListener());
-            } else {
-                //showInterstial();
-                getController().getListener().onCloseActivityAdnShowInterstial();
-            }
+            // back closes the book to the library; the close menu is on a long press of back
+            backToLibrary = true;
+            getController().getListener().onCloseActivityAdnShowInterstial();
         } catch (Exception e) {
             LOG.e(e);
         }

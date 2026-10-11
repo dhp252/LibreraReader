@@ -2747,11 +2747,9 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             return;
         }
 
-        if (AppState.get().isShowLongBackDialog) {
-            CloseAppDialog.showOnLongClickDialog(HorizontalViewActivity.this, null, dc);
-        } else {
-            showInterstitial();
-        }
+        // back closes the book to the library; the close menu is on a long press of back
+        backToLibrary = true;
+        showInterstitial();
     }
 
     @Override
