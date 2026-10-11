@@ -751,7 +751,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             }
             return;
         }
-        openBook(entry);
+        openBook(entry, false);
     }
 
     private void onLongClick(final FileMeta item) {
@@ -764,6 +764,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         final boolean onDevice = local != null && local.isFile();
         final List<String> actions = new ArrayList<>();
         actions.add(a.getString(R.string.webdav_open));
+        actions.add(a.getString(R.string.open_with));
         if (onDevice) {
             actions.add(a.getString(R.string.webdav_remove_local));
         }
@@ -774,7 +775,9 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                 .setItems(actions.toArray(new String[0]), (d, which) -> {
                     final String action = actions.get(which);
                     if (action.equals(a.getString(R.string.webdav_open))) {
-                        openBook(entry);
+                        openBook(entry, false);
+                    } else if (action.equals(a.getString(R.string.open_with))) {
+                        openBook(entry, true);
                     } else if (action.equals(a.getString(R.string.webdav_remove_local))) {
                         // only the downloaded copy: the next sync keeps the server file (on demand)
                         if (!local.delete()) {
@@ -817,8 +820,12 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                 .show();
     }
 
-    /** Opens the local copy, downloading it first when this device has none yet. */
-    private void openBook(final WebDavClient.Entry entry) {
+    /**
+     * Opens the local copy, downloading it first when this device has none yet.
+     *
+     * @param otherApp in an app the reader picks (Android's "Open with") instead of Librera
+     */
+    private void openBook(final WebDavClient.Entry entry, final boolean otherApp) {
         final Activity a = getActivity();
         if (a == null || downloading) {
             return;
@@ -826,7 +833,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         final FolderSync books = WebDav.books(a, WebDavCovers.sharedClient(a));
         final File local = books.localFileOf(entry);
         if (local != null && local.isFile()) {
-            ExtUtils.showDocumentWithoutDialog(a, local, null);
+            show(a, local, otherApp);
             return;
         }
         downloading = true;
@@ -839,13 +846,21 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                 ui(() -> {
                     setStatus(null);
                     populate();
-                    ExtUtils.showDocumentWithoutDialog(getActivity(), downloaded, null);
+                    show(getActivity(), downloaded, otherApp);
                 });
             } finally {
                 downloading = false;
                 ui(() -> MyProgressBar.setVisibility(View.GONE));
             }
         });
+    }
+
+    private static void show(Activity a, File book, boolean otherApp) {
+        if (otherApp) {
+            ExtUtils.openWith(a, book);
+        } else {
+            ExtUtils.showDocumentWithoutDialog(a, book, null);
+        }
     }
 
     private void ui(Runnable r) {
