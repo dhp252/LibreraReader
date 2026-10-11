@@ -53,13 +53,24 @@ public class CurlTurn implements VerticalViewPager.CurlHost, CurlView.Listener {
         updateVisibility();
     }
 
-    /** The curl view exists only in the curl style, so the other styles pay nothing for it. */
+    /**
+     * The curl view exists only in the curl style, so the other styles pay nothing for it. In
+     * that style the pager also keeps two pages each side: a curl moves the pager only when it
+     * lands, so with one the page after it would just start loading, and a turn soon after
+     * would find no picture and slide instead (every other turn).
+     */
     public void updateVisibility() {
-        int visibility = isCurlStyle() ? View.VISIBLE : View.GONE;
+        boolean curlStyle = isCurlStyle();
+        int visibility = curlStyle ? View.VISIBLE : View.GONE;
         if (curl.getVisibility() != visibility) {
             curl.setVisibility(visibility);
         }
+        if (curlStyle && pager.getOffscreenPageLimit() < CURL_PAGES_AROUND) {
+            pager.setOffscreenPageLimit(CURL_PAGES_AROUND);
+        }
     }
+
+    private static final int CURL_PAGES_AROUND = 2;
 
     private boolean isCurlStyle() {
         return !glFailed && pager.turnStyle() == PageTurn.STYLE_CURL;
