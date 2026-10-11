@@ -33,6 +33,7 @@ import com.foobnix.ui2.adapter.FileMetaAdapter;
 import com.foobnix.webdav.FolderSync;
 import com.foobnix.webdav.WebDav;
 import com.foobnix.webdav.WebDavClient;
+import com.foobnix.webdav.WebDavCoverMaker;
 import com.foobnix.webdav.WebDavCovers;
 import com.foobnix.webdav.WebDavDialog;
 
@@ -51,7 +52,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * The books on the WebDAV server (its Books folder), shown like the local ones: covers in the
  * Folders tab's grid or list. A book is downloaded into Librera/Books when first opened; one already
  * on this device is shown and opened as the local book it is. Covers of server-only books come
- * from the server ({@link WebDavCovers}).
+ * from the server ({@link WebDavCovers}); a book with none gets one made while it is shown
+ * ({@link WebDavCoverMaker}).
  */
 public class WebDavFragment2 extends UIFragment<FileMeta> {
 
@@ -76,6 +78,9 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     private final Map<String, WebDavClient.Entry> entries = new ConcurrentHashMap<>();
     private volatile boolean downloading;
     private int mode = -1;
+    private final WebDavCoverMaker coverMaker = new WebDavCoverMaker();
+    /** The tab is on screen (selected and resumed): covers are made only then. */
+    private volatile boolean shown;
 
     @Override
     public Pair<Integer, Integer> getNameAndIconRes() {
@@ -284,12 +289,82 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         adapter.getItemsList().addAll(items);
         adapter.notifyDataSetChanged();
         showFolder();
+        makeMissingCovers();
         if (error != null) {
             setStatus(error);
         } else if (items.isEmpty()) {
             setStatus(getString(WebDav.BOOKS.equals(folder) ? R.string.webdav_empty : R.string.webdav_folder_empty));
         } else {
             setStatus(null);
+        }
+    }
+
+    /** Starts making the covers the books shown lack (replacing a run for another folder). */
+    private void makeMissingCovers() {
+        final Activity a = getActivity();
+        if (a == null || adapter == null || !shown || !WebDav.isEnabled(a)) {
+            coverMaker.stop();
+            return;
+        }
+        final List<WebDavClient.Entry> todo = new ArrayList<>();
+        for (FileMeta item : adapter.getItemsList()) {
+            if (WebDavCovers.isItem(item.getPath()) && !WebDavCovers.isFolderItem(item.getPath())
+                    && !WebDavCovers.hasCover(item.getPath())) {
+                final WebDavClient.Entry entry = entries.get(item.getPath());
+                if (entry != null) {
+                    todo.add(entry);
+                }
+            }
+        }
+        if (todo.isEmpty()) {
+            coverMaker.stop();
+            return;
+        }
+        final String madeFor = folder;
+        coverMaker.start(a, todo, () -> shown && madeFor.equals(folder), (book, cover) -> ui(() -> onCoverMade(book, cover)));
+    }
+
+    /** A cover was made: the book's item gets the new cover tag, so Glide fetches the cover. */
+    private void onCoverMade(WebDavClient.Entry book, WebDavClient.Entry cover) {
+        final List<FileMeta> items = adapter.getItemsList();
+        for (int i = 0; i < items.size(); i++) {
+            final String path = items.get(i).getPath();
+            if (WebDavCovers.isItem(path) && !WebDavCovers.isFolderItem(path)
+                    && book.path.equals(WebDavCovers.serverPathOf(path))) {
+                final FileMeta item = remoteBook(book, cover);
+                entries.remove(path);
+                entries.put(item.getPath(), book);
+                items.set(i, item);
+                adapter.notifyItemChanged(i);
+                return;
+            }
+        }
+    }
+
+    @Override
+    public void onTabShown(boolean selected) {
+        setShown(selected && isResumed());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        setShown(getActivity() instanceof MainTabs2 && ((MainTabs2) getActivity()).isCurrentTab(this));
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        setShown(false);
+    }
+
+    private void setShown(boolean now) {
+        final boolean was = shown;
+        shown = now;
+        if (now && !was) {
+            makeMissingCovers();
+        } else if (!now) {
+            coverMaker.stop();
         }
     }
 

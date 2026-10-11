@@ -385,6 +385,10 @@ public abstract class UIFragment<T> extends Fragment {
         handler.removeCallbacksAndMessages(null);
     }
 
+    /** The main screen switched tabs: {@code selected} is true for the tab now shown. */
+    public void onTabShown(boolean selected) {
+    }
+
     public boolean isBackPressed() {
         return false;
     }

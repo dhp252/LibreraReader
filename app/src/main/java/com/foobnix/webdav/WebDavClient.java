@@ -209,6 +209,15 @@ public class WebDavClient implements FolderSync.Remote {
 
     /** Downloads to a temporary file next to {@code target} and renames it, so a broken transfer never leaves half a file. */
     public void download(String path, File target) throws IOException {
+        download(path, target, null);
+    }
+
+    /** Asked between chunks of a download: true stops it (an IOException, no file left). */
+    public interface Cancel {
+        boolean isCancelled();
+    }
+
+    public void download(String path, File target, Cancel cancel) throws IOException {
         final Request request = new Request.Builder().url(url(path, false)).get().build();
         final File parent = target.getAbsoluteFile().getParentFile();
         if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.exists()) {
@@ -225,6 +234,9 @@ public class WebDavClient implements FolderSync.Remote {
                 final byte[] buffer = new byte[64 * 1024];
                 int read;
                 while ((read = in.read(buffer)) != -1) {
+                    if (cancel != null && cancel.isCancelled()) {
+                        throw new IOException("GET " + path + ": cancelled");
+                    }
                     out.write(buffer, 0, read);
                 }
             }

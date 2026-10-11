@@ -38,7 +38,7 @@ public class WebDavCovers {
 
     public static final String PREFIX = "webdav:";
     static final String COVERS = WebDav.BOOKS + "/.covers";
-    private static final String JPG = ".jpg";
+    static final String JPG = ".jpg";
     /** Cover tag of a folder item. */
     private static final String FOLDER = "d";
     /** Cover tag of a book with no cover on the server. */
@@ -107,7 +107,7 @@ public class WebDavCovers {
         return item.substring(item.indexOf(':', PREFIX.length()) + 1);
     }
 
-    static boolean hasCover(String item) {
+    public static boolean hasCover(String item) {
         return isItem(item) && !isFolderItem(item) && !item.startsWith(PREFIX + NONE + ":");
     }
 
@@ -206,7 +206,7 @@ public class WebDavCovers {
     }
 
     /** The cover of a local book as a JPEG; false when the book could not be opened. */
-    private static boolean render(Context c, File book, File jpg) throws IOException {
+    static boolean render(Context c, File book, File jpg) throws IOException {
         final Bitmap cover;
         try {
             cover = ImageExtractor.getInstance(c).coverForSharing(book.getPath(), WIDTH);
@@ -297,7 +297,7 @@ public class WebDavCovers {
         return client;
     }
 
-    private static Set<String> readLines(File file) {
+    static Set<String> readLines(File file) {
         final TreeSet<String> lines = new TreeSet<>();
         if (!file.isFile()) {
             return lines;
@@ -315,7 +315,7 @@ public class WebDavCovers {
         return lines;
     }
 
-    private static void writeLines(File file, Set<String> lines) throws IOException {
+    static void writeLines(File file, Set<String> lines) throws IOException {
         final File parent = file.getAbsoluteFile().getParentFile();
         if (parent != null) {
             parent.mkdirs();

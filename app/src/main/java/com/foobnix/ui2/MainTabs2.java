@@ -130,6 +130,9 @@ public class MainTabs2 extends AdsFragmentActivity {
         public void onPageSelected(int pos) {
             uiFragment = tabFragments.get(pos);
             uiFragment.onSelectFragment();
+            for (UIFragment fragment : tabFragments) {
+                fragment.onTabShown(fragment == uiFragment);
+            }
             TempHolder.get().currentTab = pos;
 
             LOG.d("onPageSelected", uiFragment);
@@ -294,6 +297,15 @@ public class MainTabs2 extends AdsFragmentActivity {
                 swipeRefreshLayout.setEnabled(false);
                 AppSP.get().save();
             });
+        }
+    }
+
+    /** {@code fragment} is the tab on screen. */
+    public boolean isCurrentTab(UIFragment fragment) {
+        try {
+            return pager != null && tabFragments != null && tabFragments.get(pager.getCurrentItem()) == fragment;
+        } catch (Exception e) {
+            return false;
         }
     }
 

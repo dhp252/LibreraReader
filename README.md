@@ -217,6 +217,10 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   sync on the device that has the books, the other device shows their covers, with a cloud mark
   on books that aren't downloaded. Open one: it downloads, opens, and then shows as a local book.
   Also check long-press > Remove from this device, the back key in a subfolder, and pull to refresh.
+  Books copied to the server from a computer get their cover while the tab shows them (each is
+  downloaded once, then its cover is shared with every device; books over 50 MB keep the title).
+- **Back in a book**: back closes the book and shows the library, also for a book opened from a
+  file manager or another app. A long press of back still shows the close menu.
 - **AI**: tap ✦ in the top bar, then AI settings:
   - Claude: an API key (model `claude-opus-5-5` by default).
   - OpenAI-compatible: server URL, model, and a key if the server needs one.
