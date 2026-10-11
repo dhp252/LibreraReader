@@ -10,6 +10,155 @@ Librera Reader is an e-book reader for Android devices;
 it supports the following formats: PDF, EPUB, EPUB3, MOBI, DjVu, FB2, TXT, RTF, AZW, AZW3, HTML, CBZ, CBR, DOC, DOCX,
 and OPDS Catalogs
 
+# This fork: build and test
+
+This fork adds to upstream Librera:
+- the sentence being read aloud is highlighted, and double-tapping a sentence reads from there;
+- an annotation toolbar for PDFs (highlight, underline, strikethrough, pen, eraser, undo);
+- WebDAV sync of books and reading state;
+- AI chapter and book summaries, and AI-picked key passages (Claude or an OpenAI-compatible server).
+
+The instructions below build the `fdroid` flavor, which has no Google services, on Linux. On
+Windows, run them in WSL (Ubuntu 24.04).
+
+## 1. One-time setup
+
+```bash
+# tools (the X11/GL headers are needed by MuPDF's host build)
+sudo apt-get install -y build-essential pkg-config git zip unzip openjdk-21-jdk-headless \
+  mesa-common-dev libxcursor-dev libxrandr-dev libxinerama-dev libglu1-mesa-dev libxi-dev libgl-dev
+
+# Android SDK command-line tools in ~/Android/Sdk/cmdline-tools/latest, then the NDK
+~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$HOME/Android/Sdk "ndk;28.2.13676358"
+echo "sdk.dir=$HOME/Android/Sdk" > local.properties
+
+# a signing key (an installed APK only updates over an APK signed with the same key: back it up)
+keytool -genkeypair -storetype PKCS12 -keystore ~/.android/librera-release.p12 -alias librera \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+`app/build.gradle` reads these properties even for debug builds. Put them in `~/.gradle/gradle.properties`:
+
+```properties
+librera_ndk_dir=/home/YOU/Android/Sdk/ndk/28.2.13676358
+librera_java_home=/usr/lib/jvm/java-21-openjdk-amd64
+RELEASE_STORE_FILE=/home/YOU/.android/librera-release.p12
+RELEASE_STORE_PASSWORD=...
+RELEASE_KEY_ALIAS=librera
+RELEASE_KEY_PASSWORD=...
+# empty is fine for fdroid: pro_appGdriveKey, and for each flavor librera, pdf_classic, ebooka,
+# pdf_v2, tts_reader, epub_reader: <flavor>_appGdriveKey, <flavor>_admobAppId,
+# <flavor>_admobBannerId, <flavor>_admobFullId, <flavor>_admobRewardId
+pro_appGdriveKey=
+librera_appGdriveKey=
+# ... and the rest of the list above
+```
+
+On Windows, keep the checkout's shell scripts in LF, or the native build fails with `$'\r': command not found`:
+
+```bash
+git config core.autocrlf false   # or convert gradlew, *.sh, *.mk and Makefile* to LF
+```
+
+## 2. Build the native library (MuPDF), once
+
+```bash
+cd Builder
+./link_to_mupdf_1.28.5.sh      # clones MuPDF 1.28.5, builds libMuPDF.so into app/src/main/jniLibs
+cd ..
+```
+
+Run it again only after changing `Builder/jni`. Without `libMuPDF.so` the app still builds but
+cannot open any book, so check that the APK contains it (step 3).
+
+## 3. Build the APK
+
+```bash
+./gradlew assembleFdroidDebug          # or assembleFdroidRelease (minified, signed with the key above)
+unzip -l "app/build/outputs/apk/fdroid/debug/"*arm64.apk | grep libMuPDF.so
+adb install -r "app/build/outputs/apk/fdroid/debug/"*arm64.apk
+```
+
+The APKs land in `app/build/outputs/apk/fdroid/debug/`: one per ABI, and `-uni` holds all four.
+`-arm64` fits most phones.
+
+On the maintainer's machine, two helper scripts do steps 1 to 3 from Windows. They live outside
+the repo, in `.agents/skills/dev-build-apk/scripts/`:
+- `setup_wsl_env.sh` runs once;
+- `build_apk.sh [flavor] [debug|release] [--native] [--tests=pattern,...]` mirrors the tree to
+  the WSL disk, builds, runs the tests, and checks every APK for `libMuPDF.so`.
+
+## 4. Run the unit tests
+
+JVM tests, no device needed:
+
+```bash
+./gradlew testFdroidDebugUnitTest                                   # everything
+./gradlew testFdroidDebugUnitTest --tests 'com.foobnix.ai.*' \
+                                  --tests 'com.foobnix.tts.*' \
+                                  --tests 'com.foobnix.webdav.*'    # the fork's tests
+```
+
+Reports are written to `app/build/reports/tests/testFdroidDebugUnitTest/index.html`.
+
+| Package | Covers |
+|---------|--------|
+| `com.foobnix.tts` | finding the spoken sentence on the page; where reading restarts after a double tap |
+| `com.foobnix.webdav` | two-way folder sync (conflicts, deletions, mass-deletion guard), WebDAV client |
+| `com.foobnix.ai` | quote matching, per-book AI store, TOC chapters, prompts, Claude/OpenAI request and stream parsing |
+
+`WebDavServerTest` runs against a real WebDAV server and is skipped when there is none. To run
+it, start a local one ([wsgidav](https://github.com/mar10/wsgidav)) and advertise it in
+`/tmp/librera-webdav-test.txt`:
+
+```bash
+python3 -m venv ~/venvs/wsgidav && ~/venvs/wsgidav/bin/pip install wsgidav cheroot
+mkdir -p /tmp/librera-dav-root
+cat > ~/wsgidav-test.yaml <<'EOF'
+host: 127.0.0.1
+port: 8090
+provider_mapping:
+  "/dav": /tmp/librera-dav-root
+http_authenticator:
+  accept_basic: true
+  accept_digest: true
+  default_to_digest: true
+simple_dc:
+  user_mapping:
+    "*":
+      "tester":
+        password: "s3cret"
+EOF
+~/venvs/wsgidav/bin/wsgidav --config ~/wsgidav-test.yaml &
+printf 'http://127.0.0.1:8090/dav\ntester\ns3cret\n' > /tmp/librera-webdav-test.txt
+```
+
+## 5. Check on a device
+
+Unit tests cover the logic; the screens need a phone or tablet. After installing:
+
+- **TTS**: start read-aloud. The spoken sentence is highlighted, and a double tap on another
+  sentence continues from there. Try both paged and scroll mode (switches in the TTS dialog).
+- **PDF annotation**: open a PDF and tap the edit button in the top bar. Highlight, underline,
+  strike, draw, erase and undo. Close the book (it asks to save, unless saving is automatic),
+  reopen it and check the annotations are still there.
+- **WebDAV**: Preferences > WebDAV sync. Enter the server and Test it. Read a few pages, sync,
+  then open the same book on a second device and check that it continues there. Under
+  "Books on WebDAV", open a book that is only on the server.
+- **AI**: tap ✦ in the top bar, then AI settings:
+  - Claude: an API key (model `claude-opus-5-5` by default).
+  - OpenAI-compatible: server URL, model, and a key if the server needs one.
+  - Tap Test.
+  
+  Then try:
+  - "Summary of this chapter": it streams in, and opening it again is instant.
+  - "Highlight key passages > This chapter": passages appear in their own color.
+  - Show/hide and Remove.
+  - On a PDF, "Save AI highlights into PDF".
+
+  The key stays on the device and is never synced or backed up. Book text is sent only when
+  you use an AI action.
+
 # Download application
 
 [Librera on Google Play](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
