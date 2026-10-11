@@ -26,7 +26,6 @@ public class WebDavDialog {
         TintUtil.setSectionFillColor(header, TintUtil.color);
         root.findViewById(R.id.webdavSettings).setOnClickListener(v -> show(a, () -> updatePreferences(a, root)));
         root.findViewById(R.id.webdavSyncNow).setOnClickListener(v -> WebDav.runSyncService(a, true));
-        root.findViewById(R.id.webdavBooks).setOnClickListener(v -> WebDavFragment2.open(a));
         updatePreferences(a, root);
     }
 
@@ -47,7 +46,6 @@ public class WebDavDialog {
             status.setText(last.isEmpty() ? url : url + "\n" + last);
         }
         root.findViewById(R.id.webdavSyncNow).setVisibility(enabled ? View.VISIBLE : View.GONE);
-        root.findViewById(R.id.webdavBooks).setVisibility(enabled ? View.VISIBLE : View.GONE);
     }
 
     /** Server, user, password and the on/off switch, with a connection test. */

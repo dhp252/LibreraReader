@@ -24,7 +24,6 @@
     <string name="webdav_not_set_up">Not set up</string>
     <string name="webdav_off">Off</string>
     <string name="webdav_settings">Settings</string>
-    <string name="webdav_books">Books on WebDAV</string>
     <string name="webdav_help">The folder keeps the Librera sync data: a profile folder per profile, and Books. Books you add to sync (Librera/Books) are uploaded; books on the server are only downloaded when you open them.</string>
     <string name="webdav_url_hint">https://example.com/remote.php/dav/files/USER/Librera</string>
     <string name="webdav_enable">Sync with this server</string>

@@ -3,7 +3,6 @@ package com.foobnix.ui2.fragment;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -19,9 +18,6 @@ import android.widget.TextView;
 
 import androidx.core.graphics.ColorUtils;
 import androidx.core.util.Pair;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.foobnix.android.utils.LOG;
@@ -132,28 +128,6 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         return PAIR;
     }
 
-    /** Settings > "Books on WebDAV": the tab, shown first if it was hidden. */
-    public static void open(Activity a) {
-        if (!WebDav.isEnabled(a)) {
-            WebDavDialog.show(a, null);
-            return;
-        }
-        if (!(a instanceof MainTabs2) || !isTabShown()) {
-            showTab(a);
-            return;
-        }
-        try {
-            final DrawerLayout drawer = a.findViewById(R.id.drawer_layout);
-            if (drawer != null && drawer.isDrawerOpen(GravityCompat.START)) {
-                drawer.closeDrawer(GravityCompat.START);
-            }
-        } catch (Exception e) {
-            LOG.e(e);
-        }
-        LocalBroadcastManager.getInstance(a).sendBroadcast(new Intent(UIFragment.INTENT_TINT_CHANGE)
-                .putExtra(MainTabs2.EXTRA_PAGE_NUMBER, UITab.getCurrentTabIndex(UITab.WebDavFragment)));
-    }
-
     /** Puts the tab back in the tab bar and restarts the main screen on it, as the tab settings do. */
     public static void showTab(Activity a) {
         UITab.show(UITab.WebDavFragment);
@@ -176,15 +150,6 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         AppProfile.clear();
         a.finish();
         MainTabs2.startActivity(a, tab);
-    }
-
-    private static boolean isTabShown() {
-        for (UITab tab : UITab.getOrdered()) {
-            if (tab == UITab.WebDavFragment) {
-                return tab.isVisible();
-            }
-        }
-        return false;
     }
 
     @Override
