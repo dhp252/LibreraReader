@@ -197,6 +197,21 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
         Android6.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
     }
 
+    /** A stylus draws on the page before the page sees it; a palm under the writing hand is dropped (AnnotationSession). */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (com.foobnix.annotation.AnnotationSession.onTouch(this, ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent ev) {
+        com.foobnix.annotation.AnnotationSession.onHover(this, ev);
+        return super.dispatchGenericMotionEvent(ev);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();

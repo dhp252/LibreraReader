@@ -468,6 +468,8 @@ public class AppState {
     @IgnoreHashCode public String annotUnderlineColor = "#2ea8e5";
     @IgnoreHashCode public String annotStrikeoutColor = "#ff6666";
     @IgnoreHashCode public String annotPenColor = "#ff6666";
+    // what a stylus draws with when no toolbar tool is picked (com.foobnix.annotation.StylusRules.SETTING_*)
+    public int stylusTool = 1;
 
     public String displayPath = AppProfile.DOWNLOADS_DIR.getPath();
 

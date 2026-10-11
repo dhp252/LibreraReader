@@ -23,6 +23,7 @@ import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
@@ -1634,6 +1635,21 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         }
     }
 
+    /** A stylus draws on the page before the page sees it; a palm under the writing hand is dropped (AnnotationSession). */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (com.foobnix.annotation.AnnotationSession.onTouch(this, ev)) {
+            return true;
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    @Override
+    public boolean dispatchGenericMotionEvent(MotionEvent ev) {
+        com.foobnix.annotation.AnnotationSession.onHover(this, ev);
+        return super.dispatchGenericMotionEvent(ev);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -1872,6 +1888,13 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
                 return annotationPagePoints(viewPoints);
             }
 
+            /** The page view selects in its own coordinates. */
+            @Override
+            public boolean selectTextBetween(float x1, float y1, float x2, float y2) {
+                final int[] d = annotationPageOffset();
+                return super.selectTextBetween(x1 + d[0], y1 + d[1], x2 + d[0], y2 + d[1]);
+            }
+
             @Override
             public void onPageAnnotationsChanged(int page) {
                 redrawAnnotatedPage(page);
@@ -1993,6 +2016,21 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         }
         ai.setOnClickListener(v -> AiMenu.show(this, v, dc));
         AiHighlights.get().open(this, dc.getCurrentBook().getPath());
+    }
+
+    /** How far the page shown sits from the DrawView: add to a DrawView point for the page view's. */
+    private int[] annotationPageOffset() {
+        final ImagePageFragment fragment = (ImagePageFragment) getSupportFragmentManager()
+                .findFragmentByTag("f" + viewPager.getCurrentItem());
+        final PageImaveView page = fragment == null ? null : fragment.getImage();
+        if (page == null || annotationDrawView == null) {
+            return new int[]{0, 0};
+        }
+        final int[] from = new int[2];
+        final int[] to = new int[2];
+        annotationDrawView.getLocationOnScreen(from);
+        page.getLocationOnScreen(to);
+        return new int[]{from[0] - to[0], from[1] - to[1]};
     }
 
     /** DrawView points to points on the page shown (see PageImaveView.toPagePoints). */

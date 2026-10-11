@@ -411,6 +411,8 @@
 
         <include layout="@layout/include_page_turn" />
 
+        <include layout="@layout/include_stylus" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">

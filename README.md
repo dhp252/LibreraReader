@@ -14,7 +14,7 @@ and OPDS Catalogs
 
 This fork adds to upstream Librera:
 - the sentence being read aloud is highlighted, and double-tapping a sentence reads from there;
-- an annotation toolbar for PDFs (highlight, underline, strikethrough, pen, eraser, undo);
+- an annotation toolbar for PDFs (highlight, underline, strikethrough, pen, eraser, undo), and a stylus that draws at once (pen with pressure, highlighter, eraser end);
 - WebDAV sync of books and reading state;
 - AI chapter and book summaries, and AI-picked key passages (Claude or an OpenAI-compatible server).
 
@@ -210,6 +210,13 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
 - **PDF annotation**: open a PDF and tap the edit button in the top bar. Highlight, underline,
   strike, draw, erase and undo. Close the book (it asks to save, unless saving is automatic),
   reopen it and check the annotations are still there.
+- **Stylus** (a phone or tablet with an active pen): open a PDF without opening the toolbar and
+  write with the pen: it draws at once, thinner or bolder with pressure, while a finger still turns
+  pages. Rest your palm while writing: nothing happens. Set "Stylus draws with" to Highlighter
+  (reader menu > advanced preferences) and drag over a line of text (a clean highlight) and over a
+  picture (a see-through band). Hold the side button: the other tool. Tap a mark with the eraser
+  end (if the pen has one). Undo after a pressure stroke removes all of it. Save, reopen in another
+  PDF reader, check the marks are there.
 - **WebDAV**: Preferences > WebDAV sync. Enter the server and Test it. Read a few pages, sync,
   then open the same book on a second device and check that it continues there.
 - **WebDAV tab**: once WebDAV sync is on, a WebDAV tab appears in the tab bar. It shows the server's Books folder in the Folders tab's grid or list. After a

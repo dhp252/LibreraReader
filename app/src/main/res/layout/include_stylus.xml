@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What a stylus draws with on a PDF when no annotation tool is picked (StylusSettings). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/stylusSettings"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:layout_width="180dip"
+        android:layout_height="wrap_content"
+        android:singleLine="true"
+        android:text="@string/stylus_draws"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/stylusTool"
+        style="@style/textLink"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/stylus_pen" />
+</LinearLayout>

@@ -327,18 +327,89 @@ public class VerticalModeController extends DocumentController {
 
     @Override
     public boolean undoLastAnnotation() {
-        final int[] last = popCreatedAnnotation();
-        if (last == null || ctr == null || ctr.getDocumentModel() == null) {
+        final List<int[]> group = popCreatedGroup();
+        if (group.isEmpty() || ctr == null || ctr.getDocumentModel() == null) {
             return false;
         }
-        final Page page = ctr.getDocumentModel().getPageByDocIndex(last[0]);
-        // the newest annotation is only ours while the page still has the count it had after it
-        if (page == null || page.annotations == null || page.annotations.size() != last[1]) {
-            return false;
+        // the deletions land later: count those already asked for on each page
+        final Map<Integer, Integer> asked = new HashMap<>();
+        boolean any = false;
+        for (int[] last : group) {
+            final Page page = ctr.getDocumentModel().getPageByDocIndex(last[0]);
+            final int before = asked.containsKey(last[0]) ? asked.get(last[0]) : 0;
+            // the newest annotation is only ours while the page still has the count it had after it
+            if (page == null || page.annotations == null || page.annotations.size() - before != last[1]) {
+                continue;
+            }
+            final Annotation newest = page.annotations.get(last[1] - 1);
+            deleteAnnotation(newest.getPageHandler(), newest.getPage(), newest.getIndex());
+            asked.put(last[0], before + 1);
+            any = true;
         }
-        final Annotation newest = page.annotations.get(last[1] - 1);
-        deleteAnnotation(newest.getPageHandler(), newest.getPage(), newest.getIndex());
-        return true;
+        return any;
+    }
+
+    @Override
+    public List<PagePoint> toPageUnits(List<PointF> drawPoints) {
+        if (ctr == null || ctr.getDocumentModel() == null || ctr.getDocumentController() == null) {
+            return null;
+        }
+        final float zoom = ctr.getZoomModel().getZoom();
+        final int scrollX = ctr.getDocumentController().getView().getScrollX();
+        final int scrollY = ctr.getDocumentController().getView().getScrollY();
+        final int first = ctr.getDocumentController().getFirstVisiblePage();
+        final int last = ctr.getDocumentController().getLastVisiblePage() + 1;
+        final List<PagePoint> out = new ArrayList<>(drawPoints.size());
+        for (PointF p : drawPoints) {
+            PagePoint found = null;
+            for (Page page : ctr.getDocumentModel().getPages(first, last)) {
+                final RectF bounds = page.getBounds(zoom);
+                final float x = p.x + scrollX;
+                final float y = p.y + scrollY;
+                if (!bounds.contains(x, y)) {
+                    continue;
+                }
+                // as saveChanges: the box on screen, then the full page under a crop
+                float normX = (x - bounds.left) / bounds.width();
+                float normY = (y - bounds.top) / bounds.height();
+                float shownWidth = 1;
+                final RectF crop = page.getCroppedBounds();
+                if (crop != null) {
+                    normX = crop.left + normX * crop.width();
+                    normY = crop.top + normY * crop.height();
+                    shownWidth = crop.width();
+                }
+                found = new PagePoint(page.index.docIndex, new PointF(normX * page.cpi.width, normY * page.cpi.height),
+                        page.cpi.width * shownWidth / bounds.width());
+                break;
+            }
+            out.add(found);
+        }
+        return out;
+    }
+
+    @Override
+    public void addInk(final int page, List<PointF[]> arcs, int color, float width) {
+        if (ctr == null || ctr.getDecodeService() == null || arcs.isEmpty()) {
+            return;
+        }
+        final int group = annotationGroup();
+        ctr.getDecodeService().addInk(page, arcs.toArray(new PointF[0][]), color, width, AppState.get().editAlphaColor,
+                new ResultResponse<Pair<Integer, List<Annotation>>>() {
+                    @Override
+                    public boolean onResultRecive(Pair<Integer, List<Annotation>> p) {
+                        ctr.getDocumentModel().getPageObject(p.first).annotations = p.second;
+                        ctr.getDocumentController().toggleRenderingEffects();
+                        recordCreatedAnnotation(p.first, p.second == null ? 0 : p.second.size(), group);
+                        return false;
+                    }
+                });
+    }
+
+    /** The scroll view takes the first point as a selection anchor's corner (AdvGuestureDetector). */
+    @Override
+    public boolean selectTextBetween(float x1, float y1, float x2, float y2) {
+        return super.selectTextBetween(x1 + Dips.DP_36, y1 + Dips.DP_36 / 2f, x2, y2);
     }
 
     @Override

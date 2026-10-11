@@ -222,6 +222,10 @@ public class DecodeServiceStub implements DecodeService {
 	}
 
     @Override
+    public void addInk(int page, PointF[][] arcs, int color, float width, float alpha, ResultResponse<Pair<Integer, List<Annotation>>> resultResponse) {
+    }
+
+    @Override
     public String getFooterNote(String text, String chapter) {
         return "";
     }

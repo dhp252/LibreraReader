@@ -73,6 +73,8 @@ import org.ebookdroid.core.codec.PageLink;
 
 import java.io.File;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -1064,24 +1066,103 @@ public abstract class DocumentController {
     public void redrawReadAloud() {
     }
 
-    /** Annotations made while this book is open, newest first: {document page, annotation count of the page right after}. */
+    /**
+     * Annotations made while this book is open, newest first: {document page, annotation count of
+     * the page right after, undo group}. Annotations of one group (the pieces of one stylus
+     * stroke) are undone together.
+     */
     private final ArrayDeque<int[]> createdAnnotations = new ArrayDeque<>();
+    private final AtomicInteger annotationGroups = new AtomicInteger();
+    private volatile int openAnnotationGroup;
+
+    /** The annotations asked for until {@link #endAnnotationGroup} are undone as one. */
+    public void beginAnnotationGroup() {
+        openAnnotationGroup = annotationGroups.incrementAndGet();
+    }
+
+    public void endAnnotationGroup() {
+        openAnnotationGroup = 0;
+    }
+
+    /**
+     * The undo group of an annotation asked for now: the open group, or one of its own. Taken
+     * when the change is asked for, since it is made and recorded later on another thread.
+     */
+    protected int annotationGroup() {
+        final int open = openAnnotationGroup;
+        return open != 0 ? open : annotationGroups.incrementAndGet();
+    }
 
     protected void recordCreatedAnnotation(int docPage, int countAfter) {
+        recordCreatedAnnotation(docPage, countAfter, annotationGroups.incrementAndGet());
+    }
+
+    protected void recordCreatedAnnotation(int docPage, int countAfter, int group) {
         synchronized (createdAnnotations) {
-            createdAnnotations.push(new int[]{docPage, countAfter});
+            createdAnnotations.push(new int[]{docPage, countAfter, group});
         }
     }
 
-    protected int[] popCreatedAnnotation() {
+    /** The newest annotation and the others of its group, newest first; empty when there is none. */
+    protected List<int[]> popCreatedGroup() {
+        final List<int[]> group = new ArrayList<>();
         synchronized (createdAnnotations) {
-            return createdAnnotations.poll();
+            final int[] newest = createdAnnotations.poll();
+            if (newest == null) {
+                return group;
+            }
+            group.add(newest);
+            while (!createdAnnotations.isEmpty() && createdAnnotations.peek()[2] == newest[2]) {
+                group.add(createdAnnotations.poll());
+            }
+        }
+        return group;
+    }
+
+    /** A point of a stroke on a document page: page units, and how many page units one view pixel is there. */
+    public static final class PagePoint {
+        public final int page;
+        public final PointF point;
+        public final float unitsPerPx;
+
+        public PagePoint(int page, PointF point, float unitsPerPx) {
+            this.page = page;
+            this.point = point;
+            this.unitsPerPx = unitsPerPx;
         }
     }
 
     /**
-     * Removes the newest annotation made while this book is open, when it is still the last one
-     * of its page.
+     * Points drawn over the pages (DrawView) on the pages under them, one per point (null where
+     * no page is); null when this view cannot map them.
+     */
+    public List<PagePoint> toPageUnits(List<PointF> drawPoints) {
+        return null;
+    }
+
+    /**
+     * An ink annotation on a page: {@code arcs} in page units, {@code width} in page units. It
+     * belongs to the open undo group, if any.
+     */
+    public void addInk(int page, List<PointF[]> arcs, int color, float width) {
+    }
+
+    /**
+     * Selects the text between two points over the pages (DrawView points), as the selection
+     * anchors do.
+     *
+     * @return true when some text was selected
+     */
+    public boolean selectTextBetween(float x1, float y1, float x2, float y2) {
+        AppState.get().selectedText = null;
+        org.greenrobot.eventbus.EventBus.getDefault().post(new com.foobnix.pdf.search.activity.msg.MessagePageXY(
+                com.foobnix.pdf.search.activity.msg.MessagePageXY.TYPE_SELECT_TEXT, getCurentPage(), x1, y1, x2, y2));
+        return !TxtUtils.isEmpty(AppState.get().selectedText);
+    }
+
+    /**
+     * Removes the newest annotation made while this book is open, with the others of its group
+     * (one stylus stroke), when each is still the last one of its page.
      *
      * @return false when there is nothing to undo
      */

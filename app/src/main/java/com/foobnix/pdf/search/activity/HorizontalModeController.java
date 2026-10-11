@@ -577,6 +577,7 @@ public abstract class HorizontalModeController extends DocumentController {
     }
 
     private void changePage(final int page, final PageChange change) {
+        final int group = annotationGroup();
         annotationExecutor.execute(() -> {
             try {
                 if (codeDocument == null || codeDocument.isRecycled()) {
@@ -595,7 +596,7 @@ public abstract class HorizontalModeController extends DocumentController {
                 if (created) {
                     final CodecPage reopened = codeDocument.getPageInner(page);
                     if (reopened != null) {
-                        recordCreatedAnnotation(page, reopened.getAnnotationsImpl().size());
+                        recordCreatedAnnotation(page, reopened.getAnnotationsImpl().size(), group);
                         reopened.recycle();
                     }
                 }
@@ -642,19 +643,59 @@ public abstract class HorizontalModeController extends DocumentController {
     }
 
     @Override public boolean undoLastAnnotation() {
-        final int[] last = popCreatedAnnotation();
-        if (last == null || codeDocument == null) {
+        final List<int[]> group = popCreatedGroup();
+        if (group.isEmpty() || codeDocument == null) {
             return false;
         }
-        changePage(last[0], codecPage -> {
-            final List<Annotation> annotations = codecPage.getAnnotationsImpl();
-            // the newest annotation is only ours while the page still has the count it had after it
-            if (annotations.size() == last[1]) {
-                codeDocument.deleteAnnotation(annotations.get(last[1] - 1).getPageHandler(), last[1] - 1);
-            }
-            return false;
-        });
+        // newest first, one after the other on the annotation thread: each finds its page as it
+        // was right after it was made
+        for (final int[] last : group) {
+            changePage(last[0], codecPage -> {
+                final List<Annotation> annotations = codecPage.getAnnotationsImpl();
+                // the newest annotation is only ours while the page still has the count it had after it
+                if (annotations.size() == last[1]) {
+                    codeDocument.deleteAnnotation(annotations.get(last[1] - 1).getPageHandler(), last[1] - 1);
+                }
+                return false;
+            });
+        }
         return true;
+    }
+
+    /** The page shown, two probes 100 px apart giving the scale. */
+    @Override public List<PagePoint> toPageUnits(List<PointF> drawPoints) {
+        if (codeDocument == null || drawPoints.isEmpty()) {
+            return null;
+        }
+        final int page = currentPage;
+        final CodecPageInfo info = codeDocument.getPageInfo(page);
+        final List<PointF> withProbe = new ArrayList<>(drawPoints);
+        final PointF first = drawPoints.get(0);
+        withProbe.add(new PointF(first.x + 100, first.y));
+        final List<PointF> normalized = toPagePoints(withProbe);
+        if (info == null || normalized == null || normalized.size() != withProbe.size()) {
+            return null;
+        }
+        final float unitsPerPx = Math.abs(normalized.get(normalized.size() - 1).x - normalized.get(0).x) * info.width / 100;
+        final List<PagePoint> out = new ArrayList<>(drawPoints.size());
+        for (int i = 0; i < drawPoints.size(); i++) {
+            final PointF n = normalized.get(i);
+            final boolean onPage = n.x >= 0 && n.x <= 1 && n.y >= 0 && n.y <= 1;
+            out.add(onPage ? new PagePoint(page, new PointF(n.x * info.width, n.y * info.height), unitsPerPx) : null);
+        }
+        return out;
+    }
+
+    @Override public void addInk(int page, List<PointF[]> arcs, final int color, final float width) {
+        if (codeDocument == null || arcs.isEmpty()) {
+            return;
+        }
+        final PointF[][] array = arcs.toArray(new PointF[0][]);
+        final float alpha = AppState.get().editAlphaColor;
+        changePage(page, codecPage -> {
+            codecPage.addAnnotation(Colors.toMupdfColor(color), array, width, alpha);
+            return true;
+        });
     }
 
     @Override public void underlineText(int color, float width, final AnnotationType type) {

@@ -94,4 +94,8 @@
     <string name="page_turn_cover">Cover</string>
     <string name="page_turn_curl">Page curl</string>
     <string name="page_turn_haptic">Vibrate lightly when a page turns</string>
+    <string name="stylus_draws">Stylus draws with</string>
+    <string name="stylus_off">Nothing (acts as a finger)</string>
+    <string name="stylus_pen">Pen</string>
+    <string name="stylus_highlighter">Highlighter</string>
 </resources>

@@ -170,6 +170,19 @@ public class DecodeServiceBase implements DecodeService {
     }
 
     @Override
+    public void addInk(final int page, final PointF[][] arcs, final int color, final float width, final float alpha,
+                       final ResultResponse<Pair<Integer, List<Annotation>>> result) {
+        executor.addAny(new Task(1) {
+            @Override
+            public void run() {
+                updateAnnotation(page, Colors.toMupdfColor(color), arcs, width, alpha);
+                pages.clear();
+                result.onResultRecive(new Pair<Integer, List<Annotation>>(page, getPage(page).getAnnotations()));
+            }
+        });
+    }
+
+    @Override
     public void decodePage(final ViewState viewState, final PageTreeNode node) {
         if (isRecycled.get()) {
             return;

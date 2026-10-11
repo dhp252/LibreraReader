@@ -4080,6 +4080,7 @@ public class DragingDialogs {
                 });
 
                 PageTurnSettings.bind(inflate);
+                com.foobnix.annotation.StylusSettings.bind(inflate);
 
                 CheckBox isDisableSwipe = inflate.findViewById(R.id.isEnableVerticalSwipe);
                 isDisableSwipe.setVisibility(

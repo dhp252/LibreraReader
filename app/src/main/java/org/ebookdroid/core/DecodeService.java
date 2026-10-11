@@ -64,6 +64,9 @@ public interface DecodeService {
 
     void addAnnotation(Map<Integer, List<PointF>> points, int color, float width, float alpha, ResultResponse<Pair<Integer, List<Annotation>>> resultResponse);
 
+    /** One ink annotation of several lines ({@code arcs}, page units) on a page. */
+    void addInk(int page, PointF[][] arcs, int color, float width, float alpha, ResultResponse<Pair<Integer, List<Annotation>>> resultResponse);
+
 	Map<Integer, CodecPageHolder> getPages();
 
 	void deleteAnnotation(final long pageHandle, final int page, final int index, final ResultResponse<List<Annotation>> response);
