@@ -39,7 +39,25 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen {
         if (dc == null || dc.getCurrentBook() == null) {
             return;
         }
-        final AiJobs.HighlightJob job = new AiJobs.HighlightJob(activity, AiJobs.Target.of(dc), wholeBook, null);
+        final AiJobs.Target target = AiJobs.Target.of(dc);
+        // the first run on a book asks what the reader wants from it ("apply" is judged against it)
+        new Thread(() -> {
+            final String goal = AiStore.get().load(target.name).goal;
+            activity.runOnUiThread(() -> {
+                if (goal == null) {
+                    AiLegend.askGoal(activity, target.name, null, () -> run(activity, target, wholeBook));
+                } else {
+                    run(activity, target, wholeBook);
+                }
+            });
+        }, "@T AI goal").start();
+    }
+
+    private static void run(Activity activity, AiJobs.Target target, boolean wholeBook) {
+        if (AiJobs.runningHighlights() != null) {
+            return;
+        }
+        final AiJobs.HighlightJob job = new AiJobs.HighlightJob(activity, target, wholeBook, null);
         final AiHighlightDialog screen = new AiHighlightDialog(activity, job);
         job.setScreen(screen);
         screen.open();

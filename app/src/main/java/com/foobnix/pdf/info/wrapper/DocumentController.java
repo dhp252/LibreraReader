@@ -1147,6 +1147,17 @@ public abstract class DocumentController {
     public void addInk(int page, List<PointF[]> arcs, int color, float width) {
     }
 
+    /** The category of the AI mark at a point over the pages (view coordinates), or null. */
+    public com.foobnix.ai.AiCategory aiCategoryAt(float x, float y) {
+        return null;
+    }
+
+    /** A tap on an AI mark: its category is named instead of the tap turning the page. */
+    public static void showAiCategory(android.content.Context c, com.foobnix.ai.AiCategory category) {
+        android.widget.Toast.makeText(c, c.getString(com.foobnix.pdf.info.R.string.ai_marked_as,
+                c.getString(com.foobnix.ai.AiLegend.nameOf(category))), android.widget.Toast.LENGTH_SHORT).show();
+    }
+
     /**
      * Selects the text between two points over the pages (DrawView points), as the selection
      * anchors do.

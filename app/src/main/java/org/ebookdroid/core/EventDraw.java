@@ -171,7 +171,7 @@ public class EventDraw implements IEvent {
                 continue;
             }
             rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
-            canvas.drawRect(rect, highlights.paint());
+            canvas.drawRect(rect, highlights.paint(band));
         }
     }
 

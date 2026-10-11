@@ -2,18 +2,14 @@ package com.foobnix.ai;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
-import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.TxtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
@@ -24,19 +20,17 @@ import java.util.Map;
 import okhttp3.HttpUrl;
 
 /**
- * Provider, server, key and model, the language of summaries and the color of AI highlights.
+ * Provider, server, key and model, the language of summaries and the master prompt (AI highlight
+ * colors are fixed by category, AiCategory).
  * Everything here stays on the device ({@link AiSettings}); Test sends a tiny request.
  */
 public class AiSettingsDialog {
 
-    /** Highlight colors to pick from: none of them is a default annotation or read-aloud color. */
-    private static final String[] COLORS = {"#a28ae5", "#5fb236", "#f19837", "#e56eee", "#2ec4b6", "#aaaaaa"};
 
     private final Activity activity;
     private final Runnable onSaved;
     private final Map<String, AiSettings> edited = new HashMap<>();
     private AiSettings settings;
-    private String color;
 
     private RadioGroup provider;
     private EditText url;
@@ -45,7 +39,6 @@ public class AiSettingsDialog {
     private EditText language;
     private EditText masterPrompt;
     private EditText maxChars;
-    private LinearLayout colors;
     private TextView result;
 
     private AiSettingsDialog(Activity activity, Runnable onSaved) {
@@ -85,7 +78,6 @@ public class AiSettingsDialog {
         language = view.findViewById(R.id.aiLanguage);
         masterPrompt = view.findViewById(R.id.aiMasterPrompt);
         maxChars = view.findViewById(R.id.aiMaxChars);
-        colors = view.findViewById(R.id.aiColors);
         result = view.findViewById(R.id.aiTestResult);
         final CheckBox showKey = view.findViewById(R.id.aiShowKey);
         showKey.setOnCheckedChangeListener((b, checked) -> {
@@ -95,7 +87,6 @@ public class AiSettingsDialog {
         });
 
         settings = AiSettings.load(activity);
-        color = settings.highlightColor;
         fill();
         provider.check(settings.isClaude() ? R.id.aiClaude : R.id.aiOpenAi);
         provider.setOnCheckedChangeListener((group, checkedId) -> {
@@ -112,7 +103,6 @@ public class AiSettingsDialog {
                 fill();
             }
         });
-        showColors();
 
         final AlertDialog dialog = new AlertDialog.Builder(activity)
                 .setTitle(R.string.ai_settings)
@@ -128,7 +118,6 @@ public class AiSettingsDialog {
                     return;
                 }
                 settings.save(activity);
-                AiHighlights.get().setColor(settings.highlightColor);
                 dialog.dismiss();
                 if (onSaved != null) {
                     onSaved.run();
@@ -156,7 +145,6 @@ public class AiSettingsDialog {
         settings.model = model.getText().toString().trim();
         settings.answerLanguage = language.getText().toString().trim();
         settings.masterPrompt = masterPrompt.getText().toString().trim();
-        settings.highlightColor = color;
         try {
             settings.maxChars = Math.max(2000, Integer.parseInt(maxChars.getText().toString().trim()));
         } catch (NumberFormatException e) {
@@ -197,29 +185,5 @@ public class AiSettingsDialog {
             final String text = answer;
             activity.runOnUiThread(() -> result.setText(text));
         }, "@T AI test").start();
-    }
-
-    private void showColors() {
-        colors.removeAllViews();
-        final int size = Dips.dpToPx(32);
-        final int margin = Dips.dpToPx(6);
-        for (final String c : COLORS) {
-            final View swatch = new View(activity);
-            final GradientDrawable circle = new GradientDrawable();
-            circle.setShape(GradientDrawable.OVAL);
-            circle.setColor(Color.parseColor(c));
-            if (c.equalsIgnoreCase(color)) {
-                circle.setStroke(Dips.dpToPx(3), Color.DKGRAY);
-            }
-            swatch.setBackground(circle);
-            swatch.setContentDescription(c);
-            swatch.setOnClickListener(v -> {
-                color = c;
-                showColors();
-            });
-            final LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(size, size);
-            params.setMargins(margin, 0, margin, 0);
-            colors.addView(swatch, params);
-        }
     }
 }

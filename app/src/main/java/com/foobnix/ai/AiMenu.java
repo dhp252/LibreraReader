@@ -57,6 +57,12 @@ public final class AiMenu {
                     showHighlights(a, !AiHighlights.get().isVisible());
                     return true;
                 });
+        menu.getMenu(R.drawable.glyphicons_92_contrast, R.string.ai_colors, () -> AiLegend.show(a));
+        menu.getMenu(R.drawable.glyphicons_66_tag, R.string.ai_goal, () -> {
+            final AiHighlights highlights = AiHighlights.get();
+            final String current = target.name.equals(highlights.getBook()) ? highlights.data().goal : null;
+            AiLegend.askGoal(a, target.name, current, null);
+        });
         menu.getMenu(R.drawable.ic_annot_eraser, R.string.ai_remove_highlights, () ->
                 chooseScope(a, anchor, wholeBook -> new AiJobs.RemoveJob(a, AiJobs.Target.of(dc), wholeBook).start()));
         if (target.pdf && AppsConfig.isPDF_DRAW_ENABLE() && !dc.isPasswordProtected()) {

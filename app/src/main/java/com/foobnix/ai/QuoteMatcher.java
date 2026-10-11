@@ -114,14 +114,17 @@ public final class QuoteMatcher {
         return null;
     }
 
-    /** A quote as the book has it: its words joined, and the index of its first word. */
+    /** A quote as the book has it: its words joined, the index of its first word, and which quote it was. */
     public static final class Found {
         public final String text;
         public final int firstWord;
+        /** Its index in the quotes given to {@link #locateAll}. */
+        public final int quote;
 
-        Found(String text, int firstWord) {
+        Found(String text, int firstWord, int quote) {
             this.text = text;
             this.firstWord = firstWord;
+            this.quote = quote;
         }
     }
 
@@ -133,7 +136,8 @@ public final class QuoteMatcher {
         final List<Found> found = new ArrayList<>();
         final Words all = new Words(words);
         final List<String> keys = new ArrayList<>();
-        for (String quote : quotes) {
+        for (int q = 0; q < quotes.size(); q++) {
+            final String quote = quotes.get(q);
             final int[] range = locate(all, quote);
             if (range == null) {
                 continue;
@@ -142,7 +146,7 @@ public final class QuoteMatcher {
             final String key = key(text);
             if (key != null && !keys.contains(key)) {
                 keys.add(key);
-                found.add(new Found(text, range[0]));
+                found.add(new Found(text, range[0], q));
             }
         }
         return found;

@@ -31,7 +31,8 @@ public class AiStore {
     public static final String BOOK = "@book";
 
     private static final Object LOCK = new Object();
-    private static final int VERSION = 1;
+    /** 2: quotes carry a category (AiCategory); highlights of version 1 have none and are dropped. */
+    private static final int VERSION = 2;
 
     public static class Summary {
         public final String key;
@@ -54,10 +55,13 @@ public class AiStore {
         public final String text;
         /** 0-based page where the quote started when it was picked (a hint: EPUB pages move). */
         public final int page;
+        /** Why the AI picked it, and its color. */
+        public final AiCategory category;
 
-        public Quote(String text, int page) {
+        public Quote(String text, int page, AiCategory category) {
             this.text = text;
             this.page = page;
+            this.category = category;
         }
     }
 
@@ -81,6 +85,8 @@ public class AiStore {
     /** Everything stored for one book. */
     public static class Book {
         public long updated;
+        /** What the reader wants from the book (for "apply"); null until asked, empty when none was given. */
+        public String goal;
         public final List<Summary> summaries = new ArrayList<>();
         public final List<Chapter> highlights = new ArrayList<>();
 
@@ -151,6 +157,9 @@ public class AiStore {
             final JSONObject root = new JSONObject();
             root.put("version", VERSION);
             root.put("updated", updated);
+            if (goal != null) {
+                root.put("goal", goal);
+            }
             final JSONArray s = new JSONArray();
             for (Summary summary : summaries) {
                 s.put(new JSONObject()
@@ -165,7 +174,7 @@ public class AiStore {
             for (Chapter chapter : highlights) {
                 final JSONArray quotes = new JSONArray();
                 for (Quote q : chapter.quotes) {
-                    quotes.put(new JSONObject().put("text", q.text).put("page", q.page));
+                    quotes.put(new JSONObject().put("text", q.text).put("page", q.page).put("category", q.category.code));
                 }
                 h.put(new JSONObject()
                         .put("key", chapter.key)
@@ -182,20 +191,25 @@ public class AiStore {
             final JSONObject root = new JSONObject(json);
             final Book book = new Book();
             book.updated = root.optLong("updated", 0);
+            book.goal = root.has("goal") ? root.optString("goal", "") : null;
             final JSONArray s = root.optJSONArray("summaries");
             for (int i = 0; s != null && i < s.length(); i++) {
                 final JSONObject o = s.getJSONObject(i);
                 book.summaries.add(new Summary(o.getString("key"), o.optString("title", ""),
                         o.optString("text", ""), o.optString("model", ""), o.optLong("time", 0)));
             }
-            final JSONArray h = root.optJSONArray("highlights");
+            // highlights from before categories are dropped (the owner's choice)
+            final JSONArray h = root.optInt("version", 1) < 2 ? null : root.optJSONArray("highlights");
             for (int i = 0; h != null && i < h.length(); i++) {
                 final JSONObject o = h.getJSONObject(i);
                 final List<Quote> quotes = new ArrayList<>();
                 final JSONArray q = o.optJSONArray("quotes");
                 for (int k = 0; q != null && k < q.length(); k++) {
                     final JSONObject quote = q.getJSONObject(k);
-                    quotes.add(new Quote(quote.getString("text"), quote.optInt("page", -1)));
+                    final AiCategory category = AiCategory.of(quote.optString("category", null));
+                    if (category != null) {
+                        quotes.add(new Quote(quote.getString("text"), quote.optInt("page", -1), category));
+                    }
                 }
                 book.highlights.add(new Chapter(o.getString("key"), o.optString("title", ""),
                         o.optString("model", ""), o.optLong("time", 0), quotes));

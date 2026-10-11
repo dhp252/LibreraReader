@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -543,6 +545,9 @@ public final class AiJobs {
                     todo.add(BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES));
                 }
 
+                // the reader's goal decides whether "apply" is asked for (AiCategory)
+                final String goal = AiStore.get().load(target.name).goal;
+                final boolean hasGoal = goal != null && !goal.trim().isEmpty();
                 int passages = 0;
                 int chapters = 0;
                 int withoutText = 0;
@@ -569,12 +574,22 @@ public final class AiJobs {
                         continue;
                     }
 
-                    final List<String> quotes = new ArrayList<>();
+                    final List<AiPrompts.Picked> picked = new ArrayList<>();
                     for (BookChapters.Range part : BookChapters.parts(Collections.singletonList(chapter), lengths, settings.maxChars)) {
                         final String partText = join(plain, part.from, part.to);
-                        final String answer = ask(AiPrompts.withMaster(settings.masterPrompt, AiPrompts.keyPassagesSystem()), AiPrompts.keyPassages(target.title,
-                                chapterTitle(chapter), partText, AiPrompts.passageCount(partText.length())), null);
-                        quotes.addAll(AiPrompts.parseQuotes(answer));
+                        final String answer = ask(AiPrompts.withMaster(settings.masterPrompt, AiPrompts.keyPassagesSystem(hasGoal)),
+                                AiPrompts.keyPassages(target.title, chapterTitle(chapter), partText,
+                                        AiPrompts.passageCount(partText.length()), hasGoal ? goal : ""), null);
+                        for (AiPrompts.Picked p : AiPrompts.parsePicked(answer)) {
+                            // without a goal there is nothing to judge "apply" against
+                            if (p.category != AiCategory.APPLY || hasGoal) {
+                                picked.add(p);
+                            }
+                        }
+                    }
+                    final List<String> quotes = new ArrayList<>();
+                    for (AiPrompts.Picked p : picked) {
+                        quotes.add(p.quote);
                     }
                     for (int p = chapter.from; p < chapter.to; p++) {
                         plain[p] = null;
@@ -582,7 +597,7 @@ public final class AiJobs {
 
                     final List<AiStore.Quote> found = new ArrayList<>();
                     for (QuoteMatcher.Found f : QuoteMatcher.locateAll(words, quotes)) {
-                        found.add(new AiStore.Quote(f.text, wordPage.get(f.firstWord)));
+                        found.add(new AiStore.Quote(f.text, wordPage.get(f.firstWord), picked.get(f.quote).category));
                     }
                     if (found.isEmpty()) {
                         continue;
@@ -660,10 +675,12 @@ public final class AiJobs {
         void work() throws Exception {
             final AiStore.Book data = AiStore.get().load(target.name);
             final Map<Integer, List<String>> keysByPage = new TreeMap<>();
+            final Map<String, AiCategory> categoryOf = new HashMap<>();
             for (AiStore.Chapter chapter : data.highlights) {
                 for (AiStore.Quote quote : chapter.quotes) {
                     final String key = QuoteMatcher.key(quote.text);
                     if (key != null && quote.page >= 0) {
+                        categoryOf.put(key, quote.category);
                         // a quote may run over to the next page
                         add(keysByPage, quote.page, key);
                         add(keysByPage, quote.page + 1, key);
@@ -674,7 +691,6 @@ public final class AiJobs {
                 toast(string(R.string.ai_no_highlights));
                 return;
             }
-            final int color = AiHighlights.parseColor(settings.highlightColor);
             final Set<String> placed = new HashSet<>();
             try (BookText text = open()) {
                 for (Map.Entry<Integer, List<String>> entry : keysByPage.entrySet()) {
@@ -689,15 +705,24 @@ public final class AiJobs {
                         strings.add(w.getWord());
                     }
                     final QuoteMatcher.Words pageWords = new QuoteMatcher.Words(strings);
-                    final List<RectF> lines = new ArrayList<>();
+                    // one highlight per category color on the page
+                    final Map<AiCategory, List<RectF>> lines = new EnumMap<>(AiCategory.class);
                     for (String key : entry.getValue()) {
                         for (int[] range : QuoteMatcher.onPage(pageWords, Collections.singletonList(key))) {
-                            lines.addAll(BookText.lines(words.subList(range[0], range[1] + 1)));
+                            final AiCategory category = categoryOf.get(key);
+                            List<RectF> list = lines.get(category);
+                            if (list == null) {
+                                list = new ArrayList<>();
+                                lines.put(category, list);
+                            }
+                            list.addAll(BookText.lines(words.subList(range[0], range[1] + 1)));
                             placed.add(key);
                         }
                     }
-                    if (!lines.isEmpty()) {
-                        ui(() -> dc.addHighlightLines(page, lines, color));
+                    for (Map.Entry<AiCategory, List<RectF>> category : lines.entrySet()) {
+                        final int color = category.getKey().color;
+                        final List<RectF> rects = category.getValue();
+                        ui(() -> dc.addHighlightLines(page, rects, color));
                     }
                 }
             }

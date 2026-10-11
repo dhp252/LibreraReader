@@ -344,9 +344,32 @@ public class PageImaveView extends View {
         }
     }
 
+    /** The category of the AI mark drawn under a point of this view, or null. */
+    private com.foobnix.ai.AiCategory aiCategoryAt(float x, float y) {
+        final AiHighlights highlights = AiHighlights.get();
+        if (!highlights.isVisible() || highlights.count() == 0) {
+            return null;
+        }
+        if (AppSP.get().isDouble) {
+            final int first = pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+            final com.foobnix.ai.AiCategory left = aiCategoryIn(highlights.bandsFor(first, getPageText(1)), 1, x, y);
+            return left != null ? left : aiCategoryIn(highlights.bandsFor(first + 1, getPageText(2)), 2, x, y);
+        }
+        return aiCategoryIn(highlights.bandsFor(pageNumber, getPageText(0)), 0, x, y);
+    }
+
+    private com.foobnix.ai.AiCategory aiCategoryIn(List<RectF> bands, int number, float x, float y) {
+        for (RectF band : bands) {
+            if (band instanceof AiHighlights.Band && transform(band, number).contains(x, y)) {
+                return ((AiHighlights.Band) band).category;
+            }
+        }
+        return null;
+    }
+
     private void drawAiBands(Canvas canvas, List<RectF> bands, int number) {
         for (RectF band : bands) {
-            canvas.drawRect(transform(band, number), AiHighlights.get().paint());
+            canvas.drawRect(transform(band, number), AiHighlights.get().paint(band));
         }
     }
 
@@ -1238,6 +1261,9 @@ public class PageImaveView extends View {
                         EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_SELECTED_TEXT));
                     } else if (pageLink != null) {
                         EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_GOTO_PAGE_BY_LINK, target, pageLink.url));
+                    } else if (aiCategoryAt(event.getX(), event.getY()) != null) {
+                        // a tap on an AI mark names its category (the page stays)
+                        com.foobnix.pdf.info.wrapper.DocumentController.showAiCategory(getContext(), aiCategoryAt(event.getX(), event.getY()));
                     } else {
                         LOG.d("PageImaveView MESSAGE_PERFORM_CLICK", 1);
                         EventBus.getDefault().post(new MessageEvent(MessageEvent.MESSAGE_PERFORM_CLICK, event.getX(), event.getY()));

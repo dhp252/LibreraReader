@@ -210,6 +210,10 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
 - **PDF annotation**: open a PDF and tap the edit button in the top bar. Highlight, underline,
   strike, draw, erase and undo. Close the book (it asks to save, unless saving is automatic),
   reopen it and check the annotations are still there.
+- **AI colors**: ✦ > Highlight key passages on a non-fiction chapter: the first time it asks what
+  you want from the book. Marks come in red, blue, purple, orange, green and grey, never yellow.
+  ✦ > Colors shows what each means; tap a mark and its category shows. Messages of the pen
+  toolbar now appear above it, not over it.
 - **Stylus** (a phone or tablet with an active pen): open a PDF without opening the toolbar and
   write with the pen: it draws at once, thinner or bolder with pressure, while a finger still turns
   pages. Rest your palm while writing: nothing happens. Set "Stylus draws with" to Highlighter

@@ -406,6 +406,25 @@ public class VerticalModeController extends DocumentController {
                 });
     }
 
+    @Override
+    public com.foobnix.ai.AiCategory aiCategoryAt(float x, float y) {
+        final com.foobnix.ai.AiHighlights highlights = com.foobnix.ai.AiHighlights.get();
+        if (!highlights.isVisible() || highlights.count() == 0) {
+            return null;
+        }
+        final List<PagePoint> at = toPageUnits(java.util.Collections.singletonList(new PointF(x, y)));
+        if (at == null || at.isEmpty() || at.get(0) == null) {
+            return null;
+        }
+        final PagePoint p = at.get(0);
+        final Page page = ctr.getDocumentModel().getPageByDocIndex(p.page);
+        if (page == null || page.cpi == null || page.cpi.width <= 0 || page.cpi.height <= 0) {
+            return null;
+        }
+        // bands are in page-relative coordinates, as the page's words
+        return highlights.categoryAt(p.page, p.point.x / page.cpi.width, p.point.y / page.cpi.height);
+    }
+
     /** The scroll view takes the first point as a selection anchor's corner (AdvGuestureDetector). */
     @Override
     public boolean selectTextBetween(float x1, float y1, float x2, float y2) {

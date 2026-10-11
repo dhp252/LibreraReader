@@ -19,7 +19,6 @@ public class AiSettings {
     public static final String CLAUDE_URL = "https://api.anthropic.com";
     public static final String CLAUDE_MODEL = "claude-opus-5-5";
     public static final String OPENAI_URL = "https://api.openai.com/v1";
-    public static final String DEFAULT_HIGHLIGHT_COLOR = "#a28ae5";
     /** Characters of book text per request: Claude reads 1M tokens; OpenAI-compatible servers are often local and small. */
     public static final int CLAUDE_MAX_CHARS = 600_000;
     public static final int OPENAI_MAX_CHARS = 24_000;
@@ -33,7 +32,6 @@ public class AiSettings {
     public int maxChars = CLAUDE_MAX_CHARS;
     /** Language of summaries; empty: the language of the book. */
     public String answerLanguage = "";
-    public String highlightColor = DEFAULT_HIGHLIGHT_COLOR;
     public boolean highlightsVisible = true;
     /** The user's own instructions, sent before Librera's for every AI action; empty: none. */
     public String masterPrompt = "";
@@ -42,7 +40,7 @@ public class AiSettings {
     public static final String[] SHARED = {"provider",
             CLAUDE + ".url", CLAUDE + ".model", CLAUDE + ".maxChars", CLAUDE + ".key",
             OPENAI + ".url", OPENAI + ".model", OPENAI + ".maxChars", OPENAI + ".key",
-            "answerLanguage", "highlightColor", "highlightsVisible", "masterPrompt"};
+            "answerLanguage", "highlightsVisible", "masterPrompt"};
     private static final String MODIFIED = "modified";
 
     private static SharedPreferences prefs(Context c) {
@@ -64,7 +62,6 @@ public class AiSettings {
         s.model = p.getString(s.provider + ".model", claude ? CLAUDE_MODEL : "");
         s.maxChars = p.getInt(s.provider + ".maxChars", claude ? CLAUDE_MAX_CHARS : OPENAI_MAX_CHARS);
         s.answerLanguage = p.getString("answerLanguage", "");
-        s.highlightColor = p.getString("highlightColor", DEFAULT_HIGHLIGHT_COLOR);
         s.highlightsVisible = p.getBoolean("highlightsVisible", true);
         s.masterPrompt = p.getString("masterPrompt", "");
         return s;
@@ -79,7 +76,6 @@ public class AiSettings {
                 .putString(provider + ".model", model.trim())
                 .putInt(provider + ".maxChars", maxChars)
                 .putString("answerLanguage", answerLanguage.trim())
-                .putString("highlightColor", highlightColor)
                 .putBoolean("highlightsVisible", highlightsVisible)
                 .putString("masterPrompt", masterPrompt.trim())
                 .putLong(MODIFIED, System.currentTimeMillis())

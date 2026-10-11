@@ -1,7 +1,6 @@
 package com.foobnix.ai;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 
@@ -14,6 +13,7 @@ import org.greenrobot.eventbus.EventBus;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +30,16 @@ public class AiHighlights {
     private static final int CACHED_PAGES = 12;
 
     private static final AiHighlights instance = new AiHighlights();
+
+    /** A line of a marked passage, in page-relative coordinates, with why it was marked. */
+    public static final class Band extends RectF {
+        public final AiCategory category;
+
+        Band(RectF rect, AiCategory category) {
+            super(rect);
+            this.category = category;
+        }
+    }
 
     private static class Cached {
         final TextWord[][] text;
@@ -54,9 +64,10 @@ public class AiHighlights {
     private Activity owner;
     private String book;
     private AiStore.Book data = new AiStore.Book();
-    private List<String> keys = Collections.emptyList();
+    /** The quotes' match keys by category. */
+    private Map<AiCategory, List<String>> keys = Collections.emptyMap();
+    private int keyCount;
     private boolean visible = true;
-    private int color = Color.parseColor(AiSettings.DEFAULT_HIGHLIGHT_COLOR);
     private int version;
 
     public static AiHighlights get() {
@@ -81,9 +92,9 @@ public class AiHighlights {
             this.owner = owner;
             book = name;
             data = new AiStore.Book();
-            keys = Collections.emptyList();
+            keys = Collections.emptyMap();
+            keyCount = 0;
             visible = settings.highlightsVisible;
-            color = parseColor(settings.highlightColor);
             version++;
             cache.clear();
         }
@@ -100,7 +111,8 @@ public class AiHighlights {
             this.owner = null;
             book = null;
             data = new AiStore.Book();
-            keys = Collections.emptyList();
+            keys = Collections.emptyMap();
+            keyCount = 0;
             version++;
             cache.clear();
         }
@@ -119,11 +131,20 @@ public class AiHighlights {
 
     /** The stored data of a book, as just read or written. */
     public void set(String bookName, AiStore.Book data) {
-        final LinkedHashSet<String> found = new LinkedHashSet<>();
-        for (String text : data.quoteTexts()) {
-            final String key = QuoteMatcher.key(text);
-            if (key != null) {
-                found.add(key);
+        final Map<AiCategory, List<String>> found = new EnumMap<>(AiCategory.class);
+        final LinkedHashSet<String> seen = new LinkedHashSet<>();
+        for (AiStore.Chapter chapter : data.highlights) {
+            for (AiStore.Quote quote : chapter.quotes) {
+                final String key = QuoteMatcher.key(quote.text);
+                if (key == null || !seen.add(key)) {
+                    continue;
+                }
+                List<String> list = found.get(quote.category);
+                if (list == null) {
+                    list = new ArrayList<>();
+                    found.put(quote.category, list);
+                }
+                list.add(key);
             }
         }
         synchronized (this) {
@@ -131,7 +152,8 @@ public class AiHighlights {
                 return;
             }
             this.data = data;
-            keys = new ArrayList<>(found);
+            keys = found;
+            keyCount = seen.size();
             version++;
             cache.clear();
         }
@@ -148,7 +170,7 @@ public class AiHighlights {
     }
 
     public synchronized int count() {
-        return keys.size();
+        return keyCount;
     }
 
     public synchronized boolean isVisible() {
@@ -162,16 +184,10 @@ public class AiHighlights {
         changed();
     }
 
-    public void setColor(String hex) {
-        synchronized (this) {
-            color = parseColor(hex);
-        }
-        changed();
-    }
-
     /**
      * The highlighted parts of a page as bands in page-relative coordinates (0..1, like
-     * {@link TextWord}), one per line, or an empty list.
+     * {@link TextWord}), one per line, or an empty list. Each is a {@link Band}: draw it with
+     * {@link #paint(RectF)}.
      */
     public synchronized List<RectF> bandsFor(int docPage, TextWord[][] pageText) {
         if (!visible || keys.isEmpty() || pageText == null) {
@@ -191,50 +207,70 @@ public class AiHighlights {
         return bands;
     }
 
-    /** Words of a page covered by quotes, as one band per line of each covered run of words. */
-    static List<RectF> bands(TextWord[][] pageText, List<String> keys) {
+    /** Words of a page covered by quotes, as one band per line of each covered run of words of one category. */
+    static List<RectF> bands(TextWord[][] pageText, Map<AiCategory, List<String>> keys) {
         final List<TextWord> words = TTSHighlight.words(pageText);
         final List<String> strings = new ArrayList<>(words.size());
         for (TextWord word : words) {
             strings.add(word.getWord());
         }
-        final List<int[]> ranges = QuoteMatcher.onPage(new QuoteMatcher.Words(strings), keys);
-        if (ranges.isEmpty()) {
-            return Collections.emptyList();
-        }
-        final boolean[] marked = new boolean[words.size()];
-        for (int[] range : ranges) {
-            for (int i = Math.max(0, range[0]); i <= range[1] && i < marked.length; i++) {
-                marked[i] = true;
+        final QuoteMatcher.Words pageWords = new QuoteMatcher.Words(strings);
+        final AiCategory[] marked = new AiCategory[words.size()];
+        boolean any = false;
+        for (Map.Entry<AiCategory, List<String>> entry : keys.entrySet()) {
+            for (int[] range : QuoteMatcher.onPage(pageWords, entry.getValue())) {
+                for (int i = Math.max(0, range[0]); i <= range[1] && i < marked.length; i++) {
+                    marked[i] = entry.getKey();
+                    any = true;
+                }
             }
+        }
+        if (!any) {
+            return Collections.emptyList();
         }
         final List<RectF> bands = new ArrayList<>();
         int start = -1;
         for (int i = 0; i <= marked.length; i++) {
-            final boolean on = i < marked.length && marked[i];
-            if (on && start < 0) {
-                start = i;
-            } else if (!on && start >= 0) {
-                bands.addAll(TTSHighlight.toBands(words.subList(start, i)));
+            final AiCategory on = i < marked.length ? marked[i] : null;
+            if (start >= 0 && on != marked[start]) {
+                for (RectF line : TTSHighlight.toBands(words.subList(start, i))) {
+                    bands.add(new Band(line, marked[start]));
+                }
                 start = -1;
+            }
+            if (on != null && start < 0) {
+                start = i;
             }
         }
         return bands;
     }
 
-    public synchronized Paint paint() {
+    /** The paint of a band from {@link #bandsFor}: its category's color, see-through. */
+    public synchronized Paint paint(RectF band) {
         paint.setStyle(Paint.Style.FILL);
-        paint.setColor(color);
+        paint.setColor(band instanceof Band ? ((Band) band).category.color : AiCategory.MAIN.color);
         paint.setAlpha(ALPHA);
         return paint;
     }
 
-    static int parseColor(String hex) {
-        try {
-            return Color.parseColor(hex);
-        } catch (Exception e) {
-            return Color.parseColor(AiSettings.DEFAULT_HIGHLIGHT_COLOR);
+    /**
+     * The category of the mark at a point of a page drawn lately (page-relative coordinates,
+     * 0..1), or null.
+     */
+    public synchronized AiCategory categoryAt(int docPage, float x, float y) {
+        if (!visible) {
+            return null;
         }
+        final Cached cached = cache.get(docPage);
+        if (cached == null || cached.version != version) {
+            return null;
+        }
+        for (RectF band : cached.bands) {
+            if (band instanceof Band && band.contains(x, y)) {
+                return ((Band) band).category;
+            }
+        }
+        return null;
     }
 
     private void changed() {

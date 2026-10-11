@@ -223,6 +223,13 @@ public class AdvGuestureDetector extends SimpleOnGestureListener implements IMul
             }
         }
 
+        // a tap on an AI mark names its category (the page stays)
+        final com.foobnix.ai.AiCategory marked = docCtrl.aiCategoryAt(e.getX(), e.getY());
+        if (marked != null) {
+            DocumentController.showAiCategory(contex, marked);
+            return true;
+        }
+
         if (clickUtils.isClickRight(e.getX(), e.getY())) {
             docCtrl.onRightPress();
 

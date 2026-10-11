@@ -67,19 +67,44 @@ public final class AiPrompts {
         return out.toString();
     }
 
-    public static String keyPassagesSystem() {
-        return "You pick the passages of a text that matter most for understanding it. "
-                + "Answer with a JSON array of strings and nothing else. Each string is one sentence "
-                + "copied exactly from the text, character for character: no changes, no ellipses, "
-                + "no quotation marks added. Never pick headings, captions, page numbers or lines "
-                + "of a table of contents.";
+    /**
+     * The rules of key passages: categories with their tests, the answer as JSON objects. Without
+     * a reading goal "apply" is never used.
+     */
+    public static String keyPassagesSystem(boolean hasGoal) {
+        final StringBuilder out = new StringBuilder();
+        out.append("You pick the passages of a text that matter most for understanding it, and say why ")
+                .append("each one matters with a category. The categories, what they mark and the test ")
+                .append("each passage must pass:\n");
+        for (AiCategory category : AiCategory.values()) {
+            if (category == AiCategory.APPLY && !hasGoal) {
+                continue;
+            }
+            out.append("- ").append(category.code).append(" (").append(category.promptName).append("): ")
+                    .append(category.promptMeaning).append(" Test: \"").append(category.promptTest).append("\"\n");
+        }
+        if (!hasGoal) {
+            out.append("The reader gave no goal: never use the category apply.\n");
+        }
+        out.append("Use only these categories, one per passage, the one whose test it passes best. ")
+                .append("Answer with a JSON array of objects and nothing else, each ")
+                .append("{\"category\": \"<category>\", \"quote\": \"<sentence>\"}. The quote is one sentence ")
+                .append("copied exactly from the text, character for character: no changes, no ellipses, ")
+                .append("no quotation marks added. Never pick headings, captions, page numbers or lines ")
+                .append("of a table of contents.");
+        return out.toString();
     }
 
-    public static String keyPassages(String bookTitle, String chapterTitle, String text, int count) {
-        return header(bookTitle, chapterTitle)
-                + "Pick the " + count + " most important sentences of this text: key claims, "
-                + "turning points, definitions, conclusions. Copy each one exactly.\n\n"
-                + "<text>\n" + text + "\n</text>";
+    /** @param goal what the reader wants from the book; empty when none was given */
+    public static String keyPassages(String bookTitle, String chapterTitle, String text, int count, String goal) {
+        final StringBuilder out = new StringBuilder(header(bookTitle, chapterTitle));
+        if (goal != null && !goal.trim().isEmpty()) {
+            out.append("The reader's goal: ").append(goal.trim()).append("\n\n");
+        }
+        out.append("Pick about ").append(count).append(" passages of this text, as many of each category as ")
+                .append("the text really has (none is fine). Copy each one exactly.\n\n")
+                .append("<text>\n").append(text).append("\n</text>");
+        return out.toString();
     }
 
     /** How many key passages to ask for: about one per 3000 characters, 3 to 12. */
@@ -104,18 +129,30 @@ public final class AiPrompts {
                 : answerLanguage.trim();
     }
 
+    /** A passage the model picked, with its category. */
+    public static final class Picked {
+        public final AiCategory category;
+        public final String quote;
+
+        Picked(AiCategory category, String quote) {
+            this.category = category;
+            this.quote = quote;
+        }
+    }
+
     /**
-     * The sentences of a key-passages answer: a JSON array of strings, also when the model put it
-     * in a code fence or wrote something around it. Empty when there is no such array.
+     * The passages of a key-passages answer: the JSON objects of its array, also in a code fence,
+     * with prose around or cut off at the end. Objects with an unknown category or no quote are
+     * left out.
      */
-    public static List<String> parseQuotes(String answer) {
-        final List<String> quotes = new ArrayList<>();
+    public static List<Picked> parsePicked(String answer) {
+        final List<Picked> picked = new ArrayList<>();
         if (answer == null) {
-            return quotes;
+            return picked;
         }
         final int open = answer.indexOf('[');
         if (open < 0) {
-            return quotes;
+            return picked;
         }
         int i = open + 1;
         final int n = answer.length();
@@ -124,62 +161,51 @@ public final class AiPrompts {
             if (c == ']') {
                 break;
             }
-            if (c != '"') {
+            if (c != '{') {
                 i++;
                 continue;
             }
-            final StringBuilder s = new StringBuilder();
-            i++;
-            boolean closed = false;
-            while (i < n) {
-                final char d = answer.charAt(i++);
-                if (d == '"') {
-                    closed = true;
-                    break;
-                }
-                if (d != '\\' || i >= n) {
-                    s.append(d);
-                    continue;
-                }
-                final char e = answer.charAt(i++);
-                switch (e) {
-                    case 'n':
-                        s.append('\n');
-                        break;
-                    case 't':
-                        s.append('\t');
-                        break;
-                    case 'r':
-                        s.append('\r');
-                        break;
-                    case 'b':
-                        s.append('\b');
-                        break;
-                    case 'f':
-                        s.append('\f');
-                        break;
-                    case 'u':
-                        if (i + 4 <= n) {
-                            try {
-                                s.append((char) Integer.parseInt(answer.substring(i, i + 4), 16));
-                            } catch (NumberFormatException ignored) {
-                                // a broken escape: keep the rest of the sentence
-                            }
-                            i += 4;
-                        }
-                        break;
-                    default:
-                        s.append(e);
-                }
-            }
-            if (!closed) {
+            final int end = objectEnd(answer, i);
+            if (end < 0) {
                 break;
             }
-            final String quote = s.toString().trim();
-            if (!quote.isEmpty()) {
-                quotes.add(quote);
+            try {
+                final org.json.JSONObject o = new org.json.JSONObject(answer.substring(i, end + 1));
+                final AiCategory category = AiCategory.of(o.optString("category", null));
+                final String quote = o.optString("quote", "").trim();
+                if (category != null && !quote.isEmpty()) {
+                    picked.add(new Picked(category, quote));
+                }
+            } catch (org.json.JSONException e) {
+                // a broken object: the others still count
+            }
+            i = end + 1;
+        }
+        return picked;
+    }
+
+    /** Where the object starting at {@code start} closes, strings and escapes skipped; -1 when it does not. */
+    private static int objectEnd(String s, int start) {
+        int depth = 0;
+        boolean inString = false;
+        for (int i = start; i < s.length(); i++) {
+            final char c = s.charAt(i);
+            if (inString) {
+                if (c == '\\') {
+                    i++;
+                } else if (c == '"') {
+                    inString = false;
+                }
+            } else if (c == '"') {
+                inString = true;
+            } else if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                if (--depth == 0) {
+                    return i;
+                }
             }
         }
-        return quotes;
+        return -1;
     }
 }
