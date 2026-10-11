@@ -445,9 +445,13 @@ public class MainTabs2 extends AdsFragmentActivity {
         // The preferences are a plain ScrollView, which tells the refresh layout nothing about
         // its scroll position: every pull down there was taken as a refresh. Several places turn
         // the layout back on (drawer closed, onResume, tab strip touch), so it is checked here,
-        // on each pull, instead of with setEnabled.
+        // on each pull, instead of with setEnabled. The menu button shows the preferences in the
+        // drawer, which lies inside the refresh layout too: an open drawer is never refreshed.
         swipeRefreshLayout.setOnChildScrollUpCallback((parent, child) -> {
             try {
+                if (drawerLayout != null && drawerLayout.isDrawerVisible(GravityCompat.START)) {
+                    return true;
+                }
                 return pager != null && tabFragments.get(pager.getCurrentItem()) instanceof PrefFragment2;
             } catch (Exception e) {
                 return false;

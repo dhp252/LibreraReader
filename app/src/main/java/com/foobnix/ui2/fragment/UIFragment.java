@@ -272,10 +272,19 @@ public abstract class UIFragment<T> extends Fragment {
                               space - under);
             return;
         }
-        if (scroller.getPaddingTop() != above || scroller.getPaddingBottom() != under) {
+        int top = above + listHeadRoom();
+        if (scroller.getPaddingTop() != top || scroller.getPaddingBottom() != under) {
             ((ViewGroup) scroller).setClipToPadding(false);
-            scroller.setPadding(scroller.getPaddingLeft(), above, scroller.getPaddingRight(), under);
+            scroller.setPadding(scroller.getPaddingLeft(), top, scroller.getPaddingRight(), under);
         }
+    }
+
+    /**
+     * Room a tab keeps above the first row of its list, under the chrome, for a row of its own
+     * that scrolls with the list (the WebDAV tab's folder path).
+     */
+    protected int listHeadRoom() {
+        return 0;
     }
 
     /**

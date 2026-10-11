@@ -266,13 +266,8 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             }
         });
 
-        // the folder row sits above the first row and scrolls away with the list
-        header.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
-            if (recyclerView.getPaddingTop() != v.getHeight()) {
-                recyclerView.post(() -> recyclerView.setPadding(recyclerView.getPaddingLeft(), header.getHeight(),
-                        recyclerView.getPaddingRight(), recyclerView.getPaddingBottom()));
-            }
-        });
+        // the folder row sits above the first row and scrolls away with the list; the room for
+        // it is kept by the padding UIFragment gives the list (listHeadRoom)
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView rv, int dx, int dy) {
@@ -288,18 +283,30 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         return view;
     }
 
-    /** Moves the folder row with the first row of the list; gone once that row has scrolled away. */
+    @Override
+    protected int listHeadRoom() {
+        return header == null ? 0 : header.getHeight();
+    }
+
+    /**
+     * Keeps the folder row just above the first row of the list. The list is pulled up under the
+     * top bar (UIFragment), so at rest the row stands right below the bar; scrolled, it goes
+     * under the bar with the books.
+     */
     private void placeHeader() {
         if (header == null || recyclerView == null) {
             return;
         }
         final int height = header.getHeight();
-        float y = 0;
+        final int rest = recyclerView.getPaddingTop() - height;
+        int y = rest;
         if (adapter != null && adapter.getItemCount() > 0) {
             final RecyclerView.ViewHolder first = recyclerView.findViewHolderForAdapterPosition(0);
-            y = first == null ? -height : first.itemView.getTop() - recyclerView.getPaddingTop();
+            y = first == null ? -height : Math.min(rest, first.itemView.getTop() - height);
         }
-        header.setTranslationY(Math.max(-height, Math.min(0, y)));
+        if (header.getTranslationY() != y) {
+            header.setTranslationY(y);
+        }
     }
 
     private void applyMode() {
