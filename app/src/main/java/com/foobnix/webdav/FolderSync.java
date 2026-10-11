@@ -74,6 +74,10 @@ public class FolderSync {
         public int deletedLocal;
         public int deletedRemote;
         public int conflicts;
+        /** Files missing here all at once, not deleted on the server but copied back. */
+        public int keptOnServer;
+        /** Files missing on the server all at once, not deleted here but copied back. */
+        public int keptHere;
         public final List<String> errors = new ArrayList<>();
 
         public boolean changedLocal() {
@@ -84,9 +88,13 @@ public class FolderSync {
         public String toString() {
             return "up " + uploaded + ", down " + downloaded + ", deleted here " + deletedLocal
                     + ", deleted there " + deletedRemote + ", conflicts " + conflicts
+                    + (keptOnServer + keptHere > 0 ? ", kept from mass deletion " + (keptOnServer + keptHere) : "")
                     + (errors.isEmpty() ? "" : ", errors " + errors.size());
         }
     }
+
+    /** More deletions than this in one run, and more than half of what was synced, are not trusted. */
+    static final int SAFE_DELETES = 10;
 
     private final Remote remote;
     private final File localRoot;
@@ -112,6 +120,7 @@ public class FolderSync {
         final Map<String, Record> state = loadState();
         final Map<String, WebDavClient.Entry> remoteFiles = new HashMap<>();
         List<WebDavClient.Entry> listed;
+        boolean remoteMissing = false;
         try {
             listed = remote.listRecursive(remoteRoot);
         } catch (WebDavClient.WebDavException e) {
@@ -120,6 +129,7 @@ public class FolderSync {
             }
             // first sync: the folder on the server is created by the first upload
             listed = new ArrayList<>();
+            remoteMissing = true;
         }
         for (WebDavClient.Entry entry : listed) {
             if (entry.directory) {
@@ -142,6 +152,7 @@ public class FolderSync {
         }
 
         final Result result = new Result();
+        keepFromMassDeletion(state, localFiles, remoteFiles, remoteMissing, result);
         for (String path : paths) {
             try {
                 syncOne(path, localFiles.get(path), remoteFiles.get(path), state, result);
@@ -152,6 +163,52 @@ public class FolderSync {
             saveState(state);
         }
         return result;
+    }
+
+    /**
+     * A file synced before and now missing on one side is deleted on the other, except when most
+     * of what was synced is missing on that side at once, or all of it: that is not the reader
+     * deleting files, it is a fresh install, a moved or cleared Librera folder, a folder emptied on
+     * the server. Those files are then treated as never synced, so they are copied back instead.
+     */
+    private void keepFromMassDeletion(Map<String, Record> state, Map<String, File> localFiles,
+                                      Map<String, WebDavClient.Entry> remoteFiles, boolean remoteMissing, Result result) {
+        if (state.isEmpty()) {
+            return;
+        }
+        final List<String> goneHere = new ArrayList<>();
+        final List<String> goneThere = new ArrayList<>();
+        for (Map.Entry<String, Record> e : state.entrySet()) {
+            final String path = e.getKey();
+            if (!accept(path)) {
+                continue;
+            }
+            final File local = localFiles.get(path);
+            final WebDavClient.Entry remoteEntry = remoteFiles.get(path);
+            if (local == null && remoteEntry != null && tag(remoteEntry).equals(e.getValue().remoteTag)) {
+                goneHere.add(path);
+            } else if (remoteEntry == null && local != null
+                    && local.lastModified() == e.getValue().localModified && local.length() == e.getValue().localSize) {
+                goneThere.add(path);
+            }
+        }
+        // in ON_DEMAND mode a copy missing here is only a download removed: the server keeps it anyway
+        if (mode == Mode.MIRROR && (localFiles.isEmpty() || isMass(goneHere.size(), state.size()))) {
+            for (String path : goneHere) {
+                state.remove(path);
+            }
+            result.keptOnServer += goneHere.size();
+        }
+        if (remoteMissing || isMass(goneThere.size(), state.size())) {
+            for (String path : goneThere) {
+                state.remove(path);
+            }
+            result.keptHere += goneThere.size();
+        }
+    }
+
+    private static boolean isMass(int gone, int synced) {
+        return gone > SAFE_DELETES && gone * 2 > synced;
     }
 
     private void syncOne(String path, File local, WebDavClient.Entry remoteEntry, Map<String, Record> state, Result result) throws IOException {

@@ -164,7 +164,7 @@ public class WebDav {
         }
 
         for (String profile : profiles) {
-            summary.add(new FolderSync(client, new File(root, profile), profile, stateFile(c, profile),
+            summary.add(new FolderSync(client, new File(root, profile), profile, stateFile(c, profile, new File(root, profile)),
                     FolderSync.Mode.MIRROR, null).sync(), profile);
         }
         summary.add(books(c, client).sync(), BOOKS);
@@ -178,7 +178,7 @@ public class WebDav {
 
     /** The books on the server, mirrored on demand into Librera/Books. */
     public static FolderSync books(Context c, WebDavClient client) {
-        return new FolderSync(client, AppProfile.SYNC_FOLDER_BOOKS, BOOKS, stateFile(c, BOOKS), FolderSync.Mode.ON_DEMAND, null);
+        return new FolderSync(client, AppProfile.SYNC_FOLDER_BOOKS, BOOKS, stateFile(c, BOOKS, AppProfile.SYNC_FOLDER_BOOKS), FolderSync.Mode.ON_DEMAND, null);
     }
 
     /** Checks the settings: the folder can be listed (it is created when missing). */
@@ -205,9 +205,12 @@ public class WebDav {
         }
     }
 
-    /** The sync state of each folder, per server: another server starts from scratch. */
-    static File stateFile(Context c, String folder) {
-        final String server = Integer.toHexString((getUrl(c) + "|" + getUser(c)).hashCode());
-        return new File(new File(c.getFilesDir(), "webdav"), server + "-" + folder + ".txt");
+    /**
+     * The sync state of each folder, per server and local folder: another server, or the Librera
+     * folder moved elsewhere, starts from scratch (copying, never deleting).
+     */
+    static File stateFile(Context c, String folder, File local) {
+        final String key = getUrl(c) + "|" + getUser(c) + "|" + local.getAbsolutePath();
+        return new File(new File(c.getFilesDir(), "webdav"), Integer.toHexString(key.hashCode()) + "-" + folder + ".txt");
     }
 }

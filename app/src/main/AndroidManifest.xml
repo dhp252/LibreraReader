@@ -45,6 +45,8 @@
 
     <application
         android:hardwareAccelerated="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:name="com.foobnix.LibreraApp"
         android:icon="${appIcon}"
         android:label="${appName}"

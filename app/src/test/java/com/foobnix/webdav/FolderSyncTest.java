@@ -162,6 +162,44 @@ public class FolderSyncTest {
     }
 
     @Test
+    public void anEmptiedLocalFolderDoesNotEmptyTheServer() throws IOException {
+        // a fresh install restored with the old sync state, or a moved or cleared Librera folder
+        for (int i = 0; i < 12; i++) {
+            write("profile.Librera/device.Pixel/file" + i + ".json", "{" + i + "}", 10_000);
+        }
+        sync(FolderSync.Mode.MIRROR).sync();
+        for (File f : new File(local, "profile.Librera/device.Pixel").listFiles()) {
+            assertTrue(f.delete());
+        }
+
+        FolderSync.Result result = sync(FolderSync.Mode.MIRROR).sync();
+
+        assertEquals(0, result.deletedRemote);
+        assertEquals(12, result.keptOnServer);
+        assertEquals(12, result.downloaded);
+        assertEquals("{3}", remote.get("Librera/profile.Librera/device.Pixel/file3.json"));
+        assertEquals("{3}", read("profile.Librera/device.Pixel/file3.json"));
+    }
+
+    @Test
+    public void mostFilesGoneFromTheServerAreNotDeletedHere() throws IOException {
+        for (int i = 0; i < 12; i++) {
+            write("f" + i + ".json", "{" + i + "}", 10_000);
+        }
+        sync(FolderSync.Mode.MIRROR).sync();
+        for (int i = 0; i < 11; i++) {
+            remote.delete("Librera/f" + i + ".json");
+        }
+
+        FolderSync.Result result = sync(FolderSync.Mode.MIRROR).sync();
+
+        assertEquals(0, result.deletedLocal);
+        assertEquals(11, result.keptHere);
+        assertEquals(11, result.uploaded);
+        assertEquals("{4}", remote.get("Librera/f4.json"));
+    }
+
+    @Test
     public void newServerFileIsDownloadedOnlyInMirrorMode() throws IOException {
         remote.put("Librera/new.json", "{n}");
 

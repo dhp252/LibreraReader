@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android backup and device transfer from Android 12 on, as backup_rules.xml up to Android 11:
+     the AI key, the WebDAV password and the WebDAV sync state never leave this device. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="ai.xml" />
+        <exclude domain="sharedpref" path="webdav.xml" />
+        <exclude domain="file" path="webdav/" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="ai.xml" />
+        <exclude domain="sharedpref" path="webdav.xml" />
+        <exclude domain="file" path="webdav/" />
+    </device-transfer>
+</data-extraction-rules>
