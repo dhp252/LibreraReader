@@ -89,7 +89,9 @@ public class ImageExtractor {
     public static final int COVER_PAGE = -1;
     /** Held while a cover is made, on screen or to be shared: one book opened at a time. */
     private static final Object COVER_LOCK = new Object();
+    /** Crash marks of older versions; still honored and cleared, no longer written. */
     public static SharedPreferences sp;
+    private static RenderCrashGuard crashGuard;
     public static volatile CodecDocument codeCache;
     public static volatile CodecContext codecContex;
     public static String pathCache;
@@ -105,6 +107,7 @@ public class ImageExtractor {
     public static synchronized ImageExtractor getInstance(final Context c) {
         if (instance == null) {
             instance = new ImageExtractor(c);
+            crashGuard = new RenderCrashGuard(new File(c.getNoBackupFilesDir(), "render-crash"));
         }
         sp = c.getSharedPreferences("Errors", Context.MODE_PRIVATE);
         return instance;
@@ -113,6 +116,9 @@ public class ImageExtractor {
     public static void clearErrors() {
         if (sp != null) {
             sp.edit().clear().commit();
+        }
+        if (crashGuard != null) {
+            crashGuard.clear();
         }
     }
 
@@ -645,17 +651,19 @@ public class ImageExtractor {
         final String hash = "" + imageUri.hashCode();
         try {
             final InputStream streamInner;
-            if (sp.contains(hash)) {
+            if (sp.contains(hash) || crashGuard.isMarked(hash)) {
                 LOG.d("Error-crash", imageUri, hash);
                 return messageFile("#crash", "");
             }
             try {
-                sp.edit().putBoolean(hash, true).commit();
+                if (!crashGuard.mark(hash)) {
+                    LOG.d("Error-crash", "mark not written", hash);
+                }
                 synchronized (COVER_LOCK) {
                     streamInner = getStreamInner(imageUri, hash);
                 }
             } finally {
-                sp.edit().remove(hash).commit();
+                crashGuard.unmark(hash);
             }
             return streamInner;
         } finally {

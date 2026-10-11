@@ -82,11 +82,25 @@ adb install -r "app/build/outputs/apk/fdroid/debug/"*arm64.apk
 The APKs land in `app/build/outputs/apk/fdroid/debug/`: one per ABI, and `-uni` holds all four.
 `-arm64` fits most phones.
 
+Judge speed on a release APK only. A debug APK is debuggable and not optimized by R8, so taps,
+dialogs and page turns are slower than users will see. To put a release build on a phone that
+has the debug one without losing its data, sign it with the debug key:
+
+```bash
+./gradlew assembleFdroidRelease \
+  -Pandroid.injected.signing.store.file=$HOME/.android/debug.keystore \
+  -Pandroid.injected.signing.store.password=android \
+  -Pandroid.injected.signing.key.alias=androiddebugkey \
+  -Pandroid.injected.signing.key.password=android
+adb install -r "app/build/outputs/apk/fdroid/release/"*arm64.apk
+```
+
 On the maintainer's machine, two helper scripts do steps 1 to 3 from Windows. They live outside
 the repo, in `.agents/skills/dev-build-apk/scripts/`:
 - `setup_wsl_env.sh` runs once;
-- `build_apk.sh [flavor] [debug|release] [--native] [--tests=pattern,...]` mirrors the tree to
-  the WSL disk, builds, runs the tests, and checks every APK for `libMuPDF.so`.
+- `build_apk.sh [flavor] [debug|release] [--native] [--tests=pattern,...] [--debug-key]` mirrors
+  the tree to the WSL disk, builds, runs the tests, and checks every APK for `libMuPDF.so`
+  (`--debug-key` signs as above).
 
 ## 4. Run the unit tests
 
@@ -96,7 +110,8 @@ JVM tests, no device needed:
 ./gradlew testFdroidDebugUnitTest                                   # everything
 ./gradlew testFdroidDebugUnitTest --tests 'com.foobnix.ai.*' \
                                   --tests 'com.foobnix.tts.*' \
-                                  --tests 'com.foobnix.webdav.*'    # the fork's tests
+                                  --tests 'com.foobnix.webdav.*' \
+                                  --tests 'com.foobnix.sys.*'       # the fork's tests
 ```
 
 Reports are written to `app/build/reports/tests/testFdroidDebugUnitTest/index.html`.
@@ -111,6 +126,7 @@ The fork's tests all pass.
 | `com.foobnix.tts` | finding the spoken sentence on the page; where reading restarts after a double tap |
 | `com.foobnix.webdav` | two-way folder sync (conflicts, deletions, mass-deletion guard), WebDAV client |
 | `com.foobnix.ai` | quote matching, per-book AI store, TOC chapters, prompts, Claude/OpenAI request and stream parsing |
+| `com.foobnix.sys` | the crash marks that keep a book which crashed a codec from crashing the app again |
 
 `WebDavServerTest` runs against a real WebDAV server and is skipped when there is none. To run
 it, start a local one ([wsgidav](https://github.com/mar10/wsgidav)) and advertise it in

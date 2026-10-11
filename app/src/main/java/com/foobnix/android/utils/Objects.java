@@ -128,7 +128,9 @@ public class Objects {
                 LOG.e(e, f.getName());
             }
         }
-        edit.commit();
+        // written in the background: saves run on the UI thread (each closed dialog saves), and
+        // Android finishes pending writes before the app is paused or stopped
+        edit.apply();
     }
 
     public static void loadFromSp(Object obj, SharedPreferences sp) {
