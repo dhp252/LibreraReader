@@ -70,4 +70,29 @@ public class PageTurnTest {
         // a slow drag is judged by the distance
         assertFalse(PageTurn.completes(0.2f, 0.5f));
     }
+
+    @Test
+    public void aTappedCurlStartsAndLandsSlowly() {
+        assertEquals(0f, PageTurn.curlTapProgress(0f), 1e-6);
+        assertEquals(1f, PageTurn.curlTapProgress(1f), 1e-6);
+        assertEquals(0.5f, PageTurn.curlTapProgress(0.5f), 1e-6);
+        // slower than an even pace at both ends, faster in the middle
+        assertTrue(PageTurn.curlTapProgress(0.1f) < 0.1f);
+        assertTrue(PageTurn.curlTapProgress(0.9f) > 0.9f);
+        float last = 0;
+        for (int i = 1; i <= 20; i++) {
+            final float p = PageTurn.curlTapProgress(i / 20f);
+            assertTrue(p >= last);
+            last = p;
+        }
+        assertTrue(PageTurn.CURL_TAP_MS > PageTurn.SLIDE_TAP_MS);
+    }
+
+    @Test
+    public void aTappedCurlLiftsItsCornerInAnArc() {
+        assertEquals(0f, PageTurn.curlTapLift(0f), 1e-6);
+        assertEquals(0f, PageTurn.curlTapLift(1f), 1e-6);
+        assertEquals(1f, PageTurn.curlTapLift(0.5f), 1e-6);
+        assertTrue(PageTurn.curlTapLift(0.25f) > 0.5f);
+    }
 }

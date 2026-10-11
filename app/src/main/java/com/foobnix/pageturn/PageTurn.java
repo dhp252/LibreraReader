@@ -99,4 +99,28 @@ public final class PageTurn {
         }
         return progress > 0.3f;
     }
+
+    /** A curl played by a tap or key: about as long as an unhurried swipe across the page. */
+    public static final int CURL_TAP_MS = 680;
+    /** How high (in page heights) the corner of a tapped curl is lifted at mid-turn. */
+    public static final float CURL_TAP_LIFT = 0.16f;
+
+    /**
+     * How far across a tapped curl is (0..1) at {@code t} of its time (0..1), like a hand turning
+     * a page: the corner is peeled off slowly, the page swings over, and settles gently.
+     */
+    public static float curlTapProgress(float t) {
+        t = Math.max(0f, Math.min(1f, t));
+        // ease in-out, a cubic: a calm start and landing, the speed in the middle
+        return t < 0.5f ? 4 * t * t * t : 1 - (float) Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    /**
+     * How much of {@link #CURL_TAP_LIFT} the corner is raised at {@code progress} across: none at
+     * either end, most in the middle, so the corner travels an arc as a finger would.
+     */
+    public static float curlTapLift(float progress) {
+        progress = Math.max(0f, Math.min(1f, progress));
+        return (float) Math.sin(Math.PI * progress);
+    }
 }

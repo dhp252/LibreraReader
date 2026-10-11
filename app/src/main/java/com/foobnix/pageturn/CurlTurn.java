@@ -24,7 +24,6 @@ import fi.harism.curl.CurlView;
  */
 public class CurlTurn implements VerticalViewPager.CurlHost, CurlView.Listener {
 
-    private static final long PLAY_MS = 420;
 
     private final VerticalViewPager pager;
     private final CurlView curl;
@@ -127,7 +126,7 @@ public class CurlTurn implements VerticalViewPager.CurlHost, CurlView.Listener {
         }
         pendingTurn = true;
         dragTurn = false;
-        curl.play(forward, pictures[0], pictures[1], backColor(), rtl(), PLAY_MS);
+        curl.play(forward, pictures[0], pictures[1], backColor(), rtl(), PageTurn.CURL_TAP_MS);
         return true;
     }
 

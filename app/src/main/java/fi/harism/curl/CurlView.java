@@ -25,6 +25,7 @@ import android.graphics.RectF;
 import android.util.AttributeSet;
 
 import com.foobnix.pageturn.GLTextureView;
+import com.foobnix.pageturn.PageTurn;
 
 /**
  * Page curl over the reader. One page fills the view: a forward turn curls the shown page away
@@ -53,6 +54,8 @@ public class CurlView extends GLTextureView implements CurlRenderer.Observer {
     private final PointF mAnimationTarget = new PointF();
     private int mAnimationTargetEvent;
     private boolean mAnimationTurns;
+    /** The landing is a tap's turn: the swipe-like pace and arc of PageTurn.curlTap*. */
+    private boolean mAnimationTap;
 
     private final PointF mCurlDir = new PointF();
     private final PointF mCurlPos = new PointF();
@@ -173,7 +176,10 @@ public class CurlView extends GLTextureView implements CurlRenderer.Observer {
             x = getWidth() - x;
         }
         begin(forward, shown, neighbor, x, y, backColor, mirror);
-        queueEvent(() -> animateTo(true, ms));
+        queueEvent(() -> {
+            animateTo(true, ms);
+            mAnimationTap = true;
+        });
         requestRender();
     }
 
@@ -225,6 +231,7 @@ public class CurlView extends GLTextureView implements CurlRenderer.Observer {
             mAnimationDurationTime = (long) Math.max(180, Math.min(420, 140 + 360 * left));
         }
         mAnimationTurns = turn;
+        mAnimationTap = false;
         mAnimationStartTime = System.currentTimeMillis();
         mAnimate = true;
     }
@@ -255,8 +262,18 @@ public class CurlView extends GLTextureView implements CurlRenderer.Observer {
             });
         } else {
             mPointerPos.set(mAnimationSource);
-            float t = 1f - ((float) (currentTime - mAnimationStartTime) / mAnimationDurationTime);
-            t = 1f - (t * t * t * (3 - 2 * t));
+            float elapsed = (float) (currentTime - mAnimationStartTime) / mAnimationDurationTime;
+            float t;
+            if (mAnimationTap) {
+                t = PageTurn.curlTapProgress(elapsed);
+                // the corner rises on its way over, as under a finger, and comes down to land
+                // (renderer units, y up)
+                RectF page = mRenderer.getPageRect(CurlRenderer.PAGE_RIGHT);
+                mPointerPos.y += PageTurn.CURL_TAP_LIFT * Math.abs(page.top - page.bottom) * PageTurn.curlTapLift(t);
+            } else {
+                t = 1f - elapsed;
+                t = 1f - (t * t * t * (3 - 2 * t));
+            }
             mPointerPos.x += (mAnimationTarget.x - mAnimationSource.x) * t;
             mPointerPos.y += (mAnimationTarget.y - mAnimationSource.y) * t;
             updateCurlPos(mPointerPos);
