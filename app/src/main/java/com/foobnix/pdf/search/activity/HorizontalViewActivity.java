@@ -2061,7 +2061,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         final ImagePageFragment fragment = (ImagePageFragment) getSupportFragmentManager()
                 .findFragmentByTag("f" + viewPager.getCurrentItem());
         if (fragment != null) {
-            fragment.loadImageGlide();
+            fragment.loadImageGlide(true);
         }
     }
 

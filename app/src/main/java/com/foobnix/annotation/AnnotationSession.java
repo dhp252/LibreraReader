@@ -2,7 +2,6 @@ package com.foobnix.annotation;
 
 import android.app.Activity;
 import android.graphics.PointF;
-import android.graphics.RectF;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -190,8 +189,8 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
 
     // ---- the stylus: draws at once, fingers keep reading (.agents/planning/stylus-annotation-design.md) ----
 
-    /** How wide the highlighter marks, on screen. */
-    private static final int MARKER_DP = 20;
+    /** How often the text under a moving highlighter is selected again (ms). */
+    private static final long SELECT_EVERY_MS = 50;
     /** Pressure flicker shorter than this many points keeps the width before it. */
     private static final int STEADY_POINTS = 4;
 
@@ -204,6 +203,10 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     private int editWithBeforeEraser;
     private int drawViewVisibilityBefore = View.GONE;
     private final int[] drawViewOrigin = new int[2];
+    /** Where the highlighter came down, and when the text under it was last selected. */
+    private final PointF highlightStart = new PointF();
+    private final PointF highlightEnd = new PointF();
+    private long lastSelect;
 
     /**
      * Called first by the reader's dispatchTouchEvent.
@@ -347,19 +350,34 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     }
 
     private void startStroke(MotionEvent ev, int stylus) {
+        drawView.getLocationInWindow(drawViewOrigin);
+        final float x = ev.getX(stylus) - drawViewOrigin[0];
+        final float y = ev.getY(stylus) - drawViewOrigin[1];
+        if (stylusDraw == StylusRules.DRAW_HIGHLIGHTER) {
+            // nothing is drawn: the text from here to the tip is selected as it moves
+            highlightStart.set(x, y);
+            highlightEnd.set(x, y);
+            lastSelect = 0;
+            return;
+        }
         drawViewVisibilityBefore = drawView.getVisibility();
         drawView.setVisibility(View.VISIBLE);
-        drawView.getLocationInWindow(drawViewOrigin);
-        final boolean marker = stylusDraw == StylusRules.DRAW_HIGHLIGHTER;
-        final int color = AnnotationTools.colorInt(marker ? AnnotationTools.HIGHLIGHT : AnnotationTools.PEN);
         // the same width the pen draws with under a finger (DrawView.setColor)
-        final float width = marker ? Dips.dpToPx(MARKER_DP) : Dips.dpToPx((int) AppState.get().editLineWidth * 2);
-        drawView.startStylus(ev.getX(stylus) - drawViewOrigin[0], ev.getY(stylus) - drawViewOrigin[1],
-                ev.getPressure(stylus), color, width, marker);
+        drawView.startStylus(x, y, ev.getPressure(stylus), AnnotationTools.colorInt(AnnotationTools.PEN),
+                Dips.dpToPx((int) AppState.get().editLineWidth * 2));
         toolbar.bringToFront();
     }
 
     private void moveStroke(MotionEvent ev, int stylus) {
+        if (stylusDraw == StylusRules.DRAW_HIGHLIGHTER) {
+            highlightEnd.set(ev.getX(stylus) - drawViewOrigin[0], ev.getY(stylus) - drawViewOrigin[1]);
+            final long now = SystemClock.uptimeMillis();
+            if (ev.getActionMasked() == MotionEvent.ACTION_MOVE && now - lastSelect >= SELECT_EVERY_MS) {
+                lastSelect = now;
+                dc.selectTextBetween(highlightStart.x, highlightStart.y, highlightEnd.x, highlightEnd.y);
+            }
+            return;
+        }
         if (ev.getActionMasked() != MotionEvent.ACTION_MOVE) {
             return;
         }
@@ -372,6 +390,10 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     }
 
     private void finishStroke(int draw, boolean save) {
+        if (draw == StylusRules.DRAW_HIGHLIGHTER) {
+            finishHighlight(save);
+            return;
+        }
         final List<PointF> points = new ArrayList<>();
         for (PointF p : drawView.getPoints()) {
             points.add(new PointF(p.x, p.y));
@@ -386,11 +408,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         if (!save || points.size() < 2 || steps.length != points.size()) {
             return;
         }
-        if (draw == StylusRules.DRAW_PEN) {
-            savePen(points, steps);
-        } else {
-            saveHighlighter(points);
-        }
+        savePen(points, steps);
     }
 
     /** One ink annotation per pressure width, each holding the pieces of the stroke drawn at it, page by page. */
@@ -451,66 +469,19 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     }
 
     /**
-     * Over text: the text from the stroke's start to its end gets a highlight, as a selection
-     * would. Elsewhere (a picture, a scan): a highlight laid along the stroke, which PDF readers
-     * draw see-through like a marker.
+     * The text from where the highlighter came down to where it left gets a highlight, as a
+     * selection would. With no text there (a picture, a scan) nothing is marked.
      */
-    private void saveHighlighter(List<PointF> points) {
-        final int color = AnnotationTools.colorInt(AnnotationTools.HIGHLIGHT);
-        final PointF start = points.get(0);
-        final PointF end = points.get(points.size() - 1);
-        if (dc.selectTextBetween(start.x, start.y, end.x, end.y)) {
-            dc.underlineText(color, 2.0f, AnnotationType.HIGHLIGHT);
+    private void finishHighlight(boolean save) {
+        if (!save) {
             dc.clearSelectedText();
             return;
         }
+        if (dc.selectTextBetween(highlightStart.x, highlightStart.y, highlightEnd.x, highlightEnd.y)) {
+            dc.underlineText(AnnotationTools.colorInt(AnnotationTools.HIGHLIGHT), 2.0f, AnnotationType.HIGHLIGHT);
+        } else {
+            Toast.makeText(activity, R.string.stylus_no_text, Toast.LENGTH_SHORT).show();
+        }
         dc.clearSelectedText();
-        final List<DocumentController.PagePoint> onPages = dc.toPageUnits(points);
-        if (onPages == null) {
-            Toast.makeText(activity, R.string.fail, Toast.LENGTH_SHORT).show();
-            return;
-        }
-        final Map<Integer, List<RectF>> rects = new TreeMap<>();
-        DocumentController.PagePoint from = null;
-        for (int i = 0; i < onPages.size(); i++) {
-            final DocumentController.PagePoint p = onPages.get(i);
-            if (p == null) {
-                from = null;
-                continue;
-            }
-            final float half = Dips.dpToPx(MARKER_DP) / 2f * p.unitsPerPx;
-            final boolean last = i == onPages.size() - 1;
-            if (from == null || from.page != p.page) {
-                from = p;
-                if (last) {
-                    addRect(rects, p.page, new RectF(p.point.x - half, p.point.y - half, p.point.x + half, p.point.y + half));
-                }
-                continue;
-            }
-            // one box per step of at least half the marker's width: boxes meet, they do not pile up
-            if (!last && Math.hypot(p.point.x - from.point.x, p.point.y - from.point.y) < half) {
-                continue;
-            }
-            addRect(rects, p.page, new RectF(Math.min(from.point.x, p.point.x), Math.min(from.point.y, p.point.y) - half,
-                    Math.max(from.point.x, p.point.x), Math.max(from.point.y, p.point.y) + half));
-            from = p;
-        }
-        dc.beginAnnotationGroup();
-        try {
-            for (Map.Entry<Integer, List<RectF>> page : rects.entrySet()) {
-                dc.addHighlightLines(page.getKey(), page.getValue(), color);
-            }
-        } finally {
-            dc.endAnnotationGroup();
-        }
-    }
-
-    private static void addRect(Map<Integer, List<RectF>> rects, int page, RectF rect) {
-        List<RectF> list = rects.get(page);
-        if (list == null) {
-            list = new ArrayList<>();
-            rects.put(page, list);
-        }
-        list.add(rect);
     }
 }

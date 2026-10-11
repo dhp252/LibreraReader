@@ -173,6 +173,15 @@ public class ImagePageFragment extends Fragment {
     }
 
     public void loadImageGlide() {
+        loadImageGlide(false);
+    }
+
+    /**
+     * @param fresh render the page again even though Glide holds it: the bitmap on screen is an
+     *              active resource, which clearMemoryCache leaves, so an annotation just added
+     *              would not show
+     */
+    public void loadImageGlide(boolean fresh) {
         if (image != null && image.getWidth() == 0) {
             return;
         }
@@ -196,6 +205,7 @@ public class ImagePageFragment extends Fragment {
                 .asBitmap()
                 .load(getPath())
                 .diskCacheStrategy(DiskCacheStrategy.NONE)
+                .skipMemoryCache(fresh)
                 .into(target);
     }
 

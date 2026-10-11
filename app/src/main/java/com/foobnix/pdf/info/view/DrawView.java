@@ -35,7 +35,6 @@ public class DrawView extends View {
 		paint.setStyle(Style.STROKE);
 	}
 	private final Paint stylusPaint = new Paint(paint);
-	private boolean marker;
 	private float stylusWidth;
 	private Runnable onFinishDraw;
 
@@ -51,8 +50,8 @@ public class DrawView extends View {
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		if (steps.isEmpty() || marker) {
-			canvas.drawPath(pointsPath, marker ? stylusPaint : paint);
+		if (steps.isEmpty()) {
+			canvas.drawPath(pointsPath, paint);
 			return;
 		}
 		// a pen stroke with pressure: each piece as wide as its step
@@ -100,18 +99,12 @@ public class DrawView extends View {
 		return true;
 	}
 
-	/**
-	 * A stylus stroke starts at (x, y) in this view: a pen line {@code widthPx} wide at normal
-	 * pressure, or a see-through marker that wide.
-	 */
-	public void startStylus(float x, float y, float pressure, int color, float widthPx, boolean marker) {
-		this.marker = marker;
+	/** A stylus pen stroke starts at (x, y) in this view, {@code widthPx} wide at normal pressure. */
+	public void startStylus(float x, float y, float pressure, int color, float widthPx) {
 		stylusWidth = widthPx;
 		stylusPaint.set(paint);
-		stylusPaint.setPathEffect(marker ? null : new CornerPathEffect(10));
-		stylusPaint.setColor(marker ? (color & 0x00ffffff) | 0x66000000 : color);
+		stylusPaint.setColor(color);
 		stylusPaint.setStrokeWidth(widthPx);
-		stylusPaint.setStrokeCap(marker ? Paint.Cap.SQUARE : Paint.Cap.ROUND);
 		points.clear();
 		steps.clear();
 		pointsPath.reset();
@@ -126,7 +119,7 @@ public class DrawView extends View {
 
 	private void addStylus(float x, float y, float pressure) {
 		points.add(new PointF(x, y));
-		steps.add(marker ? StylusRules.STEP_NORMAL : StylusRules.step(pressure));
+		steps.add(StylusRules.step(pressure));
 		invalidate();
 	}
 

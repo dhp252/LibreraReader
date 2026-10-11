@@ -213,8 +213,8 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
 - **Stylus** (a phone or tablet with an active pen): open a PDF without opening the toolbar and
   write with the pen: it draws at once, thinner or bolder with pressure, while a finger still turns
   pages. Rest your palm while writing: nothing happens. Set "Stylus draws with" to Highlighter
-  (reader menu > advanced preferences) and drag over a line of text (a clean highlight) and over a
-  picture (a see-through band). Hold the side button: the other tool. Tap a mark with the eraser
+  (reader menu > advanced preferences) and drag over a line of text: the text under it is selected
+  as you go and highlighted when you lift (over a picture: nothing, with a message). Hold the side button: the other tool. Tap a mark with the eraser
   end (if the pen has one). Undo after a pressure stroke removes all of it. Save, reopen in another
   PDF reader, check the marks are there.
 - **WebDAV**: Preferences > WebDAV sync. Enter the server and Test it. Read a few pages, sync,
