@@ -283,6 +283,12 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         return view;
     }
 
+    /** Folders stand in the same columns as the books, on a phone and a tablet alike. */
+    @Override
+    protected int folderSpan(int num) {
+        return 1;
+    }
+
     @Override
     protected int listHeadRoom() {
         return header == null ? 0 : header.getHeight();

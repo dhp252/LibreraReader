@@ -288,6 +288,19 @@ public abstract class UIFragment<T> extends Fragment {
     }
 
     /**
+     * Columns a folder row takes in a grid of {@code num} book columns: wider than a book (a
+     * whole row of 3, two columns from 4 up), as the Folders tab lays them out.
+     */
+    protected int folderSpan(int num) {
+        if (num <= 2) {
+            return 1;
+        } else if (num == 3) {
+            return 3;
+        }
+        return 2;
+    }
+
+    /**
      * The header runs the full width of the screen and meets the strips above and below it.
      * Rounded, its corners let the page through in four small notches along those seams.
      */
@@ -642,14 +655,7 @@ public abstract class UIFragment<T> extends Fragment {
                         return num;
                     }
                     if (type == FileMetaAdapter.DISPLAY_TYPE_DIRECTORY || type == FileMetaAdapter.DISPLAY_TYPE_PLAYLIST) {
-                        if (num == 1) {
-                            return 1;
-                        } else if (num == 2) {
-                            return 1;
-                        } else if (num == 3) {
-                            return 3;
-                        }
-                        return 2;
+                        return folderSpan(num);
                     }
 
                     if (type == FileMetaAdapter.DISPALY_TYPE_SERIES) {
