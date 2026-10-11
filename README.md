@@ -230,6 +230,13 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
 
   The key stays on the device and is never synced or backed up. Book text is sent only when
   you use an AI action.
+- **Page turn** (use the release APK; debug builds make animations stutter): in book mode, open
+  the page flipping dialog or the advanced preferences and pick each "Page turn" style:
+  - Slide, Cover, Page curl: turn forward and back by tap, volume key and swipe. A slow, short
+    drag of the curl should fall back; a flick should complete it.
+  - Page curl on a page with a TTS or AI highlight: the highlight curls with the page.
+  - A right-to-left book (manga): every style is mirrored.
+  - "Vibrate lightly when a page turns": a light tick for your own turns, none during autoplay.
 
 # Download application
 

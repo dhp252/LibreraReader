@@ -87,4 +87,11 @@
     <string name="ai_test_ok">Works: %1$s</string>
     <string name="ai_section">AI: summaries and key passages</string>
     <string name="ai_section_info">Summaries of a chapter or the whole book, and the key passages of a book marked in their own color, from Claude or an OpenAI-compatible server (OpenAI, OpenRouter, LM Studio, Ollama). Use the ✦ button at the top of an open book.</string>
+
+    <string name="page_turn">Page turn</string>
+    <string name="page_turn_none">None</string>
+    <string name="page_turn_slide">Slide</string>
+    <string name="page_turn_cover">Cover</string>
+    <string name="page_turn_curl">Page curl</string>
+    <string name="page_turn_haptic">Vibrate lightly when a page turns</string>
 </resources>

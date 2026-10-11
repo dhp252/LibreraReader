@@ -549,6 +549,10 @@ public class AppState {
     @IgnoreHashCode public int tapzoneSize = Dips.isXLargeScreen() ? 15 : 25;
     public transient int allocatedMemorySize = (int) MemoryUtils.RECOMENDED_MEMORY_SIZE;
     @IgnoreHashCode public boolean isScrollAnimation = true;
+    // Book mode page turn (PageTurn.STYLE_*); -1 until chosen: then isScrollAnimation decides,
+    // so the old checkbox carries over (PageTurn.style). Kept in step with isScrollAnimation.
+    @IgnoreHashCode public int pageTurnStyle = -1;
+    @IgnoreHashCode public boolean isPageTurnHaptic = false;
     @IgnoreHashCode public boolean isEnableVerticalSwipe = true;
     @IgnoreHashCode public boolean isEnableHorizontalSwipe = true;
     @IgnoreHashCode public boolean isSwipeGestureReverse = false;
@@ -719,6 +723,7 @@ public class AppState {
         AppState.get().tapPositionTop = true;
         BookCSS.get().appFontScale = 1.1f;
         AppState.get().isScrollAnimation = false;
+        AppState.get().pageTurnStyle = -1; // not chosen: follows isScrollAnimation (off)
         AppSP.get().isFirstTimeVertical = false;
         AppSP.get().isFirstTimeHorizontal = false;
         AppState.get().tabsOrder9 = com.foobnix.model.AppState.get().tabsOrder9.replace(UITab.PrefFragment.index + "#0",

@@ -20,11 +20,7 @@
         myseek:text="" >
     </com.foobnix.pdf.info.view.CustomSeek>
 
-    <CheckBox
-        android:id="@+id/isScrollAnimation"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/simple_scroll_animation" />
+    <include layout="@layout/include_page_turn" />
     
     <CheckBox
         android:id="@+id/isShowToolBar"

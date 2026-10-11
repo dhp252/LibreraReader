@@ -21,6 +21,7 @@ import android.os.Parcelable;
 import android.text.InputType;
 import android.util.AttributeSet;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
@@ -106,6 +107,8 @@ import com.foobnix.pdf.search.activity.msg.NotifyAllFragments;
 import com.foobnix.pdf.search.menu.MenuBuilderM;
 import com.foobnix.pdf.search.view.CloseAppDialog;
 import com.foobnix.pdf.search.view.VerticalViewPager;
+import com.foobnix.pageturn.CurlTurn;
+import com.foobnix.pageturn.PageTurn;
 import com.foobnix.sys.ClickUtils;
 import com.foobnix.sys.TempHolder;
 import com.foobnix.pdf.info.model.BookCSS;
@@ -210,6 +213,11 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     };
     long lastClick = 0;
     long lastClickMaxTime = 300;
+    CurlTurn curlTurn;
+    // the page change under way was made by the user (tap, key, swipe, curl): it gets the
+    // optional haptic tick when it lands (not autoplay, TTS or jumps)
+    boolean userTurn;
+    boolean tickWhenIdle;
     Runnable onCloseDialog = new Runnable() {
 
         @Override
@@ -323,6 +331,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
 
         viewPager = (VerticalViewPager) findViewById(R.id.pager2);
         viewPager.setAccessibilityDelegate(new View.AccessibilityDelegate());
+        curlTurn = new CurlTurn(viewPager, findViewById(R.id.pageCurl), () -> userTurn = true);
 
         viewPager.setBackgroundColor(MagicHelper.getBgColor());
 
@@ -1274,7 +1283,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
                         return;
                     }
                 } else {
-                    nextPage();
+                    nextPage(false);
                 }
             }
 
@@ -1663,6 +1672,9 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     @Override
     protected void onPause() {
         super.onPause();
+        if (curlTurn != null) {
+            curlTurn.finishNow();
+        }
         AppProfile.save(this);
         TempHolder.isSeaching = false;
         TempHolder.isActiveSpeedRead.set(false);
@@ -1673,15 +1685,24 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     }
 
     public synchronized void nextPage() {
+        nextPage(true);
+    }
+
+    public synchronized void nextPage(boolean byUser) {
         flippingTimer = 0;
 
-        boolean isAnimate = AppState.get().isScrollAnimation;
+        boolean isAnimate = viewPager.turnStyle() != PageTurn.STYLE_NONE;
         long lx = System.currentTimeMillis() - lastClick;
         LOG.d("lastClick", lx);
         if (lx < lastClickMaxTime) {
             isAnimate = false;
         }
         lastClick = System.currentTimeMillis();
+        userTurn = byUser;
+        if (isAnimate && curlTurn.play(true)) {
+            return;
+        }
+        curlTurn.finishNow();
         viewPager.setCurrentItem(dc.getCurentPage() + 1, isAnimate);
     }
 
@@ -1705,11 +1726,16 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     public synchronized void prevPage() {
         flippingTimer = 0;
 
-        boolean isAnimate = AppState.get().isScrollAnimation;
+        boolean isAnimate = viewPager.turnStyle() != PageTurn.STYLE_NONE;
         if (System.currentTimeMillis() - lastClick < lastClickMaxTime) {
             isAnimate = false;
         }
         lastClick = System.currentTimeMillis();
+        userTurn = true;
+        if (isAnimate && curlTurn.play(false)) {
+            return;
+        }
+        curlTurn.finishNow();
         viewPager.setCurrentItem(dc.getCurentPage() - 1, isAnimate);
     }
 
@@ -2799,6 +2825,14 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
 
         @Override
         public void onPageSelected(final int pos) {
+            if (userTurn) {
+                userTurn = false;
+                if (currentScrollState == ViewPager.SCROLL_STATE_IDLE) {
+                    pageTurnTick();
+                } else {
+                    tickWhenIdle = true;
+                }
+            }
             PageImageState.currentPage = pos;
             dc.setCurrentPage(viewPager.getCurrentItem());
             updateUI(pos);
@@ -2836,8 +2870,27 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         @Override
         public void onPageScrollStateChanged(int arg0) {
             currentScrollState = arg0;
+            if (arg0 == ViewPager.SCROLL_STATE_DRAGGING) {
+                userTurn = true;
+            } else if (arg0 == ViewPager.SCROLL_STATE_IDLE) {
+                // a drag that fell back selected no page
+                userTurn = false;
+                if (tickWhenIdle) {
+                    tickWhenIdle = false;
+                    pageTurnTick();
+                }
+            }
         }
     };
+
+    private void pageTurnTick() {
+        if (!AppState.get().isPageTurnHaptic) {
+            return;
+        }
+        if (!viewPager.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)) {
+            viewPager.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+        }
+    }
 
     Runnable reloadDoc = new Runnable() {
 

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Book mode page turn settings (PageTurnSettings), in the page flipping dialog and in the
+     advanced preferences. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pageTurnSettings"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="180dip"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:text="@string/page_turn"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/pageTurnStyle"
+            style="@style/textLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/page_turn_slide" />
+    </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/isPageTurnHaptic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/page_turn_haptic" />
+</LinearLayout>

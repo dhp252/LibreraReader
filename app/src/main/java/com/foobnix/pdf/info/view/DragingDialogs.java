@@ -118,6 +118,7 @@ import com.foobnix.pdf.info.IMG;
 import com.foobnix.pdf.info.OutlineHelper;
 import com.foobnix.pdf.info.PageUrl;
 import com.foobnix.pdf.info.R;
+import com.foobnix.pageturn.PageTurnSettings;
 import com.foobnix.pdf.info.TintUtil;
 import com.foobnix.pdf.info.Urls;
 import com.foobnix.pdf.info.model.AnnotationType;
@@ -3367,15 +3368,7 @@ public class DragingDialogs {
             @Override public View getContentView(LayoutInflater inflater) {
                 View inflate = inflater.inflate(R.layout.dialog_flipping_pages, null, false);
 
-                CheckBox isScrollAnimation = inflate.findViewById(R.id.isScrollAnimation);
-                isScrollAnimation.setVisibility(
-                        AppSP.get().readingMode == AppState.READING_MODE_BOOK ? View.VISIBLE : View.GONE);
-                isScrollAnimation.setChecked(AppState.get().isScrollAnimation);
-                isScrollAnimation.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-                    @Override public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
-                        AppState.get().isScrollAnimation = isChecked;
-                    }
-                });
+                PageTurnSettings.bind(inflate);
 
                 CheckBox isLoopAutoplay = inflate.findViewById(R.id.isLoopAutoplay);
                 isLoopAutoplay.setChecked(AppState.get().isLoopAutoplay);
@@ -4083,15 +4076,7 @@ public class DragingDialogs {
                     return false;
                 });
 
-                CheckBox isScrollAnimation = inflate.findViewById(R.id.isScrollAnimation);
-                isScrollAnimation.setVisibility(
-                        AppSP.get().readingMode == AppState.READING_MODE_BOOK ? View.VISIBLE : View.GONE);
-                isScrollAnimation.setChecked(AppState.get().isScrollAnimation);
-                isScrollAnimation.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-                    @Override public void onCheckedChanged(final CompoundButton buttonView, final boolean isChecked) {
-                        AppState.get().isScrollAnimation = isChecked;
-                    }
-                });
+                PageTurnSettings.bind(inflate);
 
                 CheckBox isDisableSwipe = inflate.findViewById(R.id.isEnableVerticalSwipe);
                 isDisableSwipe.setVisibility(

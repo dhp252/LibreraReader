@@ -280,6 +280,15 @@ public class PageImaveView extends View {
         this.pageNumber = pageNumber;
     }
 
+    public int getPageNumber() {
+        return pageNumber;
+    }
+
+    /** The page image arrived: drawing this view now shows the page, not an empty background. */
+    public boolean hasPageImage() {
+        return imageDrawable != null && imageDrawable.getBitmap() != null && !imageDrawable.getBitmap().isRecycled();
+    }
+
     public Matrix imageMatrix() {
         return PageImageState.get().getMatrix();
     }

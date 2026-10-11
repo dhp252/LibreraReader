@@ -26,6 +26,13 @@
             android:layout_height="match_parent"
             android:layout_centerInParent="false" />
 
+        <!-- Page curl, over the pages and under every panel; shown only in the curl style. -->
+        <fi.harism.curl.CurlView
+            android:id="@+id/pageCurl"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
         <LinearLayout
             android:id="@+id/musicButtonPanel"
             android:layout_width="match_parent"
