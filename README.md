@@ -219,6 +219,12 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   Also check long-press > Remove from this device, the back key in a subfolder, and pull to refresh.
   Books copied to the server from a computer get their cover while the tab shows them (each is
   downloaded once, then its cover is shared with every device; books over 50 MB keep the title).
+- **Settings over WebDAV**: change a setting (font size, theme, page turn) on one device, sync it,
+  then sync the other: it has the change (theme after a restart). Change different settings on
+  both before syncing: both survive. Set the AI key and a master prompt on one device: after a sync
+  the other can run AI actions without typing the key.
+- **WebDAV tab bar**: filter, the book count, sort by name/date/size (long press reverses), and the
+  display menu (list, compact, grid, covers).
 - **Back in a book**: back closes the book and shows the library, also for a book opened from a
   file manager or another app. A long press of back still shows the close menu.
 - **AI**: tap ✦ in the top bar, then AI settings:

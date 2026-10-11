@@ -553,6 +553,10 @@ public class AppState {
     // so the old checkbox carries over (PageTurn.style). Kept in step with isScrollAnimation.
     @IgnoreHashCode public int pageTurnStyle = -1;
     @IgnoreHashCode public boolean isPageTurnHaptic = false;
+    // WebDAV tab: display mode (MODE_*), sort (WebDavFragment2.SORT_*) and order
+    public int webdavMode = MODE_GRID;
+    public int webdavSortBy = 0;
+    public boolean webdavSortAsc = true;
     @IgnoreHashCode public boolean isEnableVerticalSwipe = true;
     @IgnoreHashCode public boolean isEnableHorizontalSwipe = true;
     @IgnoreHashCode public boolean isSwipeGestureReverse = false;

@@ -66,6 +66,16 @@
             android:inputType="text"
             android:singleLine="true" />
 
+        <EditText
+            android:id="@+id/aiMasterPrompt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:hint="@string/ai_master_prompt"
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="6"
+            android:minLines="2" />
+
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

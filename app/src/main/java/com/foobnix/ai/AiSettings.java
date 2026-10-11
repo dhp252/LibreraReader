@@ -3,9 +3,13 @@ package com.foobnix.ai;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
- * AI settings. They stay on this device: private preferences, never AppState, which is synced
- * (Google Drive, WebDAV) - the API key must not leave the device.
+ * AI settings, in private preferences (excluded from Android backup). They are shared between the
+ * user's devices only by the WebDAV sync ({@code webdav.SharedSettings}), the API key encrypted with
+ * the WebDAV password; never through AppState or Google Drive.
  */
 public class AiSettings {
 
@@ -31,6 +35,15 @@ public class AiSettings {
     public String answerLanguage = "";
     public String highlightColor = DEFAULT_HIGHLIGHT_COLOR;
     public boolean highlightsVisible = true;
+    /** The user's own instructions, sent before Librera's for every AI action; empty: none. */
+    public String masterPrompt = "";
+
+    /** Preference names shared between devices (WebDAV); {@code *.key} are the API keys. */
+    public static final String[] SHARED = {"provider",
+            CLAUDE + ".url", CLAUDE + ".model", CLAUDE + ".maxChars", CLAUDE + ".key",
+            OPENAI + ".url", OPENAI + ".model", OPENAI + ".maxChars", OPENAI + ".key",
+            "answerLanguage", "highlightColor", "highlightsVisible", "masterPrompt"};
+    private static final String MODIFIED = "modified";
 
     private static SharedPreferences prefs(Context c) {
         return c.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -53,6 +66,7 @@ public class AiSettings {
         s.answerLanguage = p.getString("answerLanguage", "");
         s.highlightColor = p.getString("highlightColor", DEFAULT_HIGHLIGHT_COLOR);
         s.highlightsVisible = p.getBoolean("highlightsVisible", true);
+        s.masterPrompt = p.getString("masterPrompt", "");
         return s;
     }
 
@@ -67,7 +81,52 @@ public class AiSettings {
                 .putString("answerLanguage", answerLanguage.trim())
                 .putString("highlightColor", highlightColor)
                 .putBoolean("highlightsVisible", highlightsVisible)
+                .putString("masterPrompt", masterPrompt.trim())
+                .putLong(MODIFIED, System.currentTimeMillis())
                 .apply();
+    }
+
+    /** When the settings were last saved on this device (0: never). */
+    public static long modified(Context c) {
+        return prefs(c).getLong(MODIFIED, 0);
+    }
+
+    /** The shared settings saved on this device, as text; unset ones are left out. */
+    public static Map<String, String> shared(Context c) {
+        final Map<String, ?> all = prefs(c).getAll();
+        final Map<String, String> out = new LinkedHashMap<>();
+        for (String name : SHARED) {
+            final Object value = all.get(name);
+            if (value != null) {
+                out.put(name, String.valueOf(value));
+            }
+        }
+        return out;
+    }
+
+    /** Settings that came from another device; the last-saved time is left as it is. */
+    public static void applyShared(Context c, Map<String, String> values) {
+        final SharedPreferences.Editor edit = prefs(c).edit();
+        for (Map.Entry<String, String> e : values.entrySet()) {
+            final String name = e.getKey();
+            final String value = e.getValue();
+            try {
+                if (name.endsWith(".maxChars")) {
+                    edit.putInt(name, Integer.parseInt(value));
+                } else if (name.equals("highlightsVisible")) {
+                    edit.putBoolean(name, Boolean.parseBoolean(value));
+                } else {
+                    for (String shared : SHARED) {
+                        if (shared.equals(name)) {
+                            edit.putString(name, value);
+                        }
+                    }
+                }
+            } catch (NumberFormatException ignored) {
+                // a damaged value: this device keeps its own
+            }
+        }
+        edit.apply();
     }
 
     public boolean isClaude() {

@@ -49,4 +49,13 @@ public class AiPromptsTest {
         assertTrue(AiPrompts.summarySystem("").contains("the language the text is written in"));
         assertTrue(AiPrompts.summarySystem("Vietnamese").contains("Write in Vietnamese."));
     }
+
+    @Test
+    public void theMasterPromptComesBeforeTheBuiltInRules() {
+        final String system = AiPrompts.keyPassagesSystem();
+        assertEquals(system, AiPrompts.withMaster("", system));
+        assertEquals(system, AiPrompts.withMaster("  ", system));
+        assertEquals(system, AiPrompts.withMaster(null, system));
+        assertEquals("Focus on the arguments.\n\n" + system,AiPrompts.withMaster(" Focus on the arguments. ", system));
+    }
 }

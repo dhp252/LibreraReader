@@ -1,42 +1,154 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The WebDAV tab: the Library tab's top bar (menu, filter with count, sort, display mode),
+     then the folder being shown. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/filterLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/panel_padding"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="6dip"
+        android:paddingBottom="6dip">
+
+        <ImageView
+            android:id="@+id/menu2"
+            android:layout_width="@dimen/wh_button"
+            android:layout_height="@dimen/wh_button"
+            android:layout_marginLeft="@dimen/top_button_margin"
+            android:layout_marginRight="@dimen/top_button_margin"
+            android:adjustViewBounds="true"
+            android:background="@drawable/bg_search_edit"
+            android:contentDescription="@string/cd_application_menu"
+            android:cropToPadding="true"
+            android:padding="3dip"
+            android:src="@drawable/glyphicons_600_menu" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/wh_button"
+            android:layout_marginLeft="@dimen/top_field_margin"
+            android:layout_marginRight="@dimen/top_field_margin"
+            android:layout_weight="1"
+            android:focusableInTouchMode="true">
+
+            <EditText
+                android:id="@+id/filterLine"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_search_edit"
+                android:contentDescription="@string/filter"
+                android:ellipsize="end"
+                android:hint="@string/webdav_tab"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:paddingLeft="10dip"
+                android:paddingTop="0dip"
+                android:paddingRight="60dip"
+                android:paddingBottom="0dip"
+                android:singleLine="true"
+                android:textColor="@color/tint_gray"
+                android:textColorHint="@color/tint_gray"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/countBooks"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="14dip"
+                android:gravity="center"
+                android:text="0"
+                android:textColor="@color/tint_gray"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/cleanFilter"
+                style="@style/buttonClear"
+                android:layout_width="@dimen/wh_button_small"
+                android:layout_height="@dimen/wh_button_small"
+                android:layout_centerVertical="true"
+                android:layout_toLeftOf="@+id/countBooks"
+                android:contentDescription="@string/cd_clear_search_reasult"
+                android:src="@drawable/glyphicons_599_menu_close" />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/secondTopPanel"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/wh_button"
+            android:background="@drawable/bg_search_second"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/sortBy"
+                style="@style/buttonTop"
+                android:layout_width="@dimen/wh_button"
+                android:layout_height="@dimen/wh_button"
+                android:background="@drawable/bg_round_press"
+                android:clickable="true"
+                android:contentDescription="@string/cd_sort_results"
+                android:src="@drawable/glyphicons_476_sort_attributes"
+                android:tint="@color/white" />
+
+            <ImageView
+                android:id="@+id/onGridList"
+                style="@style/buttonTop"
+                android:layout_width="@dimen/wh_button"
+                android:layout_height="@dimen/wh_button"
+                android:contentDescription="@string/cd_view_menu"
+                android:src="@drawable/my_glyphicons_114_paragraph_justify" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- The folder shown, and the way up. -->
+    <LinearLayout
         android:id="@+id/pathContainer"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/wh_button"
-        android:background="@drawable/bg_search_second"
+        android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:minHeight="@dimen/wh_button_small"
+        android:orientation="horizontal"
+        android:paddingLeft="@dimen/panel_padding"
+        android:paddingRight="@dimen/panel_padding">
 
         <ImageView
             android:id="@+id/onBack"
-            style="@style/buttonTop"
-            android:layout_width="@dimen/wh_button"
-            android:layout_height="@dimen/wh_button"
+            android:layout_width="@dimen/wh_button_small"
+            android:layout_height="@dimen/wh_button_small"
             android:layout_weight="0"
+            android:background="@drawable/bg_round_press"
             android:contentDescription="@string/back"
+            android:padding="4dip"
             android:src="@drawable/glyphicons_223_chevron_left" />
 
         <TextView
             android:id="@+id/webdavPath"
             android:layout_width="0dip"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="2dip"
-            android:layout_marginRight="2dip"
+            android:layout_marginLeft="4dip"
+            android:layout_marginRight="4dip"
             android:layout_weight="1"
             android:ellipsize="start"
             android:singleLine="true"
             android:text="@string/msg_loading"
-            android:textColor="@color/white" />
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
         <com.foobnix.pdf.info.view.MyProgressBar
             android:id="@+id/MyProgressBarWebDav"
-            android:layout_width="@dimen/wh_button"
-            android:layout_height="@dimen/wh_button"
+            android:layout_width="@dimen/wh_button_small"
+            android:layout_height="@dimen/wh_button_small"
             android:layout_weight="0"
             android:saveEnabled="false" />
     </LinearLayout>

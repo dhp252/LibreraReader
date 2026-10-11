@@ -368,7 +368,7 @@ public final class AiJobs {
                     return;
                 }
 
-                final String system = AiPrompts.summarySystem(settings.answerLanguage);
+                final String system = AiPrompts.withMaster(settings.masterPrompt, AiPrompts.summarySystem(settings.answerLanguage));
                 final AiClient.Output stream = delta -> ui(() -> screen.onText(delta));
                 final String answer;
                 if (total <= settings.maxChars) {
@@ -572,7 +572,7 @@ public final class AiJobs {
                     final List<String> quotes = new ArrayList<>();
                     for (BookChapters.Range part : BookChapters.parts(Collections.singletonList(chapter), lengths, settings.maxChars)) {
                         final String partText = join(plain, part.from, part.to);
-                        final String answer = ask(AiPrompts.keyPassagesSystem(), AiPrompts.keyPassages(target.title,
+                        final String answer = ask(AiPrompts.withMaster(settings.masterPrompt, AiPrompts.keyPassagesSystem()), AiPrompts.keyPassages(target.title,
                                 chapterTitle(chapter), partText, AiPrompts.passageCount(partText.length())), null);
                         quotes.addAll(AiPrompts.parseQuotes(answer));
                     }

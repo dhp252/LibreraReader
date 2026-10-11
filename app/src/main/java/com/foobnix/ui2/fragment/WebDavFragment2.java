@@ -6,11 +6,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.core.graphics.ColorUtils;
 import androidx.core.util.Pair;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -23,6 +29,7 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
+import com.foobnix.pdf.info.view.MyPopupMenu;
 import com.foobnix.pdf.info.view.MyProgressBar;
 import com.foobnix.pdf.info.wrapper.UITab;
 import com.foobnix.pdf.search.activity.msg.MessageSync;
@@ -43,6 +50,7 @@ import org.greenrobot.eventbus.ThreadMode;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +72,20 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         void run() throws Exception;
     }
 
+    /** WebDAV tab sorts (AppState.webdavSortBy). */
+    public static final int SORT_NAME = 0;
+    public static final int SORT_DATE = 1;
+    public static final int SORT_SIZE = 2;
+
     private FileMetaAdapter adapter;
     private View pathContainer;
-    private View onBack;
+    private ImageView onBack;
+    private View secondTopPanel;
+    private EditText filterLine;
+    private TextView countBooks;
+    private ImageView cleanFilter, sortBy, onGridList, menu2;
+    /** Everything listed in the folder; the adapter shows it filtered and sorted. */
+    private final List<FileMeta> allItems = new ArrayList<>();
     private TextView pathView;
     private TextView status;
     private volatile String folder = WebDav.BOOKS;
@@ -154,7 +173,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
 
         MyProgressBar = view.findViewById(R.id.MyProgressBarWebDav);
         MyProgressBar.setVisibility(View.GONE);
-        TintUtil.setDrawableTint(MyProgressBar.getIndeterminateDrawable().getCurrent(), Color.WHITE);
+        TintUtil.setDrawableTint(MyProgressBar.getIndeterminateDrawable().getCurrent(), TintUtil.color);
 
         adapter = new FileMetaAdapter();
         bindAdapter(adapter);
@@ -175,6 +194,44 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         final com.foobnix.android.utils.ResultResponse2<FileMeta, FileMetaAdapter> star = DefaultListeners.getOnStarClick(getActivity());
         adapter.setOnStarClickListener((item, a) -> !WebDavCovers.isItem(item.getPath()) && star.onResultRecive(item, a));
 
+        secondTopPanel = view.findViewById(R.id.secondTopPanel);
+        filterLine = view.findViewById(R.id.filterLine);
+        countBooks = view.findViewById(R.id.countBooks);
+        cleanFilter = view.findViewById(R.id.cleanFilter);
+        sortBy = view.findViewById(R.id.sortBy);
+        onGridList = view.findViewById(R.id.onGridList);
+        menu2 = view.findViewById(R.id.menu2);
+
+        menu2.setOnClickListener(v -> {
+            final View drawerButton = v.getRootView().findViewById(R.id.imageMenu1);
+            if (drawerButton != null) {
+                drawerButton.performClick();
+            }
+        });
+        filterLine.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                showItems();
+            }
+        });
+        cleanFilter.setOnClickListener(v -> filterLine.setText(""));
+        sortBy.setOnClickListener(this::sortPopup);
+        // as in the Library tab: the button shows which way round, a long press turns it round
+        sortBy.setOnLongClickListener(v -> {
+            AppState.get().webdavSortAsc = !AppState.get().webdavSortAsc;
+            showItems();
+            return true;
+        });
+        onGridList.setOnClickListener(v -> modePopup());
+
         onBack.setOnClickListener(v -> up());
         status.setOnClickListener(v -> {
             if (!WebDav.isEnabled(getActivity())) {
@@ -190,10 +247,107 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     }
 
     private void applyMode() {
-        if (mode != AppState.get().broseMode) {
-            mode = AppState.get().broseMode;
-            onGridList(mode, null, adapter, null);
+        if (mode != AppState.get().webdavMode) {
+            mode = AppState.get().webdavMode;
+            onGridList(mode, onGridList, adapter, null);
         }
+    }
+
+    private void modePopup() {
+        final MyPopupMenu p = new MyPopupMenu(getActivity(), onGridList);
+        final int[] names = {R.string.list, R.string.compact, R.string.grid, R.string.cover};
+        final int[] icons = {R.drawable.my_glyphicons_114_paragraph_justify, R.drawable.my_glyphicons_114_justify_compact,
+                R.drawable.glyphicons_157_thumbnails, R.drawable.glyphicons_158_thumbnails_small};
+        final int[] modes = {AppState.MODE_LIST, AppState.MODE_LIST_COMPACT, AppState.MODE_GRID, AppState.MODE_COVERS};
+        for (int i = 0; i < names.length; i++) {
+            final int chosen = modes[i];
+            p.getMenu().add(names[i]).setIcon(icons[i]).setOnMenuItemClickListener((MenuItem item) -> {
+                AppState.get().webdavMode = chosen;
+                applyMode();
+                return false;
+            });
+        }
+        p.show();
+    }
+
+    private void sortPopup(View anchor) {
+        final MyPopupMenu p = new MyPopupMenu(getActivity(), anchor);
+        final int[] names = {R.string.by_file_name, R.string.by_date, R.string.by_size};
+        final int[] sorts = {SORT_NAME, SORT_DATE, SORT_SIZE};
+        for (int i = 0; i < names.length; i++) {
+            final int chosen = sorts[i];
+            p.getMenu().add(names[i])
+                    .setIconSmall(AppState.get().webdavSortBy == chosen ? TintUtil.SORT_CURRENT_ICON : 0)
+                    .setOnMenuItemClickListener((MenuItem item) -> {
+                        AppState.get().webdavSortBy = chosen;
+                        showItems();
+                        return false;
+                    });
+        }
+        p.show();
+    }
+
+    /** The folder's items, filtered by the text in the bar and sorted, folders first. */
+    private void showItems() {
+        if (adapter == null) {
+            return;
+        }
+        final String filter = filterLine == null ? "" : filterLine.getText().toString().trim().toLowerCase();
+        final List<FileMeta> shown = new ArrayList<>();
+        int books = 0;
+        for (FileMeta item : allItems) {
+            if (!filter.isEmpty() && !nameOf(item).toLowerCase().contains(filter)) {
+                continue;
+            }
+            shown.add(item);
+            if (!WebDavCovers.isFolderItem(item.getPath())) {
+                books++;
+            }
+        }
+        Collections.sort(shown, comparator());
+        adapter.getItemsList().clear();
+        adapter.getItemsList().addAll(shown);
+        adapter.notifyDataSetChanged();
+
+        if (countBooks != null) {
+            countBooks.setText(String.valueOf(books));
+        }
+        if (cleanFilter != null) {
+            cleanFilter.setVisibility(filter.isEmpty() ? View.GONE : View.VISIBLE);
+        }
+        if (sortBy != null) {
+            sortBy.setImageResource(AppState.get().webdavSortAsc ? R.drawable.glyphicons_476_sort_attributes
+                    : R.drawable.glyphicons_477_sort_attributes_alt);
+        }
+    }
+
+    private String nameOf(FileMeta item) {
+        final WebDavClient.Entry entry = entries.get(item.getPath());
+        return entry != null ? entry.getName() : (item.getPathTxt() != null ? item.getPathTxt() : item.getPath());
+    }
+
+    private Comparator<FileMeta> comparator() {
+        final int by = AppState.get().webdavSortBy;
+        final boolean asc = AppState.get().webdavSortAsc;
+        return (a, b) -> {
+            final boolean folderA = WebDavCovers.isFolderItem(a.getPath());
+            final boolean folderB = WebDavCovers.isFolderItem(b.getPath());
+            if (folderA != folderB) {
+                return folderA ? -1 : 1;
+            }
+            final WebDavClient.Entry ea = entries.get(a.getPath());
+            final WebDavClient.Entry eb = entries.get(b.getPath());
+            int result = 0;
+            if (by == SORT_DATE && ea != null && eb != null) {
+                result = Long.compare(ea.lastModified, eb.lastModified);
+            } else if (by == SORT_SIZE && ea != null && eb != null) {
+                result = Long.compare(ea.size, eb.size);
+            }
+            if (result == 0) {
+                result = nameOf(a).compareToIgnoreCase(nameOf(b));
+            }
+            return asc ? result : -result;
+        };
     }
 
     @Override
@@ -285,9 +439,9 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             populate();
             return;
         }
-        adapter.getItemsList().clear();
-        adapter.getItemsList().addAll(items);
-        adapter.notifyDataSetChanged();
+        allItems.clear();
+        allItems.addAll(items);
+        showItems();
         showFolder();
         makeMissingCovers();
         if (error != null) {
@@ -336,6 +490,11 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                 entries.put(item.getPath(), book);
                 items.set(i, item);
                 adapter.notifyItemChanged(i);
+                for (int j = 0; j < allItems.size(); j++) {
+                    if (path.equals(allItems.get(j).getPath())) {
+                        allItems.set(j, item);
+                    }
+                }
                 return;
             }
         }
@@ -538,9 +697,26 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
 
     @Override
     public void onTintChanged() {
-        if (pathContainer != null) {
-            TintUtil.setBackgroundFillColor(pathContainer, TintUtil.color);
+        if (secondTopPanel == null) {
+            return;
         }
+        // as the Library tab draws its bar
+        TintUtil.setBackgroundFillColor(secondTopPanel, TintUtil.color);
+        final boolean dark = AppState.get().appTheme == AppState.THEME_DARK_OLED || AppState.get().appTheme == AppState.THEME_DARK;
+        TintUtil.setTintImageNoAlpha(menu2, dark ? Color.WHITE : TintUtil.color);
+        final int colorTheme = ColorUtils.setAlphaComponent(TintUtil.getColorInDayNighth(), 230);
+        TintUtil.setUITextColor(countBooks, colorTheme);
+        TintUtil.setTintImageNoAlpha(cleanFilter, colorTheme);
+        TintUtil.setTintImageNoAlpha(onBack, colorTheme);
+        TintUtil.setUITextColor(pathView, colorTheme);
+        if (AppState.get().appTheme == AppState.THEME_DARK_OLED || (AppState.get().appTheme == AppState.THEME_DARK && TintUtil.color == Color.BLACK)) {
+            filterLine.setBackgroundResource(R.drawable.bg_search_edit_night);
+            menu2.setBackgroundResource(R.drawable.bg_search_edit_night);
+        } else {
+            filterLine.setBackgroundResource(R.drawable.bg_search_edit);
+            menu2.setBackgroundResource(R.drawable.bg_search_edit);
+        }
+        TintUtil.setStrokeColor(filterLine, TintUtil.color);
     }
 
     @Override

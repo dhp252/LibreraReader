@@ -26,7 +26,8 @@ import java.util.TreeSet;
  * The server keeps the layout of the local sync folder (Librera/): every {@code profile.*} folder
  * (progress, bookmarks, recent, favorites, tags, playlists of each device) is mirrored both ways,
  * {@code Books/} on demand (uploaded from here, downloaded when opened from the WebDAV tab), with
- * their covers in {@code Books/.covers/} (see {@link WebDavCovers}).
+ * their covers in {@code Books/.covers/} (see {@link WebDavCovers}). Settings shared by every device
+ * (app, book view, AI) are merged in {@code profile.*}/.shared/ (see {@link SharedSettings}).
  * <p>
  * Server, user and password stay on this device: private preferences, never AppState, which
  * is itself synced.
@@ -163,6 +164,9 @@ public class WebDav {
             }
             client.mkdirs("");
         }
+
+        // settings shared by every device (they live in a hidden folder the mirror below skips)
+        SharedSettings.sync(c, client, summary);
 
         for (String profile : profiles) {
             summary.add(new FolderSync(client, new File(root, profile), profile, stateFile(c, profile, new File(root, profile)),

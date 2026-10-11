@@ -43,6 +43,7 @@ public class AiSettingsDialog {
     private EditText key;
     private EditText model;
     private EditText language;
+    private EditText masterPrompt;
     private EditText maxChars;
     private LinearLayout colors;
     private TextView result;
@@ -82,6 +83,7 @@ public class AiSettingsDialog {
         key = view.findViewById(R.id.aiKey);
         model = view.findViewById(R.id.aiModel);
         language = view.findViewById(R.id.aiLanguage);
+        masterPrompt = view.findViewById(R.id.aiMasterPrompt);
         maxChars = view.findViewById(R.id.aiMaxChars);
         colors = view.findViewById(R.id.aiColors);
         result = view.findViewById(R.id.aiTestResult);
@@ -104,6 +106,7 @@ public class AiSettingsDialog {
                 edited.put(settings.provider, settings);
                 final AiSettings other = edited.containsKey(chosen) ? edited.get(chosen) : AiSettings.load(activity, chosen);
                 other.answerLanguage = settings.answerLanguage;
+                other.masterPrompt = settings.masterPrompt;
                 other.highlightsVisible = settings.highlightsVisible;
                 settings = other;
                 fill();
@@ -141,6 +144,7 @@ public class AiSettingsDialog {
         key.setHint(settings.isClaude() ? R.string.ai_key : R.string.ai_key_optional);
         model.setText(settings.model);
         language.setText(settings.answerLanguage);
+        masterPrompt.setText(settings.masterPrompt);
         maxChars.setText(String.valueOf(settings.maxChars));
         result.setVisibility(View.GONE);
     }
@@ -151,6 +155,7 @@ public class AiSettingsDialog {
         settings.apiKey = key.getText().toString().trim();
         settings.model = model.getText().toString().trim();
         settings.answerLanguage = language.getText().toString().trim();
+        settings.masterPrompt = masterPrompt.getText().toString().trim();
         settings.highlightColor = color;
         try {
             settings.maxChars = Math.max(2000, Integer.parseInt(maxChars.getText().toString().trim()));

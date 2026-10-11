@@ -9,6 +9,17 @@ public final class AiPrompts {
     private AiPrompts() {
     }
 
+    /**
+     * The user's master prompt before Librera's own instructions: the built-in rules (the exact
+     * quotes of key passages, the answer language) come last and keep their force.
+     */
+    public static String withMaster(String master, String system) {
+        if (master == null || master.trim().isEmpty()) {
+            return system;
+        }
+        return master.trim() + "\n\n" + system;
+    }
+
     /** @param answerLanguage the reader's choice; empty means the language of the book */
     public static String summarySystem(String answerLanguage) {
         return "You summarize parts of a book for someone who is reading it. "

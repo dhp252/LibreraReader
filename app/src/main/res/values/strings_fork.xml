@@ -20,7 +20,7 @@
     <string name="annot_one_page">Drawing needs one page per screen</string>
 
     <string name="webdav_sync">WebDAV sync</string>
-    <string name="webdav_sync_info">Keep reading progress, bookmarks, recent books and tags in step between your devices through your own WebDAV server (Nextcloud, ownCloud, a NAS…).</string>
+    <string name="webdav_sync_info">Keep reading progress, bookmarks, recent books, tags and settings (AI settings included) in step between your devices through your own WebDAV server (Nextcloud, ownCloud, a NAS…).</string>
     <string name="webdav_not_set_up">Not set up</string>
     <string name="webdav_off">Off</string>
     <string name="webdav_settings">Settings</string>
@@ -82,7 +82,8 @@
     <string name="ai_language">Summary language (empty: the book\'s)</string>
     <string name="ai_max_chars">Book text per request (characters)</string>
     <string name="ai_color">Highlight color</string>
-    <string name="ai_key_note">The key stays on this device: it is never synced or backed up. Book text is sent to the server only when you use an AI action.</string>
+    <string name="ai_key_note">With WebDAV sync on, these settings reach your other devices; the key goes to your WebDAV server encrypted with your WebDAV password. It is never backed up or sent to Google Drive. Book text is sent to the AI server only when you use an AI action.</string>
+    <string name="ai_master_prompt">Your instructions for every AI action (optional)</string>
     <string name="ai_test">Test</string>
     <string name="ai_test_ok">Works: %1$s</string>
     <string name="ai_section">AI: summaries and key passages</string>
