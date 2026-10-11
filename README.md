@@ -74,17 +74,20 @@ cannot open any book, so check that the APK contains it (step 3).
 ## 3. Build the APK
 
 ```bash
-./gradlew assembleFdroidDebug          # or assembleFdroidRelease (minified, signed with the key above)
-unzip -l "app/build/outputs/apk/fdroid/debug/"*arm64.apk | grep libMuPDF.so
-adb install -r "app/build/outputs/apk/fdroid/debug/"*arm64.apk
+./gradlew assembleFdroidRelease        # or assembleFdroidDebug
+unzip -l "app/build/outputs/apk/fdroid/release/"*arm64.apk | grep libMuPDF.so
 ```
 
-The APKs land in `app/build/outputs/apk/fdroid/debug/`: one per ABI, and `-uni` holds all four.
-`-arm64` fits most phones.
+- `release` is minified by R8 and signed with the key from step 1. Use it whenever you try the
+  app on a phone, speed included.
+- `debug` is debuggable and not optimized: taps, dialogs and page turns are slower than users
+  will see. It is for the debugger and for the unit tests (step 4).
 
-Judge speed on a release APK only. A debug APK is debuggable and not optimized by R8, so taps,
-dialogs and page turns are slower than users will see. To put a release build on a phone that
-has the debug one without losing its data, sign it with the debug key:
+"BUILD SUCCESSFUL" alone is not enough: the `unzip` line must list `libMuPDF.so`, or the app
+cannot open any book.
+
+An installed app only updates over an APK signed with the same key. To put a release build on a
+phone that has a debug one without losing its data, sign it with the debug key:
 
 ```bash
 ./gradlew assembleFdroidRelease \
@@ -92,15 +95,59 @@ has the debug one without losing its data, sign it with the debug key:
   -Pandroid.injected.signing.store.password=android \
   -Pandroid.injected.signing.key.alias=androiddebugkey \
   -Pandroid.injected.signing.key.password=android
-adb install -r "app/build/outputs/apk/fdroid/release/"*arm64.apk
 ```
 
-On the maintainer's machine, two helper scripts do steps 1 to 3 from Windows. They live outside
-the repo, in `.agents/skills/dev-build-apk/scripts/`:
-- `setup_wsl_env.sh` runs once;
-- `build_apk.sh [flavor] [debug|release] [--native] [--tests=pattern,...] [--debug-key]` mirrors
-  the tree to the WSL disk, builds, runs the tests, and checks every APK for `libMuPDF.so`
-  (`--debug-key` signs as above).
+### Which APK
+
+The APKs land in `app/build/outputs/apk/fdroid/<debug|release>/`, one per CPU type:
+
+| APK | For |
+|-----|-----|
+| `...-arm64.apk` | almost every phone of the last years: use this one |
+| `...-uni.apk` | any device (all four types, about three times bigger) |
+| `...-arm.apk`, `...-x86.apk`, `...-x86_64.apk` | old phones, emulators |
+
+### Install it
+
+- With `adb` and USB debugging on: `adb install -r "app/build/outputs/apk/fdroid/release/"*arm64.apk`.
+- Without `adb` (WSL does not see USB devices without extra setup): copy the APK to the phone
+  (USB "File transfer", or a cloud drive), open it in the phone's Files app and tap Install or
+  Update. Allow installs from that app the first time Android asks.
+
+"App not installed" means the app on the phone is signed with another key (the official
+Librera, or a build with another key). Build again with the key it was signed with, or uninstall
+it first, which deletes its settings.
+
+### On the maintainer's machine (Windows + WSL)
+
+Two helper scripts do steps 1 to 3 from Windows. They live outside the repo, in
+`.agents/skills/dev-build-apk/scripts/`: `setup_wsl_env.sh` runs once (already done there), and
+`build_apk.sh` builds. From PowerShell:
+
+```powershell
+wsl -e bash /mnt/c/Users/DOP07/PROJECTS/private/LibreraReader/.agents/skills/dev-build-apk/scripts/build_apk.sh fdroid release --debug-key
+```
+
+From Git Bash, put `MSYS_NO_PATHCONV=1` before `wsl`, or the `/mnt/c/...` path gets rewritten.
+The script mirrors the tree to the WSL disk (faster), builds, copies the APKs back and checks
+each one for `libMuPDF.so`. A good build ends with:
+
+```
+[build] [OK]  Librera Fdroid-9.6.44-mupdf1.28.5-arm64.apk  32M  libMuPDF.so x1
+[build] APKs: C:\Users\DOP07\PROJECTS\private\LibreraReader\app\build\outputs\apk\fdroid\release
+```
+
+A failure prints a line with `[ERR]`. Arguments: `[flavor] [debug|release]`, then any of:
+
+| Option | Does |
+|--------|------|
+| `--debug-key` | signs with the debug key, as above (installs over a debug build) |
+| `--tests[=pattern,...]` | runs the JVM unit tests first; with `debug` only (there is no release test task) |
+| `--clean` | starts from scratch, when a build behaves oddly after big changes |
+| `--native` | rebuilds `libMuPDF.so`, only after changing `Builder/jni` (much longer) |
+
+Do not edit `app/src` while a build runs: Gradle compiles whatever is on disk when it starts, and
+a half-saved file shows up as compile errors that are not real.
 
 ## 4. Run the unit tests
 
