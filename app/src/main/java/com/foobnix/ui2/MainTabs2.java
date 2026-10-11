@@ -430,6 +430,17 @@ public class MainTabs2 extends AdsFragmentActivity {
                 GFile.runSyncService(MainTabs2.this, true);
             }
         });
+        // The preferences are a plain ScrollView, which tells the refresh layout nothing about
+        // its scroll position: every pull down there was taken as a refresh. Several places turn
+        // the layout back on (drawer closed, onResume, tab strip touch), so it is checked here,
+        // on each pull, instead of with setEnabled.
+        swipeRefreshLayout.setOnChildScrollUpCallback((parent, child) -> {
+            try {
+                return pager != null && tabFragments.get(pager.getCurrentItem()) instanceof PrefFragment2;
+            } catch (Exception e) {
+                return false;
+            }
+        });
 
         overlay = findViewById(R.id.overlay);
 
