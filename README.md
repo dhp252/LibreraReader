@@ -212,8 +212,7 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   reopen it and check the annotations are still there.
 - **WebDAV**: Preferences > WebDAV sync. Enter the server and Test it. Read a few pages, sync,
   then open the same book on a second device and check that it continues there.
-- **WebDAV tab**: once WebDAV sync is on, a WebDAV tab appears (Settings > "Books on WebDAV"
-  opens it too). It shows the server's Books folder in the Folders tab's grid or list. After a
+- **WebDAV tab**: once WebDAV sync is on, a WebDAV tab appears in the tab bar. It shows the server's Books folder in the Folders tab's grid or list. After a
   sync on the device that has the books, the other device shows their covers, with a cloud mark
   on books that aren't downloaded. Open one: it downloads, opens, and then shows as a local book.
   Also check long-press > Remove from this device, the back key in a subfolder, and pull to refresh.
