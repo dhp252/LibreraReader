@@ -1,7 +1,9 @@
 package com.foobnix.annotation;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.graphics.PointF;
+import android.graphics.drawable.GradientDrawable;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -9,7 +11,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.LOG;
@@ -43,6 +45,11 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     private final DocumentController dc;
     private final DrawView drawView;
     private final AnnotationToolbar toolbar;
+    /** Short messages of the session, shown above the toolbar: a system toast would cover it. */
+    private final TextView note;
+    private final Runnable hideNote;
+    /** Where the toolbar stands above the bottom of the screen. */
+    private static final int TOOLBAR_MARGIN_DP = 80;
     private int activeTool = AnnotationTools.NONE;
 
     /** One per open book; the toolbar floats at the bottom of the reader. */
@@ -65,8 +72,40 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         final FrameLayout content = activity.findViewById(android.R.id.content);
         final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        params.bottomMargin = Dips.dpToPx(80);
+        params.bottomMargin = Dips.dpToPx(TOOLBAR_MARGIN_DP);
         content.addView(toolbar, params);
+
+        note = new TextView(activity);
+        note.setTextColor(Color.WHITE);
+        note.setTextSize(14);
+        final int pad = Dips.dpToPx(10);
+        note.setPadding(pad + pad / 2, pad, pad + pad / 2, pad);
+        final GradientDrawable bubble = new GradientDrawable();
+        bubble.setColor(0xe0323232);
+        bubble.setCornerRadius(Dips.dpToPx(18));
+        note.setBackground(bubble);
+        note.setVisibility(View.GONE);
+        content.addView(note, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+        hideNote = () -> note.animate().alpha(0).setDuration(200).withEndAction(() -> note.setVisibility(View.GONE));
+    }
+
+    /** A short message above the toolbar (or where it would stand), gone after a moment. */
+    private void note(CharSequence text) {
+        final FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) note.getLayoutParams();
+        params.bottomMargin = Dips.dpToPx(TOOLBAR_MARGIN_DP) + (isShown() ? toolbar.getHeight() + Dips.dpToPx(10) : 0);
+        note.setLayoutParams(params);
+        note.setText(text);
+        note.removeCallbacks(hideNote);
+        note.animate().cancel();
+        note.setAlpha(1);
+        note.setVisibility(View.VISIBLE);
+        note.bringToFront();
+        note.postDelayed(hideNote, 2200);
+    }
+
+    private void note(int text) {
+        note(activity.getString(text));
     }
 
     public boolean isShown() {
@@ -110,7 +149,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     @Override
     public void onUndo() {
         if (!dc.undoLastAnnotation()) {
-            Toast.makeText(activity, R.string.annot_nothing_to_undo, Toast.LENGTH_SHORT).show();
+            note(R.string.annot_nothing_to_undo);
         }
     }
 
@@ -151,7 +190,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         } else {
             return;
         }
-        Toast.makeText(activity, text, Toast.LENGTH_SHORT).show();
+        note(text);
     }
 
     private void onStroke() {
@@ -415,7 +454,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     private void savePen(List<PointF> points, int[] steps) {
         final List<DocumentController.PagePoint> onPages = dc.toPageUnits(points);
         if (onPages == null) {
-            Toast.makeText(activity, R.string.fail, Toast.LENGTH_SHORT).show();
+            note(R.string.fail);
             return;
         }
         final int[] steady = StylusRules.steady(steps, STEADY_POINTS);
@@ -480,7 +519,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         if (dc.selectTextBetween(highlightStart.x, highlightStart.y, highlightEnd.x, highlightEnd.y)) {
             dc.underlineText(AnnotationTools.colorInt(AnnotationTools.HIGHLIGHT), 2.0f, AnnotationType.HIGHLIGHT);
         } else {
-            Toast.makeText(activity, R.string.stylus_no_text, Toast.LENGTH_SHORT).show();
+            note(R.string.stylus_no_text);
         }
         dc.clearSelectedText();
     }
