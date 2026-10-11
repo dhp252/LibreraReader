@@ -696,6 +696,18 @@ public abstract class HorizontalModeController extends DocumentController {
         });
     }
 
+    @Override public void addHighlightLines(final int page, List<RectF> lines, int color) {
+        if (codeDocument == null || lines == null || lines.isEmpty()) {
+            return;
+        }
+        final PointF[] quads = toQuadPoints(lines);
+        final float[] mupdfColor = Colors.toMupdfColor(color);
+        changePage(page, codecPage -> {
+            codecPage.addMarkupAnnotation(quads, AnnotationType.HIGHLIGHT, mupdfColor);
+            return true;
+        });
+    }
+
     /**
      * Before the book closes: saves the annotation changes, or asks first unless saving is
      * automatic (as VerticalModeController does).

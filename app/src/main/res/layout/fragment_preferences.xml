@@ -1824,6 +1824,43 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/sectionAi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/aiHeader"
+                    style="@style/textSectionTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dip"
+                    android:background="@drawable/bg_search_second"
+                    android:text="@string/ai_section" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="4dip"
+                    android:text="@string/ai_section_info" />
+
+                <TextView
+                    android:id="@+id/aiPrefStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="4dip"
+                    android:text="@string/webdav_not_set_up" />
+
+                <TextView
+                    android:id="@+id/aiPrefSettings"
+                    style="@style/textLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="5dip"
+                    android:text="@string/webdav_settings" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/section6"
                 style="@style/textSectionTitle"

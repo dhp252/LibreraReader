@@ -48,6 +48,8 @@ import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager.widget.ViewPager.OnPageChangeListener;
 
 import com.foobnix.android.utils.Apps;
+import com.foobnix.ai.AiHighlights;
+import com.foobnix.ai.AiMenu;
 import com.foobnix.annotation.AnnotationSession;
 import com.foobnix.annotation.MessageAnnotationErase;
 import com.foobnix.android.utils.Dips;
@@ -1586,6 +1588,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        AiHighlights.get().close(this);
 
         if (loadinAsyncTask != null) {
             try {
@@ -1955,6 +1958,17 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         });
     }
 
+    /** The AI button of the top bar, and the AI highlights of the book. */
+    private void initAi() {
+        final View ai = findViewById(R.id.onAi);
+        if (dc == null || dc.getCurrentBook() == null) {
+            ai.setVisibility(View.GONE);
+            return;
+        }
+        ai.setOnClickListener(v -> AiMenu.show(this, v, dc));
+        AiHighlights.get().open(this, dc.getCurrentBook().getPath());
+    }
+
     /** DrawView points to points on the page shown (see PageImaveView.toPagePoints). */
     private List<PointF> annotationPagePoints(List<PointF> drawPoints) {
         final ImagePageFragment fragment = (ImagePageFragment) getSupportFragmentManager()
@@ -1995,6 +2009,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     }
 
     public void loadUI() {
+        initAi();
         initAnnotations();
         showPlaylistClose(true);
         titleTxt.setText(dc.getTitle());

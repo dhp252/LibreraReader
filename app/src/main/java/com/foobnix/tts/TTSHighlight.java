@@ -175,7 +175,7 @@ public class TTSHighlight {
     }
 
     /** Joins the words of each line into one band, so the mark reads as a continuous stroke. */
-    static List<RectF> toBands(List<TextWord> words) {
+    public static List<RectF> toBands(List<TextWord> words) {
         final List<RectF> bands = new ArrayList<>();
         RectF band = null;
         for (TextWord word : words) {

@@ -19,6 +19,7 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.ai.AiHighlights;
 import com.foobnix.tts.TTSHighlight;
 
 import org.ebookdroid.core.codec.PageLink;
@@ -152,9 +153,26 @@ public class EventDraw implements IEvent {
         // drawSomething(page);
         // drawHighlights(page);
         drawSelectedText(page);
+        drawAiHighlights(page);
         drawReadAloud(page);
 
         return res;
+    }
+
+    /** Marks the key passages the AI picked, see {@link AiHighlights}. */
+    private void drawAiHighlights(final Page page) {
+        final AiHighlights highlights = AiHighlights.get();
+        if (!highlights.isVisible() || highlights.count() == 0) {
+            return;
+        }
+        for (RectF band : highlights.bandsFor(page.index.docIndex, page.texts)) {
+            final RectF rect = page.getPageRegion(pageBounds, new RectF(band));
+            if (rect == null) {
+                continue;
+            }
+            rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
+            canvas.drawRect(rect, highlights.paint());
+        }
     }
 
     /** Marks the sentence being read aloud, see {@link TTSHighlight}. */

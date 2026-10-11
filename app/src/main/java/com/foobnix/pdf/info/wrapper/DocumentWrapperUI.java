@@ -33,6 +33,9 @@ import androidx.core.graphics.ColorUtils;
 
 import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.Dips;
+import com.foobnix.ai.AiHighlights;
+import com.foobnix.ai.AiMenu;
+import com.foobnix.ai.MessageAiHighlights;
 import com.foobnix.annotation.AnnotationSession;
 import com.foobnix.android.utils.IntegerResponse;
 import com.foobnix.android.utils.Keyboards;
@@ -284,6 +287,7 @@ public class DocumentWrapperUI {
     ImageView anchorX, anchorY;
     DrawView drawView;
     AnnotationSession annotationSession;
+    ImageView aiTop;
     ProgressDraw progressDraw;
     public View.OnClickListener onHideShowToolBar = new View.OnClickListener() {
 
@@ -444,6 +448,13 @@ public class DocumentWrapperUI {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onReadAloudChanged(MessageTtsHighlight event) {
+        if (dc != null) {
+            dc.redrawReadAloud();
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onAiHighlightsChanged(MessageAiHighlights event) {
         if (dc != null) {
             dc.redrawReadAloud();
         }
@@ -1241,6 +1252,9 @@ public class DocumentWrapperUI {
         textToSpeachTop = (ImageView) a.findViewById(R.id.textToSpeachTop);
         textToSpeachTop.setOnClickListener(onTextToSpeach);
 
+        aiTop = (ImageView) a.findViewById(R.id.aiTop);
+        aiTop.setOnClickListener(v -> AiMenu.show(a, v, dc));
+
         ttsActive = a.findViewById(R.id.ttsActive);
         ttsActive.setDC(dc);
         ttsActive.hideStop();
@@ -1435,6 +1449,7 @@ public class DocumentWrapperUI {
 
         TintUtil.setTintText(bookName, textColor);
         TintUtil.setTintImageWithAlpha(textToSpeachTop, textColor);
+        TintUtil.setTintImageWithAlpha(aiTop, textColor);
         TintUtil.setTintImageWithAlpha(lockUnlockTop, textColor);
         TintUtil.setTintImageWithAlpha(nextScreenType, textColor);
         TintUtil.setTintText(pagesCountIndicator, textColor);
@@ -1469,6 +1484,7 @@ public class DocumentWrapperUI {
         int iconSize = Dips.spToPx(AppState.get().statusBarTextSizeAdv);
 
         textToSpeachTop.getLayoutParams().height = textToSpeachTop.getLayoutParams().width = iconSize;
+        aiTop.getLayoutParams().height = aiTop.getLayoutParams().width = iconSize;
         lockUnlockTop.getLayoutParams().height = lockUnlockTop.getLayoutParams().width = iconSize;
         nextScreenType.getLayoutParams().height = nextScreenType.getLayoutParams().width = iconSize;
         goToPage1Top.getLayoutParams().height = goToPage1Top.getLayoutParams().width = iconSize;
@@ -2251,7 +2267,7 @@ public class DocumentWrapperUI {
         LOG.d("DocumentWrapperUI", "onDestroy");
         handlerTimer.removeCallbacksAndMessages(null);
         handler.removeCallbacksAndMessages(null);
-
+        AiHighlights.get().close(a);
     }
 
     public void onConfigChanged() {
@@ -2264,6 +2280,9 @@ public class DocumentWrapperUI {
 
     public void onLoadBookFinish() {
         onCloseBook.setVisibility(View.VISIBLE);
+        if (dc != null && dc.getCurrentBook() != null) {
+            AiHighlights.get().open(a, dc.getCurrentBook().getPath());
+        }
     }
 
     Runnable updateUIRunnable = new Runnable() {

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.PointF;
+import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.graphics.Color;
@@ -1086,6 +1087,29 @@ public abstract class DocumentController {
      */
     public boolean undoLastAnnotation() {
         return false;
+    }
+
+    /**
+     * Highlights lines of text of a PDF page with one highlight annotation (the AI highlights,
+     * saved into the PDF).
+     *
+     * @param page  0-based document page
+     * @param lines line rectangles in page units ({@code TextWord.getOriginal})
+     */
+    public void addHighlightLines(int page, List<RectF> lines, int color) {
+    }
+
+    /** One quad per line, in the order MuPDF takes them, as {@code underlineText} builds them. */
+    protected static PointF[] toQuadPoints(List<RectF> lines) {
+        final PointF[] quads = new PointF[lines.size() * 4];
+        for (int i = 0; i < lines.size(); i++) {
+            final RectF r = lines.get(i);
+            quads[i * 4] = new PointF(r.left, r.bottom);
+            quads[i * 4 + 1] = new PointF(r.right, r.bottom);
+            quads[i * 4 + 2] = new PointF(r.right, r.top);
+            quads[i * 4 + 3] = new PointF(r.left, r.top);
+        }
+        return quads;
     }
 
     public abstract String getTextForPage(int page);

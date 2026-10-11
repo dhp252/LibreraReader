@@ -43,6 +43,8 @@ import com.foobnix.pdf.search.activity.msg.MovePageAction;
 import com.foobnix.pdf.search.activity.msg.TextWordsMessage;
 import com.foobnix.sys.ClickUtils;
 import com.foobnix.sys.TempHolder;
+import com.foobnix.ai.AiHighlights;
+import com.foobnix.ai.MessageAiHighlights;
 import com.foobnix.tts.MessageTtsHighlight;
 import com.foobnix.annotation.MessageAnnotationErase;
 import com.foobnix.tts.MessageTtsReadFrom;
@@ -313,6 +315,32 @@ public class PageImaveView extends View {
         }
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onAiHighlightsChanged(MessageAiHighlights event) {
+        invalidate();
+    }
+
+    /** Marks the key passages the AI picked, see {@link AiHighlights}. */
+    private void drawAiHighlights(Canvas canvas) {
+        final AiHighlights highlights = AiHighlights.get();
+        if (!highlights.isVisible() || highlights.count() == 0) {
+            return;
+        }
+        if (AppSP.get().isDouble) {
+            final int first = pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+            drawAiBands(canvas, highlights.bandsFor(first, getPageText(1)), 1);
+            drawAiBands(canvas, highlights.bandsFor(first + 1, getPageText(2)), 2);
+        } else {
+            drawAiBands(canvas, highlights.bandsFor(pageNumber, getPageText(0)), 0);
+        }
+    }
+
+    private void drawAiBands(Canvas canvas, List<RectF> bands, int number) {
+        for (RectF band : bands) {
+            canvas.drawRect(transform(band, number), AiHighlights.get().paint());
+        }
+    }
+
     /**
      * Points in this view to points on the page relative to its size (0..1), undoing zoom, pan and
      * crop; null for two pages per screen or cut pages, where a stroke has no single page.
@@ -521,6 +549,7 @@ public class PageImaveView extends View {
 //            }
 
             if (!AppSP.get().isCut && isCropMappable(0)) {
+                drawAiHighlights(canvas);
                 drawReadAloud(canvas);
 
                 paintWrods.setColor(AppState.get().isDayNotInvert ? Color.BLUE : Color.YELLOW);

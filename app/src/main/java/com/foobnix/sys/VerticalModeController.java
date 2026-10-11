@@ -501,6 +501,30 @@ public class VerticalModeController extends DocumentController {
     }
 
     @Override
+    public void addHighlightLines(final int page, List<RectF> lines, int color) {
+        if (ctr == null || ctr.getDocumentModel() == null || ctr.getDecodeService() == null
+                || lines == null || lines.isEmpty()) {
+            return;
+        }
+        final Page target = ctr.getDocumentModel().getPageByDocIndex(page);
+        ctr.getDecodeService().underlineText(page, toQuadPoints(lines), color, AnnotationType.HIGHLIGHT,
+                new ResultResponse<List<Annotation>>() {
+
+                    @Override
+                    public boolean onResultRecive(List<Annotation> annotations) {
+                        if (target != null) {
+                            target.annotations = annotations;
+                        }
+                        if (ctr.getDocumentController() != null) {
+                            ctr.getDocumentController().toggleRenderingEffects();
+                        }
+                        recordCreatedAnnotation(page, annotations == null ? 0 : annotations.size());
+                        return false;
+                    }
+                });
+    }
+
+    @Override
     public boolean readAloudFromTap(int x, int y) {
         if (!AppState.get().isTTSDoubleTapRead || !TTSEngine.get().isPlaying()) {
             return false;
