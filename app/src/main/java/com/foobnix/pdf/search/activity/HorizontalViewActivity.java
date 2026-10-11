@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -47,6 +48,8 @@ import androidx.viewpager.widget.ViewPager;
 import androidx.viewpager.widget.ViewPager.OnPageChangeListener;
 
 import com.foobnix.android.utils.Apps;
+import com.foobnix.annotation.AnnotationSession;
+import com.foobnix.annotation.MessageAnnotationErase;
 import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.Keyboards;
 import com.foobnix.android.utils.LOG;
@@ -78,6 +81,7 @@ import com.foobnix.pdf.info.view.BrightnessHelper;
 import com.foobnix.pdf.info.view.Dialogs;
 import com.foobnix.pdf.info.view.DialogsPlaylist;
 import com.foobnix.pdf.info.view.DragingDialogs;
+import com.foobnix.pdf.info.view.DrawView;
 import com.foobnix.pdf.info.view.HorizontallSeekTouchEventListener;
 import com.foobnix.pdf.info.view.HypenPanelHelper;
 import com.foobnix.pdf.info.view.MyPopupMenu;
@@ -115,6 +119,7 @@ import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.MainTabs2;
 import com.foobnix.ui2.MyContextWrapper;
 
+import org.ebookdroid.BookType;
 import org.ebookdroid.common.settings.SettingsManager;
 import org.ebookdroid.common.settings.books.SharedBooks;
 import org.ebookdroid.droids.mupdf.codec.exceptions.MuPdfPasswordException;
@@ -123,6 +128,8 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class HorizontalViewActivity extends AdsFragmentActivity {
@@ -142,6 +149,8 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     ImageView moveCenter, lockModelImage, linkHistory, onModeChange, outline, onMove, textToSpeach, onPageFlip1,
             anchorX, anchorY, pagesBookmark;
     HorizontalModeController dc;
+    private AnnotationSession annotationSession;
+    private DrawView annotationDrawView;
     Handler handler = new Handler(Looper.getMainLooper());
     Handler flippingHandler = new Handler(Looper.getMainLooper());
     Handler handlerTimer = new Handler(Looper.getMainLooper());
@@ -398,6 +407,9 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             @Override
             public void run() {
                 onMoveAction.run();
+                if (AnnotationSession.markSelection(dc)) {
+                    return;
+                }
                 if (AppState.get().isRememberDictionary) {
                     DictsHelper.runIntent(dc.getActivity(), anchor, AppState.get().selectedText);
                 } else {
@@ -1779,7 +1791,9 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
                 });
             } else {
 
-                if (AppState.get().isRememberDictionary) {
+                if (AnnotationSession.markSelection(dc)) {
+                    // marked by the annotation toolbar, no menu
+                } else if (AppState.get().isRememberDictionary) {
                     final String text = AppState.get().selectedText;
                     DictsHelper.runIntent(dc.getActivity(), anchor, text);
                     dc.clearSelectedText();
@@ -1822,6 +1836,16 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             public void onGoToPageImpl(int page) {
                 updateUI(page);
                 EventBus.getDefault().post(new InvalidateMessage());
+            }
+
+            @Override
+            public List<PointF> toPagePoints(List<PointF> viewPoints) {
+                return annotationPagePoints(viewPoints);
+            }
+
+            @Override
+            public void onPageAnnotationsChanged(int page) {
+                redrawAnnotatedPage(page);
             }
 
             @Override
@@ -1905,7 +1929,73 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         closePlaylist.setVisibility(show && AppState.get().isPlayListVisible ? View.VISIBLE : View.INVISIBLE);
     }
 
+    /** The annotation toolbar, for PDFs: the edit button of the top bar shows and hides it. */
+    private void initAnnotations() {
+        final View edit = findViewById(R.id.editTop2);
+        final boolean pdf = dc != null && dc.getCurrentBook() != null && BookType.PDF.is(dc.getCurrentBook().getPath())
+                && !dc.isTextFormat() && !dc.isPasswordProtected();
+        if (!pdf) {
+            edit.setVisibility(View.GONE);
+            return;
+        }
+        if (annotationSession == null) {
+            annotationDrawView = new DrawView(this, null);
+            annotationDrawView.setVisibility(View.GONE);
+            ((FrameLayout) findViewById(android.R.id.content)).addView(annotationDrawView,
+                    new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            annotationSession = AnnotationSession.attach(this, dc, annotationDrawView);
+        }
+        edit.setVisibility(View.VISIBLE);
+        edit.setOnClickListener(v -> {
+            if (AppSP.get().isDouble || AppSP.get().isCut) {
+                Toast.makeText(this, R.string.annot_one_page, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            annotationSession.toggle();
+        });
+    }
+
+    /** DrawView points to points on the page shown (see PageImaveView.toPagePoints). */
+    private List<PointF> annotationPagePoints(List<PointF> drawPoints) {
+        final ImagePageFragment fragment = (ImagePageFragment) getSupportFragmentManager()
+                .findFragmentByTag("f" + viewPager.getCurrentItem());
+        final PageImaveView page = fragment == null ? null : fragment.getImage();
+        if (page == null || annotationDrawView == null) {
+            return null;
+        }
+        final int[] from = new int[2];
+        final int[] to = new int[2];
+        annotationDrawView.getLocationOnScreen(from);
+        page.getLocationOnScreen(to);
+        final List<PointF> inPage = new ArrayList<>(drawPoints.size());
+        for (PointF p : drawPoints) {
+            inPage.add(new PointF(p.x + from[0] - to[0], p.y + from[1] - to[1]));
+        }
+        return page.toPagePoints(inPage);
+    }
+
+    /** A page got or lost an annotation: render it again (the memory cache still holds the old bitmap). */
+    private void redrawAnnotatedPage(int page) {
+        if (dc == null || page != dc.getCurrentPage()) {
+            return;
+        }
+        IMG.clearMemoryCache();
+        final ImagePageFragment fragment = (ImagePageFragment) getSupportFragmentManager()
+                .findFragmentByTag("f" + viewPager.getCurrentItem());
+        if (fragment != null) {
+            fragment.loadImageGlide();
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onAnnotationErase(MessageAnnotationErase event) {
+        if (dc != null) {
+            dc.deleteAnnotation(0, event.page, event.index);
+        }
+    }
+
     public void loadUI() {
+        initAnnotations();
         showPlaylistClose(true);
         titleTxt.setText(dc.getTitle());
         pannelBookTitle.setText(dc.getTitle());
@@ -2625,6 +2715,10 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
 
     @Override
     public void onFinishActivity() {
+        // annotation changes are saved (or the user is asked) before the document goes away
+        if (dc != null && dc.saveAnnotationsBeforeClose(this::onFinishActivity)) {
+            return;
+        }
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
         }

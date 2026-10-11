@@ -45,6 +45,10 @@ public class ImagePageFragment extends Fragment {
     CustomTarget<Bitmap> target = null;
     Future<?> submit;
     private PageImaveView image;
+
+    public PageImaveView getImage() {
+        return image;
+    }
     private TextView text;
     Runnable callback = new Runnable() {
 

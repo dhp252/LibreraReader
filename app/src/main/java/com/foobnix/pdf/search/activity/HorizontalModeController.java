@@ -1,11 +1,13 @@
 package com.foobnix.pdf.search.activity;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Matrix;
 import android.graphics.PointF;
+import android.graphics.RectF;
 
 import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.Dips;
@@ -22,15 +24,18 @@ import com.foobnix.pdf.CopyAsyncTask;
 import com.foobnix.pdf.info.AppsConfig;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.PageUrl;
+import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.AnnotationType;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.model.OutlineLinkWrapper;
+import com.foobnix.pdf.info.view.MyProgressDialog;
 import com.foobnix.pdf.info.wrapper.DocumentController;
 import com.foobnix.pdf.search.activity.msg.InvalidateMessage;
 import com.foobnix.pdf.search.activity.msg.MessageAutoFit;
 import com.foobnix.pdf.search.activity.msg.MessageCenterHorizontally;
 import com.foobnix.pdf.search.activity.msg.MessagePageXY;
 import com.foobnix.pdf.search.activity.msg.MovePageAction;
+import com.foobnix.sys.Colors;
 import com.foobnix.sys.ImageExtractor;
 import com.foobnix.sys.TempHolder;
 import com.foobnix.tts.TTSEngine;
@@ -40,8 +45,10 @@ import com.foobnix.ui2.FileMetaCore;
 
 import org.ebookdroid.common.settings.SettingsManager;
 import org.ebookdroid.core.PageSearcher;
+import org.ebookdroid.core.codec.Annotation;
 import org.ebookdroid.core.codec.CodecDocument;
 import org.ebookdroid.core.codec.CodecPage;
+import org.ebookdroid.core.codec.CodecPageInfo;
 import org.ebookdroid.core.codec.OutlineLink;
 import org.ebookdroid.core.codec.PageLink;
 import org.ebookdroid.droids.mupdf.codec.MuPdfLinks;
@@ -53,6 +60,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public abstract class HorizontalModeController extends DocumentController {
 
@@ -443,7 +453,19 @@ public abstract class HorizontalModeController extends DocumentController {
 
             @Override public void run() {
                 isClosed = true;
+                // annotation changes still running must not meet a recycled document
+                annotationExecutor.shutdown();
+                try {
+                    annotationExecutor.awaitTermination(3, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    LOG.e(e);
+                }
                 if (codeDocument != null) {
+                    // closes that did not pass saveAnnotationsBeforeClose (closing the whole app)
+                    if (!annotationsDecided && AppState.get().isSaveAnnotatationsAutomatically
+                            && !codeDocument.isRecycled() && codeDocument.hasChanges()) {
+                        codeDocument.saveAnnotations(bookPath);
+                    }
                     codeDocument.recycle();
                     codeDocument = null;
                 }
@@ -522,19 +544,198 @@ public abstract class HorizontalModeController extends DocumentController {
                 .post(new InvalidateMessage());
     }
 
-    @Override public void saveChanges(List<PointF> points, int color) {
-        throw new RuntimeException("Not Implemented");
+    /*
+     * PDF annotations in the paged view. A change goes to a page object opened for it alone: the
+     * renderer opens, draws and recycles the shared cached page on its own threads, and the
+     * annotations it keeps (PageImageState) hold handles of pages it already recycled. The native
+     * page is reference counted, so a second object for it is safe; after the change the page is
+     * drawn again (it is reopened for every render, so the change shows). Saving happens on close.
+     */
 
+    private final ExecutorService annotationExecutor = Executors.newSingleThreadExecutor(r -> {
+        final Thread thread = new Thread(r, "@T annotations");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private volatile boolean annotationsDecided;
+
+    /**
+     * View points of the current page (the activity knows its views) to points on the page
+     * relative to its size, 0..1; null when the view cannot be mapped (two pages per screen, cut).
+     */
+    public List<PointF> toPagePoints(List<PointF> viewPoints) {
+        return null;
     }
 
-    @Override public void deleteAnnotation(long pageHander, int page, int index) {
-        throw new RuntimeException("Not Implemented");
-
+    /** The annotations of a page changed: the activity draws it again. */
+    public void onPageAnnotationsChanged(int page) {
     }
 
-    @Override public void underlineText(int color, float width, AnnotationType type) {
-        // TODO Auto-generated method stub
+    private interface PageChange {
+        /** @return true when an annotation was created */
+        boolean apply(CodecPage page);
+    }
 
+    private void changePage(final int page, final PageChange change) {
+        annotationExecutor.execute(() -> {
+            try {
+                if (codeDocument == null || codeDocument.isRecycled()) {
+                    return;
+                }
+                final CodecPage codecPage = codeDocument.getPageInner(page);
+                if (codecPage == null) {
+                    return;
+                }
+                final boolean created;
+                try {
+                    created = change.apply(codecPage);
+                } finally {
+                    codecPage.recycle();
+                }
+                if (created) {
+                    final CodecPage reopened = codeDocument.getPageInner(page);
+                    if (reopened != null) {
+                        recordCreatedAnnotation(page, reopened.getAnnotationsImpl().size());
+                        reopened.recycle();
+                    }
+                }
+                activity.runOnUiThread(() -> onPageAnnotationsChanged(page));
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+        });
+    }
+
+    /** Ink: {@code points} are DrawView points over the current page. */
+    @Override public void saveChanges(List<PointF> points, final int color) {
+        final List<PointF> normalized = toPagePoints(points);
+        if (codeDocument == null || normalized == null || normalized.size() < 2) {
+            return;
+        }
+        final int page = currentPage;
+        final float width = AppState.get().editLineWidth * 3;
+        final float alpha = AppState.get().editAlphaColor;
+        changePage(page, codecPage -> {
+            final CodecPageInfo info = codeDocument.getPageInfo(page);
+            if (info == null) {
+                return false;
+            }
+            // page units, as VerticalModeController.saveChanges passes them
+            final PointF[][] arcs = new PointF[1][normalized.size()];
+            for (int i = 0; i < normalized.size(); i++) {
+                arcs[0][i] = new PointF(normalized.get(i).x * info.width, normalized.get(i).y * info.height);
+            }
+            codecPage.addAnnotation(Colors.toMupdfColor(color), arcs, width, alpha);
+            return true;
+        });
+    }
+
+    /** @param page 1-based, as Annotation.getPage() */
+    @Override public void deleteAnnotation(long pageHander, final int page, final int index) {
+        changePage(page - 1, codecPage -> {
+            final List<Annotation> annotations = codecPage.getAnnotationsImpl();
+            if (index >= 0 && index < annotations.size()) {
+                codeDocument.deleteAnnotation(annotations.get(index).getPageHandler(), index);
+            }
+            return false;
+        });
+    }
+
+    @Override public boolean undoLastAnnotation() {
+        final int[] last = popCreatedAnnotation();
+        if (last == null || codeDocument == null) {
+            return false;
+        }
+        changePage(last[0], codecPage -> {
+            final List<Annotation> annotations = codecPage.getAnnotationsImpl();
+            // the newest annotation is only ours while the page still has the count it had after it
+            if (annotations.size() == last[1]) {
+                codeDocument.deleteAnnotation(annotations.get(last[1] - 1).getPageHandler(), last[1] - 1);
+            }
+            return false;
+        });
+        return true;
+    }
+
+    @Override public void underlineText(int color, float width, final AnnotationType type) {
+        final int page = currentPage;
+        final List<TextWord> selected = PageImageState.get().getSelectedWords(page);
+        if (codeDocument == null || selected == null || selected.isEmpty()) {
+            return;
+        }
+        // one quad per line, in page units (TextWord.getOriginal), as VerticalModeController.underlineText
+        final List<PointF> quads = new ArrayList<>();
+        RectF line = null;
+        final List<RectF> lines = new ArrayList<>();
+        for (TextWord word : selected) {
+            final RectF rect = word.getOriginal();
+            if (rect == null) {
+                continue;
+            }
+            if (line != null && line.top == rect.top && line.bottom == rect.bottom) {
+                line.union(rect);
+                continue;
+            }
+            line = new RectF(rect);
+            lines.add(line);
+        }
+        for (RectF r : lines) {
+            quads.add(new PointF(r.left, r.bottom));
+            quads.add(new PointF(r.right, r.bottom));
+            quads.add(new PointF(r.right, r.top));
+            quads.add(new PointF(r.left, r.top));
+        }
+        if (quads.isEmpty()) {
+            return;
+        }
+        final PointF[] array = quads.toArray(new PointF[0]);
+        final float[] mupdfColor = Colors.toMupdfColor(color);
+        changePage(page, codecPage -> {
+            codecPage.addMarkupAnnotation(array, type, mupdfColor);
+            return true;
+        });
+    }
+
+    /**
+     * Before the book closes: saves the annotation changes, or asks first unless saving is
+     * automatic (as VerticalModeController does).
+     *
+     * @return true when {@code then} is run later, after the save or the answer
+     */
+    public boolean saveAnnotationsBeforeClose(final Runnable then) {
+        if (annotationsDecided || codeDocument == null || codeDocument.isRecycled() || !codeDocument.hasChanges()) {
+            return false;
+        }
+        annotationsDecided = true;
+        if (AppState.get().isSaveAnnotatationsAutomatically) {
+            saveAnnotationsThen(then);
+            return true;
+        }
+        new AlertDialog.Builder(activity)
+                .setTitle(R.string.save_changes)
+                .setMessage(bookPath)
+                .setCancelable(false)
+                .setPositiveButton(R.string.yes, (dialog, which) -> saveAnnotationsThen(then))
+                .setNegativeButton(R.string.no, (dialog, which) -> then.run())
+                .show();
+        return true;
+    }
+
+    private void saveAnnotationsThen(final Runnable then) {
+        final MyProgressDialog progress = MyProgressDialog.show(activity, activity.getString(R.string.saving_));
+        progress.setCancelable(false);
+        progress.show();
+        annotationExecutor.execute(() -> {
+            try {
+                codeDocument.saveAnnotations(bookPath);
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+            activity.runOnUiThread(() -> {
+                progress.dismiss();
+                then.run();
+            });
+        });
     }
 
     @Override

@@ -326,6 +326,22 @@ public class VerticalModeController extends DocumentController {
     }
 
     @Override
+    public boolean undoLastAnnotation() {
+        final int[] last = popCreatedAnnotation();
+        if (last == null || ctr == null || ctr.getDocumentModel() == null) {
+            return false;
+        }
+        final Page page = ctr.getDocumentModel().getPageByDocIndex(last[0]);
+        // the newest annotation is only ours while the page still has the count it had after it
+        if (page == null || page.annotations == null || page.annotations.size() != last[1]) {
+            return false;
+        }
+        final Annotation newest = page.annotations.get(last[1] - 1);
+        deleteAnnotation(newest.getPageHandler(), newest.getPage(), newest.getIndex());
+        return true;
+    }
+
+    @Override
     public boolean isCropCurrentBook() {
         AppBook bookSettings = SettingsManager.getBookSettings();
         if (bookSettings == null) {
@@ -395,6 +411,7 @@ public class VerticalModeController extends DocumentController {
             public boolean onResultRecive(Pair<Integer, List<Annotation>> p) {
                 ctr.getDocumentModel().getPageObject(p.first).annotations = p.second;
                 ctr.getDocumentController().toggleRenderingEffects();
+                recordCreatedAnnotation(p.first, p.second == null ? 0 : p.second.size());
                 return false;
             }
 
@@ -437,7 +454,8 @@ public class VerticalModeController extends DocumentController {
         final int last = ctr.getDocumentController().getLastVisiblePage();
         for (int i = first; i < last + 1; i++) {
             final Page page = ctr.getDocumentModel().getPageByDocIndex(i);
-            if (page == null || page.selectedText == null) {
+            // an empty selection would still create an (empty, invisible) markup annotation
+            if (page == null || page.selectedText == null || page.selectedText.isEmpty()) {
                 continue;
             }
             List<TextWord> texts = page.selectedText;
@@ -466,6 +484,7 @@ public class VerticalModeController extends DocumentController {
             }
 
             PointF[] array = quadPoints.toArray(new PointF[quadPoints.size()]);
+            final int docIndex = i;
             ctr.getDecodeService().underlineText(i, array, color, type, new ResultResponse<List<Annotation>>() {
 
                 @Override
@@ -473,6 +492,7 @@ public class VerticalModeController extends DocumentController {
                     page.annotations = arg0;
                     page.selectedText = new ArrayList<TextWord>();
                     ctr.getDocumentController().toggleRenderingEffects();
+                    recordCreatedAnnotation(docIndex, arg0 == null ? 0 : arg0.size());
                     return false;
                 }
             });

@@ -462,6 +462,12 @@ public class AppState {
     public String annotationDrawColor = "";
     public String annotationTextColor = COLORS.get(2);
     public int editAlphaColor = 100;
+    // annotation toolbar: last tool and the color of each tool (com.foobnix.annotation.AnnotationTools)
+    @IgnoreHashCode public int annotTool = 1;
+    @IgnoreHashCode public String annotHighlightColor = "#ffd400";
+    @IgnoreHashCode public String annotUnderlineColor = "#2ea8e5";
+    @IgnoreHashCode public String annotStrikeoutColor = "#ff6666";
+    @IgnoreHashCode public String annotPenColor = "#ff6666";
 
     public String displayPath = AppProfile.DOWNLOADS_DIR.getPath();
 

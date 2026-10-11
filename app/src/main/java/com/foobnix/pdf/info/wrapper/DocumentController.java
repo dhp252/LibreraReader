@@ -71,6 +71,7 @@ import org.ebookdroid.core.codec.CodecDocument;
 import org.ebookdroid.core.codec.PageLink;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -1060,6 +1061,31 @@ public abstract class DocumentController {
 
     /** Repaints the pages so the read-aloud mark follows the voice. */
     public void redrawReadAloud() {
+    }
+
+    /** Annotations made while this book is open, newest first: {document page, annotation count of the page right after}. */
+    private final ArrayDeque<int[]> createdAnnotations = new ArrayDeque<>();
+
+    protected void recordCreatedAnnotation(int docPage, int countAfter) {
+        synchronized (createdAnnotations) {
+            createdAnnotations.push(new int[]{docPage, countAfter});
+        }
+    }
+
+    protected int[] popCreatedAnnotation() {
+        synchronized (createdAnnotations) {
+            return createdAnnotations.poll();
+        }
+    }
+
+    /**
+     * Removes the newest annotation made while this book is open, when it is still the last one
+     * of its page.
+     *
+     * @return false when there is nothing to undo
+     */
+    public boolean undoLastAnnotation() {
+        return false;
     }
 
     public abstract String getTextForPage(int page);

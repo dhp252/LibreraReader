@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.PointF;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
@@ -43,6 +44,7 @@ import com.foobnix.pdf.search.activity.msg.TextWordsMessage;
 import com.foobnix.sys.ClickUtils;
 import com.foobnix.sys.TempHolder;
 import com.foobnix.tts.MessageTtsHighlight;
+import com.foobnix.annotation.MessageAnnotationErase;
 import com.foobnix.tts.MessageTtsReadFrom;
 import com.foobnix.tts.TTSEngine;
 import com.foobnix.tts.TTSHighlight;
@@ -54,6 +56,7 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -308,6 +311,37 @@ public class PageImaveView extends View {
         for (RectF band : bands) {
             canvas.drawRect(transform(band, number), TTSHighlight.get().paint());
         }
+    }
+
+    /**
+     * Points in this view to points on the page relative to its size (0..1), undoing zoom, pan and
+     * crop; null for two pages per screen or cut pages, where a stroke has no single page.
+     */
+    public List<PointF> toPagePoints(List<PointF> viewPoints) {
+        if (AppSP.get().isDouble || AppSP.get().isCut || drawableWidth <= 0 || drawableHeight <= 0 || !isCropMappable(0)) {
+            return null;
+        }
+        final Matrix inverse = new Matrix();
+        if (!imageMatrix().invert(inverse)) {
+            return null;
+        }
+        final RectF crop = AppSP.get().isCrop ? PageImageState.get().getPageCrop(pageNumber) : null;
+        final float[] xy = new float[2];
+        final List<PointF> result = new ArrayList<>(viewPoints.size());
+        for (PointF p : viewPoints) {
+            xy[0] = p.x;
+            xy[1] = p.y;
+            inverse.mapPoints(xy);
+            float x = xy[0] / drawableWidth;
+            float y = xy[1] / drawableHeight;
+            if (crop != null && crop.width() > 0 && crop.height() > 0) {
+                // the bitmap shows only the cropped part of the page (see transform)
+                x = crop.left + x * crop.width();
+                y = crop.top + y * crop.height();
+            }
+            result.add(new PointF(x, y));
+        }
+        return result;
     }
 
     /** While reading aloud, a double tap on a word continues reading from its sentence. */
@@ -1131,6 +1165,16 @@ public class PageImaveView extends View {
                             EventBus.getDefault().post(new MessagePageXY(MessagePageXY.TYPE_HIDE));
                         }
                     }
+                }
+
+                if (!isIgronerClick && AppState.get().editWith == AppState.EDIT_DELETE) {
+                    // annotation eraser: a tap on an annotation deletes it, other taps do nothing
+                    final Annotation hit = getPageLinkClicked(event.getX(), event.getY()).second;
+                    if (hit != null) {
+                        EventBus.getDefault().post(new MessageAnnotationErase(hit.getPage(), hit.getIndex()));
+                    }
+                    isIgronerClick = false;
+                    return true;
                 }
 
                 if (!isIgronerClick) {

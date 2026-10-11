@@ -33,6 +33,7 @@ import androidx.core.graphics.ColorUtils;
 
 import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.Dips;
+import com.foobnix.annotation.AnnotationSession;
 import com.foobnix.android.utils.IntegerResponse;
 import com.foobnix.android.utils.Keyboards;
 import com.foobnix.android.utils.LOG;
@@ -282,6 +283,7 @@ public class DocumentWrapperUI {
     };
     ImageView anchorX, anchorY;
     DrawView drawView;
+    AnnotationSession annotationSession;
     ProgressDraw progressDraw;
     public View.OnClickListener onHideShowToolBar = new View.OnClickListener() {
 
@@ -353,6 +355,10 @@ public class DocumentWrapperUI {
 
         @Override
         public void onClick(final View arg0) {
+            if (annotationSession != null) {
+                annotationSession.toggle();
+                return;
+            }
             DragingDialogs.dialogEditColors(anchor, dc, drawView, false, new Runnable() {
                 @Override
                 public void run() {
@@ -461,6 +467,9 @@ public class DocumentWrapperUI {
                 }
             });
         } else {
+            if (AnnotationSession.markSelection(dc)) {
+                return;
+            }
             if (AppState.get().isRememberDictionary) {
                 DictsHelper.runIntent(dc.getActivity(), anchor, AppState.get().selectedText);
                 dc.clearSelectedText();
@@ -471,6 +480,9 @@ public class DocumentWrapperUI {
     }
 
     public void showSelectTextMenu() {
+        if (AnnotationSession.markSelection(dc)) {
+            return;
+        }
         DragingDialogs.dialogSelectText(anchor, dc, true, updateUIRunnable);
 
     }
@@ -1054,6 +1066,9 @@ public class DocumentWrapperUI {
             @Override
             public void run() {
                 onMoveAction.run();
+                if (AnnotationSession.markSelection(dc)) {
+                    return;
+                }
                 if (AppState.get().isRememberDictionary) {
                     final String text = AppState.get().selectedText;
                     DictsHelper.runIntent(dc.getActivity(), anchor, text);
@@ -1252,6 +1267,7 @@ public class DocumentWrapperUI {
         });
 
         drawView = (DrawView) a.findViewById(R.id.drawView);
+        annotationSession = AnnotationSession.attach(a, dc, drawView);
 
         View bookmarks = a.findViewById(R.id.onBookmarks);
         bookmarks.setOnClickListener(onBookmarks);
@@ -1504,6 +1520,10 @@ public class DocumentWrapperUI {
     }
 
     public void showEditDialogIfNeed() {
+        if (AnnotationSession.isShownFor(dc)) {
+            // the annotation toolbar is in charge; the old panel would take over its pen
+            return;
+        }
         DragingDialogs.dialogEditColors(anchor, dc, drawView, true, new Runnable() {
             @Override
             public void run() {

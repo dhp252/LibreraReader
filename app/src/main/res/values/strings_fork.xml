@@ -5,6 +5,20 @@
     <string name="tts_highlight_spoken_text">Highlight the sentence being read</string>
     <string name="tts_double_tap_read_from_here">Double-tap a sentence to read from it</string>
 
+    <string name="annot_highlight">Highlight</string>
+    <string name="annot_underline">Underline</string>
+    <string name="annot_strikeout">Strikethrough</string>
+    <string name="annot_pen">Pen</string>
+    <string name="annot_eraser">Eraser</string>
+    <string name="annot_undo">Undo</string>
+    <string name="annot_color">Color</string>
+    <string name="annot_line_width">Line width</string>
+    <string name="annot_nothing_to_undo">Nothing to undo</string>
+    <string name="annot_hint_markup">Long-press a word and drag over the text</string>
+    <string name="annot_hint_pen">Draw on the page; tap the pen again to scroll</string>
+    <string name="annot_hint_eraser">Tap an annotation to delete it</string>
+    <string name="annot_one_page">Drawing needs one page per screen</string>
+
     <string name="webdav_sync">WebDAV sync</string>
     <string name="webdav_sync_info">Keep reading progress, bookmarks, recent books and tags in step between your devices through your own WebDAV server (Nextcloud, ownCloud, a NAS…).</string>
     <string name="webdav_not_set_up">Not set up</string>
