@@ -100,6 +100,11 @@ JVM tests, no device needed:
 ```
 
 Reports are written to `app/build/reports/tests/testFdroidDebugUnitTest/index.html`.
+Five upstream tests fail in the full run, and the fork does not change them or the code they test:
+- `com.TestSync` (4): `MyPath` reads Android APIs while it initializes, which a JVM test cannot do;
+- `com.TestPage` (1): it expects older spacing.
+
+The fork's tests all pass.
 
 | Package | Covers |
 |---------|--------|
