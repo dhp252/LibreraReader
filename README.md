@@ -220,6 +220,8 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   Books copied to the server from a computer get their cover and details (title, author,
   series, pages) while the tab shows them: each is downloaded once, whatever its size, then both
   are shared with every device. Check the list mode shows authors for books not downloaded.
+  PDF covers must be white, not black. Scroll a folder: the path row scrolls away with it. Go in
+  and out of folders: one seen before shows at once, and back returns to the same place.
 - **Settings over WebDAV**: change a setting (font size, theme, page turn) on one device, sync it,
   then sync the other: it has the change (theme after a restart). Change different settings on
   both before syncing: both survive. Set the AI key and a master prompt on one device: after a sync

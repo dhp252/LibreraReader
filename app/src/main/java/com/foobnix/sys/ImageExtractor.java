@@ -278,6 +278,8 @@ public class ImageExtractor {
                     int height = (int) (width * k);
 
                     Bitmap bitmap = Bitmap.createBitmap(width, height, AppsConfig.CURRENT_BITMAP_ARGB);
+                    // the renderer draws only what is on the page: the paper is left transparent
+                    bitmap.eraseColor(Color.WHITE);
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
 
                     return bitmap;

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The WebDAV tab: the Library tab's top bar (menu, filter with count, sort, display mode),
-     then the folder being shown. -->
+     then the folder being shown, which scrolls with the list. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -111,58 +111,72 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- The folder shown, and the way up. -->
-    <LinearLayout
-        android:id="@+id/pathContainer"
+    <!-- The list, with the folder shown (and the way up) above its first row: that row scrolls
+         away with the list instead of staying under the bar. -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:minHeight="@dimen/wh_button_small"
-        android:orientation="horizontal"
-        android:paddingLeft="@dimen/panel_padding"
-        android:paddingRight="@dimen/panel_padding">
+        android:layout_height="match_parent">
 
-        <ImageView
-            android:id="@+id/onBack"
-            android:layout_width="@dimen/wh_button_small"
-            android:layout_height="@dimen/wh_button_small"
-            android:layout_weight="0"
-            android:background="@drawable/bg_round_press"
-            android:contentDescription="@string/back"
-            android:padding="4dip"
-            android:src="@drawable/glyphicons_223_chevron_left" />
+        <com.foobnix.ui2.fast.FastScrollRecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false" />
 
-        <TextView
-            android:id="@+id/webdavPath"
-            android:layout_width="0dip"
+        <LinearLayout
+            android:id="@+id/webdavHeader"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="4dip"
-            android:layout_marginRight="4dip"
-            android:layout_weight="1"
-            android:ellipsize="start"
-            android:singleLine="true"
-            android:text="@string/msg_loading"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:orientation="vertical">
 
-        <com.foobnix.pdf.info.view.MyProgressBar
-            android:id="@+id/MyProgressBarWebDav"
-            android:layout_width="@dimen/wh_button_small"
-            android:layout_height="@dimen/wh_button_small"
-            android:layout_weight="0"
-            android:saveEnabled="false" />
-    </LinearLayout>
+            <LinearLayout
+                android:id="@+id/pathContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:minHeight="@dimen/wh_button_small"
+                android:orientation="horizontal"
+                android:paddingLeft="@dimen/panel_padding"
+                android:paddingRight="@dimen/panel_padding">
 
-    <TextView
-        android:id="@+id/webdavStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="8dip"
-        android:visibility="gone" />
+                <ImageView
+                    android:id="@+id/onBack"
+                    android:layout_width="@dimen/wh_button_small"
+                    android:layout_height="@dimen/wh_button_small"
+                    android:layout_weight="0"
+                    android:background="@drawable/bg_round_press"
+                    android:contentDescription="@string/back"
+                    android:padding="4dip"
+                    android:src="@drawable/glyphicons_223_chevron_left" />
 
-    <com.foobnix.ui2.fast.FastScrollRecyclerView
-        android:id="@+id/recyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+                <TextView
+                    android:id="@+id/webdavPath"
+                    android:layout_width="0dip"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="4dip"
+                    android:layout_marginRight="4dip"
+                    android:layout_weight="1"
+                    android:ellipsize="start"
+                    android:singleLine="true"
+                    android:text="@string/msg_loading"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.foobnix.pdf.info.view.MyProgressBar
+                    android:id="@+id/MyProgressBarWebDav"
+                    android:layout_width="@dimen/wh_button_small"
+                    android:layout_height="@dimen/wh_button_small"
+                    android:layout_weight="0"
+                    android:saveEnabled="false" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/webdavStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dip"
+                android:visibility="gone" />
+        </LinearLayout>
+    </FrameLayout>
 
 </LinearLayout>

@@ -3,6 +3,8 @@ package com.foobnix.webdav;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 
 import com.foobnix.android.utils.LOG;
 import com.foobnix.dao2.FileMeta;
@@ -258,14 +260,33 @@ public class WebDavCovers {
         if (cover == null) {
             return false;
         }
+        final Bitmap flat = onWhite(cover);
         try (OutputStream out = new FileOutputStream(jpg)) {
-            if (!cover.compress(Bitmap.CompressFormat.JPEG, 80, out)) {
+            if (!flat.compress(Bitmap.CompressFormat.JPEG, 80, out)) {
                 throw new IOException("cannot encode the cover of " + book.getName());
             }
         } finally {
+            if (flat != cover) {
+                flat.recycle();
+            }
             cover.recycle();
         }
         return true;
+    }
+
+    /**
+     * The cover laid on white paper. A JPEG has no transparency: what is transparent in the cover
+     * (the background of a PDF page drawn by Android's renderer, a PNG cover with a clear
+     * background) would turn black.
+     */
+    private static Bitmap onWhite(Bitmap cover) {
+        if (!cover.hasAlpha()) {
+            return cover;
+        }
+        final Bitmap flat = Bitmap.createBitmap(cover.getWidth(), cover.getHeight(), Bitmap.Config.RGB_565);
+        flat.eraseColor(Color.WHITE);
+        new Canvas(flat).drawBitmap(cover, 0, 0, null);
+        return flat;
     }
 
     /** The books in Librera/Books, as paths below it. */
@@ -334,17 +355,13 @@ public class WebDavCovers {
      * be fetched. Runs on a background thread.
      */
     public static String metaJson(Context c, WebDavClient.Entry meta) {
-        final File cached = new File(new File(c.getCacheDir(), "webdav-meta"),
-                Integer.toHexString(meta.path.hashCode()) + WebDavBookMeta.JSON);
+        final String known = cachedMetaJson(c, meta);
+        if (known != null) {
+            return known;
+        }
+        final File cached = metaCacheOf(c, meta);
         final String tag = FolderSync.tag(meta).replace('\n', ' ');
         try {
-            if (cached.isFile()) {
-                final String text = new String(readAll(cached), StandardCharsets.UTF_8);
-                final int line = text.indexOf('\n');
-                if (line > 0 && text.substring(0, line).equals(tag)) {
-                    return text.substring(line + 1);
-                }
-            }
             final File temp = new File(c.getCacheDir(), "webdav-meta-" + Integer.toHexString(meta.path.hashCode()) + ".part");
             try {
                 sharedClient(c).download(meta.path, temp);
@@ -358,6 +375,28 @@ public class WebDavCovers {
             LOG.d("WebDAV metadata", meta.path, e.getMessage());
             return null;
         }
+    }
+
+    /** The metadata JSON of a server book as this device keeps it, without asking the server; null when not kept. */
+    public static String cachedMetaJson(Context c, WebDavClient.Entry meta) {
+        final File cached = metaCacheOf(c, meta);
+        if (!cached.isFile()) {
+            return null;
+        }
+        try {
+            final String text = new String(readAll(cached), StandardCharsets.UTF_8);
+            final int line = text.indexOf('\n');
+            if (line > 0 && text.substring(0, line).equals(FolderSync.tag(meta).replace('\n', ' '))) {
+                return text.substring(line + 1);
+            }
+        } catch (IOException e) {
+            LOG.d("WebDAV metadata", meta.path, e.getMessage());
+        }
+        return null;
+    }
+
+    private static File metaCacheOf(Context c, WebDavClient.Entry meta) {
+        return new File(new File(c.getCacheDir(), "webdav-meta"), Integer.toHexString(meta.path.hashCode()) + WebDavBookMeta.JSON);
     }
 
     private static byte[] readAll(File file) throws IOException {
@@ -375,8 +414,11 @@ public class WebDavCovers {
         }
     }
 
-    /** One client for all cover fetches, renewed when the settings change. */
-    static synchronized WebDavClient sharedClient(Context c) {
+    /**
+     * One client for the WebDAV tab and its covers, renewed when the settings change: its open
+     * connections and the login it has done are kept between folders.
+     */
+    public static synchronized WebDavClient sharedClient(Context c) {
         final String key = WebDav.getUrl(c) + "|" + WebDav.getUser(c) + "|" + WebDav.getPassword(c);
         if (client == null || !key.equals(clientKey)) {
             client = WebDav.client(c);
