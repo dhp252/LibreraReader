@@ -12,6 +12,7 @@ import android.widget.TextView;
 import com.foobnix.android.utils.TxtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
+import com.foobnix.ui2.fragment.WebDavFragment2;
 
 /** WebDAV settings: the section in the preferences and the dialog behind it. */
 public class WebDavDialog {
@@ -25,7 +26,7 @@ public class WebDavDialog {
         TintUtil.setSectionFillColor(header, TintUtil.color);
         root.findViewById(R.id.webdavSettings).setOnClickListener(v -> show(a, () -> updatePreferences(a, root)));
         root.findViewById(R.id.webdavSyncNow).setOnClickListener(v -> WebDav.runSyncService(a, true));
-        root.findViewById(R.id.webdavBooks).setOnClickListener(v -> WebDavBooksDialog.show(a));
+        root.findViewById(R.id.webdavBooks).setOnClickListener(v -> WebDavFragment2.open(a));
         updatePreferences(a, root);
     }
 
@@ -75,6 +76,7 @@ public class WebDavDialog {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v ->
                     test(a, url.getText().toString(), user.getText().toString(), password.getText().toString(), result));
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                final boolean wasEnabled = WebDav.isEnabled(a);
                 WebDav.save(a, url.getText().toString(), user.getText().toString(), password.getText().toString(),
                         enabled.isChecked());
                 dialog.dismiss();
@@ -82,6 +84,10 @@ public class WebDavDialog {
                     onSaved.run();
                 }
                 WebDav.runSyncService(a, true);
+                if (wasEnabled != WebDav.isEnabled(a)) {
+                    // the WebDAV tab comes and goes with the sync
+                    WebDavFragment2.onEnabledChanged(a);
+                }
             });
         });
         dialog.show();

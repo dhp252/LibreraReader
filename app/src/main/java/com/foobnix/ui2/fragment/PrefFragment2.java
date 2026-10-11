@@ -111,6 +111,7 @@ import com.foobnix.ui2.AdsFragmentActivity;
 import com.foobnix.ui2.BooksService;
 import com.foobnix.ui2.MainTabs2;
 import com.foobnix.ui2.MyContextWrapper;
+import com.foobnix.webdav.WebDav;
 import com.foobnix.webdav.WebDavDialog;
 import com.foobnix.ai.AiSettingsDialog;
 import com.foobnix.work.SearchAllBooksWorker;
@@ -416,6 +417,10 @@ public class PrefFragment2 extends UIFragment {
 //                    }
 
                     if (AppsConfig.IS_FDROID && tab == UITab.GoogleDrive2Fragment) {
+                        continue;
+                    }
+                    // turning WebDAV sync on brings its tab back
+                    if (tab == UITab.WebDavFragment && !WebDav.isEnabled(getActivity())) {
                         continue;
                     }
 

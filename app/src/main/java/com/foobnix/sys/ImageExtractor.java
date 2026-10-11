@@ -52,6 +52,7 @@ import com.foobnix.pdf.search.activity.PageImageState;
 import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.FileMetaCore;
 import com.foobnix.ui2.fragment.BrowseFragment2;
+import com.foobnix.webdav.WebDavCovers;
 import com.google.common.collect.Lists;
 
 import org.ebookdroid.BookType;
@@ -86,6 +87,8 @@ public class ImageExtractor {
     public static final int COVER_PAGE_WITH_EFFECT = -3;
     public static final int COVER_PAGE_NO_EFFECT = -2;
     public static final int COVER_PAGE = -1;
+    /** Held while a cover is made, on screen or to be shared: one book opened at a time. */
+    private static final Object COVER_LOCK = new Object();
     public static SharedPreferences sp;
     public static volatile CodecDocument codeCache;
     public static volatile CodecContext codecContex;
@@ -294,18 +297,7 @@ public class ImageExtractor {
             if (root.isDirectory()) {
                 File[] listFiles = root.listFiles(SUPPORTED_EXT_FILES_ONLY);
                 if (listFiles == null || listFiles.length == 0) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        Drawable drawable = LibreraApp.context.getDrawable(R.drawable.glyphicons_145_folder_open);
-                        drawable.setTint(TintUtil.getColorInDayNighth());
-                        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(),
-                                drawable.getIntrinsicHeight(), AppsConfig.CURRENT_BITMAP_ARGB);
-                        Canvas canvas = new Canvas(bitmap);
-                        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-                        drawable.draw(canvas);
-                        return bitmap;
-                    } else {
-                        return BitmapFactory.decodeResource(LibreraApp.context.getResources(), R.drawable.gitbook);
-                    }
+                    return folderBitmap();
                 }
                 List<FileMeta> list = new ArrayList<>();
                 for (File file : listFiles) {
@@ -407,6 +399,39 @@ public class ImageExtractor {
         LOG.d("udpateFullMeta ImageExtractor", fileMeta.getAuthor());
 
         return cover;
+    }
+
+    private static Bitmap folderBitmap() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Drawable drawable = LibreraApp.context.getDrawable(R.drawable.glyphicons_145_folder_open);
+            drawable.setTint(TintUtil.getColorInDayNighth());
+            Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(),
+                    drawable.getIntrinsicHeight(), AppsConfig.CURRENT_BITMAP_ARGB);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            drawable.draw(canvas);
+            return bitmap;
+        } else {
+            return BitmapFactory.decodeResource(LibreraApp.context.getResources(), R.drawable.gitbook);
+        }
+    }
+
+    /**
+     * The cover of a local book as it is, without the cover effect, to share with other devices
+     * (WebDAV). Taken under the same lock as the covers on screen: the codecs are not opened from
+     * two threads at once. Null when the book cannot be opened.
+     */
+    public Bitmap coverForSharing(String path, int width) {
+        synchronized (COVER_LOCK) {
+            PageUrl pageUrl = new PageUrl(path, COVER_PAGE_NO_EFFECT, width, 0, false, false, 0, false);
+            pageUrl.setHeight((int) (width * 1.5));
+            try {
+                MagicHelper.isNeedBC = false;
+                return proccessCoverPage(pageUrl);
+            } finally {
+                MagicHelper.isNeedBC = true;
+            }
+        }
     }
 
     public Bitmap generalCoverWithEffect(PageUrl pageUrl, Bitmap cover) {
@@ -626,7 +651,9 @@ public class ImageExtractor {
             }
             try {
                 sp.edit().putBoolean(hash, true).commit();
-                streamInner = getStreamInner(imageUri, hash);
+                synchronized (COVER_LOCK) {
+                    streamInner = getStreamInner(imageUri, hash);
+                }
             } finally {
                 sp.edit().remove(hash).commit();
             }
@@ -663,6 +690,21 @@ public class ImageExtractor {
 
         final PageUrl pageUrl = PageUrl.fromString(imageUri);
         String path = pageUrl.getPath();
+
+        // a book or folder on the WebDAV server, as the WebDAV tab lists it
+        if (WebDavCovers.isItem(path)) {
+            if (WebDavCovers.isFolderItem(path)) {
+                return bitmapToStreamRAW(folderBitmap());
+            }
+            Bitmap cover = WebDavCovers.load(c, path, pageUrl.getWidth());
+            if (cover == null) {
+                return messageFile("", WebDavCovers.nameOf(path));
+            }
+            if (pageUrl.getHeight() == 0) {
+                pageUrl.setHeight((int) (pageUrl.getWidth() * 1.5));
+            }
+            return bitmapToStreamRAW(generalCoverWithEffect(pageUrl, cover));
+        }
 
         try {
 

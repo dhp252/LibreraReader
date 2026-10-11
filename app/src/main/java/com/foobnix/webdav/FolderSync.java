@@ -13,6 +13,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 /**
@@ -102,6 +103,8 @@ public class FolderSync {
     private final File stateFile;
     private final Mode mode;
     private final Filter filter;
+    /** The server files (relative paths) as listed by the last {@link #sync()}, null before one. */
+    private Set<String> lastRemote;
 
     /**
      * @param remoteRoot folder on the server relative to the client root, "" for the root itself
@@ -140,6 +143,7 @@ public class FolderSync {
                 remoteFiles.put(relative, entry);
             }
         }
+        lastRemote = remoteMissing ? null : new TreeSet<>(remoteFiles.keySet());
         final Map<String, File> localFiles = listLocal();
 
         final TreeSet<String> paths = new TreeSet<>();
@@ -303,6 +307,14 @@ public class FolderSync {
         return new File(localRoot, relative);
     }
 
+    /**
+     * The server files as the last {@link #sync()} listed them, relative to the synced folder;
+     * null before a sync or when the folder was missing on the server.
+     */
+    public Set<String> getLastRemote() {
+        return lastRemote;
+    }
+
     /** Where a server file lives (or would live) on the device. */
     public File localFileOf(WebDavClient.Entry remoteEntry) {
         final String relative = relativeToRoot(remoteEntry.path);
@@ -311,8 +323,9 @@ public class FolderSync {
 
     private boolean accept(String relativePath) {
         final String name = relativePath.substring(relativePath.lastIndexOf('/') + 1);
-        // temporary and hidden files (downloads in progress are ".name.part")
-        if (name.startsWith(".") || name.endsWith(".part") || name.endsWith(".tmp")) {
+        // temporary and hidden files (downloads in progress are ".name.part"), and anything in a
+        // hidden folder (the shared book covers in Books/.covers)
+        if (name.endsWith(".part") || name.endsWith(".tmp") || relativePath.startsWith(".") || relativePath.contains("/.")) {
             return false;
         }
         return filter == null || filter.accept(relativePath);

@@ -275,4 +275,29 @@ public class FolderSyncTest {
         assertEquals(tricky, FolderSync.unescape(FolderSync.escape(tricky)));
         assertEquals("\"etag\"", FolderSync.unescape(FolderSync.escape("\"etag\"")));
     }
+    @Test
+    public void hiddenFoldersAreLeftAlone() throws IOException {
+        // the shared covers live in Books/.covers: never books, never synced as files
+        remote.put("Librera/Books/.covers/novel.epub.jpg", "JPG");
+        remote.put("Librera/Books/novel.epub", "EPUB");
+        write("Books/.covers/local.pdf.jpg", "JPG", 10_000);
+        FolderSync books = sync(FolderSync.Mode.MIRROR);
+
+        FolderSync.Result result = books.sync();
+
+        assertEquals(1, result.downloaded);
+        assertEquals(0, result.uploaded);
+        assertFalse(new File(local, "Books/.covers/novel.epub.jpg").exists());
+        assertEquals(null, remote.get("Librera/Books/.covers/local.pdf.jpg"));
+        assertEquals(java.util.Collections.singleton("Books/novel.epub"), books.getLastRemote());
+    }
+
+    @Test
+    public void lastRemoteIsKnownOnlyAfterASync() throws IOException {
+        FolderSync books = sync(FolderSync.Mode.ON_DEMAND);
+        assertEquals(null, books.getLastRemote());
+        remote.put("Librera/a.pdf", "PDF");
+        books.sync();
+        assertEquals(java.util.Collections.singleton("a.pdf"), books.getLastRemote());
+    }
 }

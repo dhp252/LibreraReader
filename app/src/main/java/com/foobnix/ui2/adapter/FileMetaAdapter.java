@@ -51,6 +51,7 @@ import com.foobnix.pdf.info.wrapper.MagicHelper;
 import com.foobnix.ui2.MainTabs2;
 import com.foobnix.ui2.adapter.AuthorsAdapter2.AuthorViewHolder;
 import com.foobnix.ui2.fast.FastScroller;
+import com.foobnix.webdav.WebDavCovers;
 
 import java.io.File;
 import java.util.Collections;
@@ -293,7 +294,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
 
 
 
-            holder.starIcon.setVisibility(ExtUtils.isExteralSD(fileMeta.getPath()) ? View.GONE : View.VISIBLE);
+            holder.starIcon.setVisibility(ExtUtils.isExteralSD(fileMeta.getPath()) || WebDavCovers.isItem(fileMeta.getPath()) ? View.GONE : View.VISIBLE);
 
             holder.imageCloud.setVisibility(View.GONE);
             //holder.imageCloud.setImageResource(R.drawable.glyphicons_sync);
@@ -798,7 +799,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
                 }
             });
         }
-        holder.star.setVisibility(ExtUtils.isExteralSD(fileMeta.getPath()) ? View.GONE : View.VISIBLE);
+        holder.star.setVisibility(ExtUtils.isExteralSD(fileMeta.getPath()) || WebDavCovers.isItem(fileMeta.getPath()) ? View.GONE : View.VISIBLE);
 
         if (holder.signIcon != null) {
             holder.signIcon.setOnClickListener(new OnClickListener() {

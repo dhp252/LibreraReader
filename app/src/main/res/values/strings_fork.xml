@@ -30,12 +30,14 @@
     <string name="webdav_enable">Sync with this server</string>
     <string name="webdav_test">Test</string>
     <string name="webdav_test_ok">Connected: %1$s items in the folder</string>
-    <string name="webdav_on_device">on this device</string>
     <string name="webdav_open">Open</string>
     <string name="webdav_remove_local">Remove from this device</string>
     <string name="webdav_delete_server">Delete from the server</string>
     <string name="webdav_delete_confirm">Delete %1$s from the server and from this device? Your other devices lose it too.</string>
     <string name="webdav_empty">No books on the server yet. Use \"Sync\" in a book\'s menu to upload one.</string>
+    <string name="webdav_tab">WebDAV</string>
+    <string name="webdav_tab_off">WebDAV sync is off. Tap here to set it up.</string>
+    <string name="webdav_folder_empty">This folder is empty.</string>
 
     <string name="ai">AI</string>
     <string name="ai_summary_chapter">Summary of this chapter</string>

@@ -163,4 +163,20 @@ public class WebDavServerTest {
         assertEquals(0, quiet.uploaded + quiet.downloaded + quiet.deletedLocal + quiet.deletedRemote);
         assertTrue(quiet.errors.isEmpty());
     }
+    @Test
+    public void hiddenFoldersAreNotEnteredWhenListing() throws IOException {
+        final File book = tmp.newFile("book.pdf");
+        Files.write(book.toPath(), "PDF".getBytes(StandardCharsets.UTF_8));
+        client.upload(book, "Books/Sci-fi/book.pdf");
+        client.upload(book, "Books/.covers/Sci-fi/book.pdf.jpg");
+
+        final List<WebDavClient.Entry> all = client.listRecursive("Books");
+        boolean coversFolder = false;
+        for (WebDavClient.Entry entry : all) {
+            assertFalse(entry.path, entry.path.startsWith("Books/.covers/"));
+            coversFolder |= entry.path.equals("Books/.covers") && entry.directory;
+        }
+        assertTrue(coversFolder);
+        assertEquals(1, client.listRecursive("Books/.covers").stream().filter(e -> !e.directory).count());
+    }
 }

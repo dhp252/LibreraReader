@@ -1,5 +1,6 @@
 package com.foobnix.pdf.info.wrapper;
 
+import com.foobnix.LibreraApp;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.AppsConfig;
@@ -12,6 +13,8 @@ import com.foobnix.ui2.fragment.PrefFragment2;
 import com.foobnix.ui2.fragment.RecentFragment2;
 import com.foobnix.ui2.fragment.SearchFragment2;
 import com.foobnix.ui2.fragment.UIFragment;
+import com.foobnix.ui2.fragment.WebDavFragment2;
+import com.foobnix.webdav.WebDav;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +29,8 @@ public enum UITab {
     OpdsFragment(5, OpdsFragment2.PAIR.first, OpdsFragment2.PAIR.second, OpdsFragment2.class, true), //
     PrefFragment(6, PrefFragment2.PAIR.first, PrefFragment2.PAIR.second, PrefFragment2.class, true), //
     //CloudsFragment(7, CloudsFragment2.PAIR.first, CloudsFragment2.PAIR.second, CloudsFragment2.class, true), //
-    GoogleDrive2Fragment(7, GoogleDriveFragment2.PAIR.first, GoogleDriveFragment2.PAIR.second, GoogleDriveFragment2.class, true); //
+    GoogleDrive2Fragment(7, GoogleDriveFragment2.PAIR.first, GoogleDriveFragment2.PAIR.second, GoogleDriveFragment2.class, true), //
+    WebDavFragment(8, WebDavFragment2.PAIR.first, WebDavFragment2.PAIR.second, WebDavFragment2.class, true); //
 
     public int index;
     private int name;
@@ -80,6 +84,13 @@ public enum UITab {
                 byIndex.setVisible(isVisible);
                 list.add(byIndex);
             }
+            // tabs added since the order was saved (the WebDAV tab) come last, hidden
+            for (UITab tab : values()) {
+                if (!list.contains(tab)) {
+                    tab.setVisible(false);
+                    list.add(tab);
+                }
+            }
             return list;
         }
     }
@@ -97,6 +108,22 @@ public enum UITab {
         }
         return 0;
 
+    }
+
+    /** Shows a tab in the saved order (the caller restarts the main screen to see it). */
+    public static void show(UITab tab) {
+        synchronized (AppState.get().tabsOrder9) {
+            String order = AppState.get().tabsOrder9;
+            if (order.contains(tab.index + "#1")) {
+                return;
+            }
+            if (order.contains(tab.index + "#0")) {
+                order = order.replace(tab.index + "#0", tab.index + "#1");
+            } else {
+                order = order + "," + tab.index + "#1";
+            }
+            AppState.get().tabsOrder9 = order;
+        }
     }
 
     public static boolean isShowRecent() {
@@ -131,6 +158,10 @@ public enum UITab {
 //            return false;
 //        }
         if (AppsConfig.IS_FDROID && (this == UITab.GoogleDrive2Fragment)) {
+            return false;
+        }
+        // the order is synced: a device without WebDAV sync does not get the tab
+        if (this == UITab.WebDavFragment && !WebDav.isEnabled(LibreraApp.context)) {
             return false;
         }
         return isVisible;

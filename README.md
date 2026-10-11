@@ -148,8 +148,12 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   strike, draw, erase and undo. Close the book (it asks to save, unless saving is automatic),
   reopen it and check the annotations are still there.
 - **WebDAV**: Preferences > WebDAV sync. Enter the server and Test it. Read a few pages, sync,
-  then open the same book on a second device and check that it continues there. Under
-  "Books on WebDAV", open a book that is only on the server.
+  then open the same book on a second device and check that it continues there.
+- **WebDAV tab**: once WebDAV sync is on, a WebDAV tab appears (Settings > "Books on WebDAV"
+  opens it too). It shows the server's Books folder in the Folders tab's grid or list. After a
+  sync on the device that has the books, the other device shows their covers, with a cloud mark
+  on books that aren't downloaded. Open one: it downloads, opens, and then shows as a local book.
+  Also check long-press > Remove from this device, the back key in a subfolder, and pull to refresh.
 - **AI**: tap ✦ in the top bar, then AI settings:
   - Claude: an API key (model `claude-opus-5-5` by default).
   - OpenAI-compatible: server URL, model, and a key if the server needs one.

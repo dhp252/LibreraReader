@@ -28,6 +28,7 @@ import com.foobnix.pdf.search.view.AsyncProgressTask;
 import com.foobnix.ui2.BooksService;
 import com.foobnix.ui2.FileMetaCore;
 import com.foobnix.ui2.MainTabs2;
+import com.foobnix.webdav.WebDavCovers;
 import com.foobnix.work.SyncDropboxWorker;
 
 import org.greenrobot.eventbus.EventBus;
@@ -656,6 +657,14 @@ public class Clouds {
     public static boolean showHideCloudImage(ImageView img, String path) {
 
         String fileName = ExtUtils.getFileName(path);
+
+        // a book only on the WebDAV server (the WebDAV tab): downloaded when opened
+        if (WebDavCovers.isItem(path)) {
+            img.setVisibility(View.VISIBLE);
+            img.setImageResource(R.drawable.glyphicons_544_cloud);
+            TintUtil.setTintImageWithAlpha(img, img.getContext() instanceof MainTabs2 ? TintUtil.getColorInDayNighth() : TintUtil.getColorInDayNighthBook());
+            return true;
+        }
 
         if (isLibreraSyncFile(path)) {
             img.setVisibility(View.VISIBLE);

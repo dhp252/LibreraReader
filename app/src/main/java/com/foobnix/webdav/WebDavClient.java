@@ -171,7 +171,7 @@ public class WebDavClient implements FolderSync.Remote {
 
     /**
      * Every file and folder below {@code folder}, folder by folder: many servers refuse
-     * "Depth: infinity".
+     * "Depth: infinity". Hidden folders below it (".covers") are listed but not entered.
      */
     public List<Entry> listRecursive(String folder) throws IOException {
         final List<Entry> result = new ArrayList<>();
@@ -180,7 +180,7 @@ public class WebDavClient implements FolderSync.Remote {
         while (!pending.isEmpty()) {
             for (Entry entry : list(pending.poll())) {
                 result.add(entry);
-                if (entry.directory) {
+                if (entry.directory && !entry.getName().startsWith(".")) {
                     pending.add(entry.path);
                 }
             }
@@ -350,7 +350,7 @@ public class WebDavClient implements FolderSync.Remote {
         return path.substring(start, end);
     }
 
-    static String parentOf(String path) {
+    public static String parentOf(String path) {
         final String trimmed = trimSlashes(path);
         final int slash = trimmed.lastIndexOf('/');
         return slash < 0 ? "" : trimmed.substring(0, slash);

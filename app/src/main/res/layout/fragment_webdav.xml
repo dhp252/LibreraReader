@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/pathContainer"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/wh_button"
+        android:background="@drawable/bg_search_second"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/onBack"
+            style="@style/buttonTop"
+            android:layout_width="@dimen/wh_button"
+            android:layout_height="@dimen/wh_button"
+            android:layout_weight="0"
+            android:contentDescription="@string/back"
+            android:src="@drawable/glyphicons_223_chevron_left" />
+
+        <TextView
+            android:id="@+id/webdavPath"
+            android:layout_width="0dip"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="2dip"
+            android:layout_marginRight="2dip"
+            android:layout_weight="1"
+            android:ellipsize="start"
+            android:singleLine="true"
+            android:text="@string/msg_loading"
+            android:textColor="@color/white" />
+
+        <com.foobnix.pdf.info.view.MyProgressBar
+            android:id="@+id/MyProgressBarWebDav"
+            android:layout_width="@dimen/wh_button"
+            android:layout_height="@dimen/wh_button"
+            android:layout_weight="0"
+            android:saveEnabled="false" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/webdavStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dip"
+        android:visibility="gone" />
+
+    <com.foobnix.ui2.fast.FastScrollRecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+</LinearLayout>
