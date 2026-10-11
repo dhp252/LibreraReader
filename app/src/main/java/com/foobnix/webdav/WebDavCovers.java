@@ -5,8 +5,10 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 
 import com.foobnix.android.utils.LOG;
+import com.foobnix.dao2.FileMeta;
 import com.foobnix.model.AppProfile;
 import com.foobnix.sys.ImageExtractor;
+import com.foobnix.ui2.FileMetaCore;
 
 import org.ebookdroid.BookType;
 
@@ -148,16 +150,22 @@ public class WebDavCovers {
 
     /**
      * The covers step of a sync, after the books themselves: uploads the missing covers of the
-     * books on this device and deletes the covers of books gone from the server.
+     * books on this device and deletes the covers of books gone from the server; the same for
+     * their metadata ({@link WebDavBookMeta}), read from this device's library, no download.
      */
     static FolderSync.Result sync(Context c, WebDavClient client, FolderSync books) throws IOException {
         final FolderSync.Result result = new FolderSync.Result();
         final TreeSet<String> covers = new TreeSet<>();
+        final TreeSet<String> metas = new TreeSet<>();
         try {
             for (WebDavClient.Entry entry : client.listRecursive(COVERS)) {
                 final String book = entry.directory ? null : bookOfCover(entry.path);
                 if (book != null) {
                     covers.add(book);
+                }
+                final String described = entry.directory ? null : bookOfMeta(entry.path);
+                if (described != null) {
+                    metas.add(described);
                 }
             }
         } catch (WebDavClient.WebDavException e) {
@@ -202,7 +210,40 @@ public class WebDavCovers {
                 result.errors.add(".covers/" + book + ": " + e.getMessage());
             }
         }
+
+        final Plan metaPlan = plan(local, books.getLastRemote(), metas, java.util.Collections.<String>emptySet());
+        final File json = new File(c.getCacheDir(), "webdav-meta-upload.json");
+        for (String book : metaPlan.upload) {
+            try {
+                final FileMeta meta = FileMetaCore.createMetaIfNeed(new File(AppProfile.SYNC_FOLDER_BOOKS, book).getPath(), false);
+                WebDavCoverMaker.writeText(json, WebDavBookMeta.toJson(meta));
+                client.upload(json, COVERS + "/" + book + WebDavBookMeta.JSON);
+                result.uploaded++;
+            } catch (IOException | org.json.JSONException e) {
+                result.errors.add(".covers/" + book + WebDavBookMeta.JSON + ": " + e.getMessage());
+            } finally {
+                json.delete();
+            }
+        }
+        for (String book : metaPlan.delete) {
+            try {
+                client.delete(COVERS + "/" + book + WebDavBookMeta.JSON);
+                result.deletedRemote++;
+            } catch (IOException e) {
+                result.errors.add(".covers/" + book + WebDavBookMeta.JSON + ": " + e.getMessage());
+            }
+        }
         return result;
+    }
+
+    /** The book path below Books ("a/b.pdf") of a metadata file ("Books/.covers/a/b.pdf.json"), or null. */
+    static String bookOfMeta(String metaPath) {
+        final String path = WebDavClient.trimSlashes(metaPath);
+        if (!path.startsWith(COVERS + "/") || !path.endsWith(WebDavBookMeta.JSON)) {
+            return null;
+        }
+        final String book = path.substring(COVERS.length() + 1, path.length() - WebDavBookMeta.JSON.length());
+        return book.isEmpty() ? null : book;
     }
 
     /** The cover of a local book as a JPEG; false when the book could not be opened. */
@@ -284,6 +325,53 @@ public class WebDavCovers {
             return null;
         } finally {
             temp.delete();
+        }
+    }
+
+    /**
+     * The shared metadata JSON of a server book ({@code meta} is its entry in the covers folder),
+     * kept in the cache by version, so a folder is fetched in full only once; null when it cannot
+     * be fetched. Runs on a background thread.
+     */
+    public static String metaJson(Context c, WebDavClient.Entry meta) {
+        final File cached = new File(new File(c.getCacheDir(), "webdav-meta"),
+                Integer.toHexString(meta.path.hashCode()) + WebDavBookMeta.JSON);
+        final String tag = FolderSync.tag(meta).replace('\n', ' ');
+        try {
+            if (cached.isFile()) {
+                final String text = new String(readAll(cached), StandardCharsets.UTF_8);
+                final int line = text.indexOf('\n');
+                if (line > 0 && text.substring(0, line).equals(tag)) {
+                    return text.substring(line + 1);
+                }
+            }
+            final File temp = new File(c.getCacheDir(), "webdav-meta-" + Integer.toHexString(meta.path.hashCode()) + ".part");
+            try {
+                sharedClient(c).download(meta.path, temp);
+                final String json = new String(readAll(temp), StandardCharsets.UTF_8);
+                WebDavCoverMaker.writeText(cached, tag + "\n" + json);
+                return json;
+            } finally {
+                temp.delete();
+            }
+        } catch (IOException e) {
+            LOG.d("WebDAV metadata", meta.path, e.getMessage());
+            return null;
+        }
+    }
+
+    private static byte[] readAll(File file) throws IOException {
+        try (FileInputStream in = new FileInputStream(file)) {
+            final byte[] data = new byte[(int) file.length()];
+            int read = 0;
+            while (read < data.length) {
+                final int n = in.read(data, read, data.length - read);
+                if (n < 0) {
+                    break;
+                }
+                read += n;
+            }
+            return read == data.length ? data : java.util.Arrays.copyOf(data, read);
         }
     }
 

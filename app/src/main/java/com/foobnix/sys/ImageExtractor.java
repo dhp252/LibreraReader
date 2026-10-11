@@ -427,6 +427,26 @@ public class ImageExtractor {
      * (WebDAV). Taken under the same lock as the covers on screen: the codecs are not opened from
      * two threads at once. Null when the book cannot be opened.
      */
+    /**
+     * The metadata of a book file (title, author, series, pages...) as the library reads it, to
+     * share with other devices (WebDAV); not stored in the library. Under the cover lock, like
+     * {@link #coverForSharing}. Null when the book cannot be read.
+     */
+    public FileMeta metaForSharing(String path) {
+        synchronized (COVER_LOCK) {
+            try {
+                final FileMeta meta = new FileMeta(path);
+                final com.foobnix.ext.EbookMeta ebook = FileMetaCore.get().getEbookMeta(path, CacheDir.ZipApp, true);
+                FileMetaCore.get().upadteBasicMeta(meta, new java.io.File(path));
+                FileMetaCore.get().udpateFullMeta(meta, ebook);
+                return meta;
+            } catch (Exception e) {
+                LOG.e(e);
+                return null;
+            }
+        }
+    }
+
     public Bitmap coverForSharing(String path, int width) {
         synchronized (COVER_LOCK) {
             PageUrl pageUrl = new PageUrl(path, COVER_PAGE_NO_EFFECT, width, 0, false, false, 0, false);

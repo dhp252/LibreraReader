@@ -217,8 +217,9 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   sync on the device that has the books, the other device shows their covers, with a cloud mark
   on books that aren't downloaded. Open one: it downloads, opens, and then shows as a local book.
   Also check long-press > Remove from this device, the back key in a subfolder, and pull to refresh.
-  Books copied to the server from a computer get their cover while the tab shows them (each is
-  downloaded once, then its cover is shared with every device; books over 50 MB keep the title).
+  Books copied to the server from a computer get their cover and details (title, author,
+  series, pages) while the tab shows them: each is downloaded once, whatever its size, then both
+  are shared with every device. Check the list mode shows authors for books not downloaded.
 - **Settings over WebDAV**: change a setting (font size, theme, page turn) on one device, sync it,
   then sync the other: it has the change (theme after a restart). Change different settings on
   both before syncing: both survive. Set the AI key and a master prompt on one device: after a sync

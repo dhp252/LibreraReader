@@ -39,6 +39,7 @@ import com.foobnix.ui2.adapter.DefaultListeners;
 import com.foobnix.ui2.adapter.FileMetaAdapter;
 import com.foobnix.webdav.FolderSync;
 import com.foobnix.webdav.WebDav;
+import com.foobnix.webdav.WebDavBookMeta;
 import com.foobnix.webdav.WebDavClient;
 import com.foobnix.webdav.WebDavCoverMaker;
 import com.foobnix.webdav.WebDavCovers;
@@ -84,6 +85,9 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     private EditText filterLine;
     private TextView countBooks;
     private ImageView cleanFilter, sortBy, onGridList, menu2;
+    /** Server-only books, by server path: their cover entry (if any) and metadata JSON (if any). */
+    private final Map<String, WebDavClient.Entry> coverOfBook = new ConcurrentHashMap<>();
+    private final Map<String, String> metaOfBook = new ConcurrentHashMap<>();
     /** Everything listed in the folder; the adapter shows it filtered and sorted. */
     private final List<FileMeta> allItems = new ArrayList<>();
     private TextView pathView;
@@ -296,7 +300,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         final List<FileMeta> shown = new ArrayList<>();
         int books = 0;
         for (FileMeta item : allItems) {
-            if (!filter.isEmpty() && !nameOf(item).toLowerCase().contains(filter)) {
+            if (!filter.isEmpty() && !matches(item, filter)) {
                 continue;
             }
             shown.add(item);
@@ -319,6 +323,13 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             sortBy.setImageResource(AppState.get().webdavSortAsc ? R.drawable.glyphicons_476_sort_attributes
                     : R.drawable.glyphicons_477_sort_attributes_alt);
         }
+    }
+
+    /** The filter looks in the file name, the title and the author, as the Library's does. */
+    private boolean matches(FileMeta item, String filter) {
+        return nameOf(item).toLowerCase().contains(filter)
+                || (item.getTitle() != null && item.getTitle().toLowerCase().contains(filter))
+                || (item.getAuthor() != null && item.getAuthor().toLowerCase().contains(filter));
     }
 
     private String nameOf(FileMeta item) {
@@ -364,6 +375,9 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             final WebDavClient client = WebDav.client(c);
             final FolderSync books = WebDav.books(c, client);
             final List<WebDavClient.Entry> listed = listOrEmpty(client, path);
+            // what each book has is read afresh: a file replaced on the server needs both again
+            coverOfBook.clear();
+            metaOfBook.clear();
             final Map<String, WebDavClient.Entry> covers = new HashMap<>();
             for (WebDavClient.Entry cover : listOrEmpty(client, WebDavCovers.coversFolderOf(path))) {
                 covers.put(cover.getName(), cover);
@@ -389,7 +403,16 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                         // a book on this device: the local book, with its cover, progress and heart
                         item = FileMetaCore.createMetaIfNeed(local.getPath(), false);
                     } else {
-                        item = remoteBook(entry, covers.get(WebDavCovers.coverNameOf(entry.getName())));
+                        final WebDavClient.Entry cover = covers.get(WebDavCovers.coverNameOf(entry.getName()));
+                        final WebDavClient.Entry metaEntry = covers.get(WebDavBookMeta.metaNameOf(entry.getName()));
+                        final String meta = metaEntry == null ? null : WebDavCovers.metaJson(c, metaEntry);
+                        if (cover != null) {
+                            coverOfBook.put(entry.path, cover);
+                        }
+                        if (meta != null) {
+                            metaOfBook.put(entry.path, meta);
+                        }
+                        item = remoteBook(entry, cover, meta);
                     }
                 }
                 entries.put(item.getPath(), entry);
@@ -414,7 +437,8 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         }
     }
 
-    private static FileMeta remoteBook(WebDavClient.Entry entry, WebDavClient.Entry cover) {
+    /** A server-only book as an item: file details, then its shared metadata when there is some. */
+    private static FileMeta remoteBook(WebDavClient.Entry entry, WebDavClient.Entry cover, String meta) {
         final FileMeta item = new FileMeta(WebDavCovers.bookItem(entry.path, cover));
         item.setCusType(FileMetaAdapter.DISPLAY_TYPE_FILE);
         item.setTitle(entry.getName());
@@ -425,6 +449,9 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         if (entry.lastModified > 0) {
             item.setDate(entry.lastModified);
             item.setDateTxt(ExtUtils.getDateFormat(entry.lastModified));
+        }
+        if (meta != null) {
+            WebDavBookMeta.apply(meta, item);
         }
         return item;
     }
@@ -453,21 +480,26 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         }
     }
 
-    /** Starts making the covers the books shown lack (replacing a run for another folder). */
+    /** Starts making the covers and metadata the books shown lack (replacing a run for another folder). */
     private void makeMissingCovers() {
         final Activity a = getActivity();
         if (a == null || adapter == null || !shown || !WebDav.isEnabled(a)) {
             coverMaker.stop();
             return;
         }
-        final List<WebDavClient.Entry> todo = new ArrayList<>();
+        final List<WebDavCoverMaker.Need> todo = new ArrayList<>();
         for (FileMeta item : adapter.getItemsList()) {
-            if (WebDavCovers.isItem(item.getPath()) && !WebDavCovers.isFolderItem(item.getPath())
-                    && !WebDavCovers.hasCover(item.getPath())) {
-                final WebDavClient.Entry entry = entries.get(item.getPath());
-                if (entry != null) {
-                    todo.add(entry);
-                }
+            if (!WebDavCovers.isItem(item.getPath()) || WebDavCovers.isFolderItem(item.getPath())) {
+                continue;
+            }
+            final WebDavClient.Entry entry = entries.get(item.getPath());
+            if (entry == null) {
+                continue;
+            }
+            final boolean cover = !WebDavCovers.hasCover(item.getPath());
+            final boolean meta = !metaOfBook.containsKey(entry.path);
+            if (cover || meta) {
+                todo.add(new WebDavCoverMaker.Need(entry, cover, meta));
             }
         }
         if (todo.isEmpty()) {
@@ -475,17 +507,28 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             return;
         }
         final String madeFor = folder;
-        coverMaker.start(a, todo, () -> shown && madeFor.equals(folder), (book, cover) -> ui(() -> onCoverMade(book, cover)));
+        coverMaker.start(a, todo, () -> shown && madeFor.equals(folder), (book, cover, meta) -> ui(() -> onMade(book, cover, meta)));
     }
 
-    /** A cover was made: the book's item gets the new cover tag, so Glide fetches the cover. */
-    private void onCoverMade(WebDavClient.Entry book, WebDavClient.Entry cover) {
+    /**
+     * A cover and/or metadata was made: the book's item is rebuilt with them (a new cover tag, so
+     * Glide fetches the cover).
+     */
+    private void onMade(WebDavClient.Entry book, WebDavClient.Entry madeCover, String madeMeta) {
+        if (madeCover != null) {
+            coverOfBook.put(book.path, madeCover);
+        }
+        if (madeMeta != null) {
+            metaOfBook.put(book.path, madeMeta);
+        }
+        final WebDavClient.Entry cover = coverOfBook.get(book.path);
+        final String meta = metaOfBook.get(book.path);
         final List<FileMeta> items = adapter.getItemsList();
         for (int i = 0; i < items.size(); i++) {
             final String path = items.get(i).getPath();
             if (WebDavCovers.isItem(path) && !WebDavCovers.isFolderItem(path)
                     && book.path.equals(WebDavCovers.serverPathOf(path))) {
-                final FileMeta item = remoteBook(book, cover);
+                final FileMeta item = remoteBook(book, cover, meta);
                 entries.remove(path);
                 entries.put(item.getPath(), book);
                 items.set(i, item);
@@ -623,6 +666,14 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                     final String cover = WebDavCovers.coverOf(entry.path);
                     if (cover != null) {
                         client.delete(cover);
+                    }
+                    final String meta = WebDavBookMeta.metaOf(entry.path);
+                    if (meta != null) {
+                        try {
+                            client.delete(meta);
+                        } catch (Exception e) {
+                            LOG.d("WebDAV metadata", e.getMessage());
+                        }
                     }
                     final File local = WebDav.books(c, client).localFileOf(entry);
                     if (local != null && local.isFile() && !local.delete()) {
