@@ -54,6 +54,18 @@ public class FolderSync {
         boolean accept(String relativePath);
     }
 
+    /**
+     * Files merged item by item when both sides changed them, instead of the newer file winning
+     * (the profile's lists, {@link ProfileMerge}). A copy of each such file as it stood after the
+     * last sync is kept next to the state file: the merge compares both sides with it.
+     */
+    public interface Merger {
+        boolean handles(String relativePath);
+
+        /** @param base the file after the last sync, null when there is no copy */
+        String merge(String relativePath, String base, String local, String remote) throws Exception;
+    }
+
     /** State of one file as of the last sync. */
     static class Record {
         long localModified;
@@ -105,6 +117,7 @@ public class FolderSync {
     private final Filter filter;
     /** The server files (relative paths) as listed by the last {@link #sync()}, null before one. */
     private Set<String> lastRemote;
+    private Merger merger;
 
     /**
      * @param remoteRoot folder on the server relative to the client root, "" for the root itself
@@ -117,6 +130,12 @@ public class FolderSync {
         this.stateFile = stateFile;
         this.mode = mode;
         this.filter = filter;
+    }
+
+    /** Merges the files {@code merger} handles item by item when both sides changed them. */
+    public FolderSync withMerger(Merger merger) {
+        this.merger = merger;
+        return this;
     }
 
     public Result sync() throws IOException {
@@ -225,7 +244,11 @@ public class FolderSync {
         if (local != null && remoteEntry != null) {
             if (last == null) {
                 // on both sides, never synced: equal size counts as the same file, else the newer wins
-                if (local.length() == remoteEntry.size) {
+                if (merges(path)) {
+                    // two devices' lists before their first sync together: joined, nothing dropped
+                    // (an equal size says nothing about two lists)
+                    merge(path, local, remoteEntry, state, result);
+                } else if (local.length() == remoteEntry.size) {
                     state.put(path, record(local, remoteEntry));
                 } else if (remoteEntry.lastModified > local.lastModified()) {
                     download(path, remoteEntry, state, result);
@@ -234,7 +257,9 @@ public class FolderSync {
                 }
             } else if (localChanged && remoteChanged) {
                 result.conflicts++;
-                if (remoteEntry.lastModified > local.lastModified()) {
+                if (merges(path)) {
+                    merge(path, local, remoteEntry, state, result);
+                } else if (remoteEntry.lastModified > local.lastModified()) {
                     download(path, remoteEntry, state, result);
                 } else {
                     upload(path, local, state, result);
@@ -251,6 +276,7 @@ public class FolderSync {
                     throw new IOException("cannot delete " + local);
                 }
                 state.remove(path);
+                dropBase(path);
                 result.deletedLocal++;
             } else {
                 upload(path, local, state, result);
@@ -263,6 +289,7 @@ public class FolderSync {
                 } else {
                     remote.delete(remotePath(path));
                     state.remove(path);
+                    dropBase(path);
                     result.deletedRemote++;
                 }
             } else if (mode == Mode.MIRROR) {
@@ -281,6 +308,7 @@ public class FolderSync {
             target.setLastModified(remoteEntry.lastModified);
         }
         state.put(path, record(target, remoteEntry));
+        keepBase(path, target);
         result.downloaded++;
     }
 
@@ -291,7 +319,81 @@ public class FolderSync {
             uploaded = new WebDavClient.Entry(remotePath(path), false, local.length(), 0, null);
         }
         state.put(path, record(local, uploaded));
+        keepBase(path, local);
         result.uploaded++;
+    }
+
+    private boolean merges(String path) {
+        return merger != null && merger.handles(path);
+    }
+
+    /**
+     * Both sides changed a file merged by item: the server's copy is merged with this one against
+     * the copy kept after the last sync, written here and uploaded. A file that cannot be merged
+     * (damaged JSON) falls back to the newer one winning.
+     */
+    private void merge(String path, File local, WebDavClient.Entry remoteEntry, Map<String, Record> state, Result result) throws IOException {
+        final File theirs = new File(baseFolder(), path + ".remote.tmp");
+        theirs.getParentFile().mkdirs();
+        try {
+            remote.download(remotePath(path), theirs);
+            final File base = baseOf(path);
+            final String merged = merger.merge(path, base.isFile() ? read(base) : null, read(local), read(theirs));
+            if (merged == null) {
+                throw new IOException("not merged");
+            }
+            writeAtomically(local, merged);
+        } catch (Exception e) {
+            if (remoteEntry.lastModified > local.lastModified()) {
+                download(path, remoteEntry, state, result);
+            } else {
+                upload(path, local, state, result);
+            }
+            return;
+        } finally {
+            theirs.delete();
+        }
+        upload(path, local, state, result);
+        result.downloaded++;
+    }
+
+    /** Where the copies of merged files after the last sync are kept: beside the state file. */
+    private File baseFolder() {
+        return new File(stateFile.getPath() + ".base");
+    }
+
+    private File baseOf(String path) {
+        return new File(baseFolder(), path);
+    }
+
+    private void keepBase(String path, File file) throws IOException {
+        if (!merges(path)) {
+            return;
+        }
+        writeAtomically(baseOf(path), read(file));
+    }
+
+    private void dropBase(String path) {
+        if (merges(path)) {
+            baseOf(path).delete();
+        }
+    }
+
+    private static void writeAtomically(File file, String text) throws IOException {
+        final File parent = file.getAbsoluteFile().getParentFile();
+        if (parent != null) {
+            parent.mkdirs();
+        }
+        final File temp = new File(file.getPath() + ".tmp");
+        try (OutputStream stream = new FileOutputStream(temp)) {
+            stream.write(text.getBytes(StandardCharsets.UTF_8));
+        }
+        if (file.exists() && !file.delete()) {
+            throw new IOException("cannot replace " + file);
+        }
+        if (!temp.renameTo(file)) {
+            throw new IOException("cannot write " + file);
+        }
     }
 
     /** Downloads one server file on request (books in {@link Mode#ON_DEMAND}) and starts tracking it. */

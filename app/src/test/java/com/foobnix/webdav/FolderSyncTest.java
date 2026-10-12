@@ -300,4 +300,70 @@ public class FolderSyncTest {
         books.sync();
         assertEquals(java.util.Collections.singleton("a.pdf"), books.getLastRemote());
     }
+
+    private static java.util.Set<String> keys(org.json.JSONObject o) {
+        final java.util.Set<String> out = new java.util.HashSet<>();
+        for (java.util.Iterator<String> it = o.keys(); it.hasNext(); ) {
+            out.add(it.next());
+        }
+        return out;
+    }
+
+    private FolderSync merging() {
+        return new FolderSync(remote, local, "Librera", stateFile, FolderSync.Mode.MIRROR, null)
+                .withMerger(new FolderSync.Merger() {
+                    @Override
+                    public boolean handles(String relativePath) {
+                        return ProfileMerge.handles(relativePath);
+                    }
+
+                    @Override
+                    public String merge(String relativePath, String base, String l, String r) throws Exception {
+                        return ProfileMerge.merge(relativePath, base, l, r);
+                    }
+                });
+    }
+
+    @Test
+    public void listsChangedOnBothSidesAreMergedNotReplaced() throws Exception {
+        write("app-Bookmarks.json", "{\"1\":{\"t\":1},\"2\":{\"t\":2}}", 10_000);
+        merging().sync();
+        // here bookmark 2 is deleted; another device deletes 1 and adds 3
+        write("app-Bookmarks.json", "{\"1\":{\"t\":1}}", 20_000);
+        remote.put("Librera/app-Bookmarks.json", "{\"2\":{\"t\":2},\"3\":{\"t\":3}}");
+
+        FolderSync.Result result = merging().sync();
+
+        assertEquals(1, result.conflicts);
+        final org.json.JSONObject here = new org.json.JSONObject(read("app-Bookmarks.json"));
+        assertEquals(java.util.Collections.singleton("3"), keys(here));
+        assertEquals(here.toString(), new org.json.JSONObject(remote.get("Librera/app-Bookmarks.json")).toString());
+        // and settled: nothing more to do
+        result = merging().sync();
+        assertEquals(0, result.uploaded + result.downloaded);
+    }
+
+    @Test
+    public void twoDevicesListsOfTheSameSizeAreJoinedOnTheFirstSync() throws Exception {
+        write("app-Progress.json", "{\"a.pdf\":{\"t\":1}}", 10_000);
+        remote.put("Librera/app-Progress.json", "{\"b.pdf\":{\"t\":1}}");
+
+        merging().sync();
+
+        assertEquals(new java.util.HashSet<>(java.util.Arrays.asList("a.pdf", "b.pdf")),
+                keys(new org.json.JSONObject(read("app-Progress.json"))));
+    }
+
+    @Test
+    public void otherFilesStillGoToTheNewer() throws Exception {
+        write("ai/a.json", "OLD", 10_000);
+        merging().sync();
+        write("ai/a.json", "MINE", 20_000);
+        remote.put("Librera/ai/a.json", "THEIRS");
+        remote.files.get("Librera/ai/a.json").modified = 30_000_000;
+
+        merging().sync();
+
+        assertEquals("THEIRS", read("ai/a.json"));
+    }
 }
