@@ -50,8 +50,21 @@ import static com.foobnix.pdf.info.AppsConfig.CURRENT_BITMAP_ARGB;
 @GlideModule
 public class LibreraAppGlideModule extends AppGlideModule {
 
-    static Bitmap cache;
-    static String path;
+    /** The last page made, given again when the same page is asked for (skipMemoryCache does not reach it). */
+    static volatile Bitmap cache;
+    static volatile String path;
+    /** Bumped by {@link #forgetLastPage}: a page made before that is not kept. */
+    private static volatile int generation;
+
+    /**
+     * A page changed (an annotation added or removed): the last page made may show it as it was,
+     * so the next load of it is made again.
+     */
+    public static void forgetLastPage() {
+        generation++;
+        path = null;
+        cache = null;
+    }
 
     final static ModelLoader<String, Bitmap> modelLoader = new ModelLoader<String, Bitmap>() {
         @Nullable
@@ -70,8 +83,10 @@ public class LibreraAppGlideModule extends AppGlideModule {
                         if (isCanced) {
                             return;
                         }
-                        if (s.equals(path)) {
-                            callback.onDataReady(cache);
+                        final int made = generation;
+                        final Bitmap last = cache;
+                        if (last != null && s.equals(path)) {
+                            callback.onDataReady(last);
                             return;
                         }
                         LOG.d("LibreraAppGlideModule loadData", s);
@@ -99,8 +114,11 @@ public class LibreraAppGlideModule extends AppGlideModule {
                             LOG.d("Bitmap-test-1", bitmap, bitmap.getWidth(), bitmap.getHeight(), bitmap.getConfig());
                             callback.onDataReady(bitmap);
 
-                            path = s;
-                            cache = bitmap;
+                            // a page made while its annotations changed may already be old
+                            if (made == generation) {
+                                path = s;
+                                cache = bitmap;
+                            }
                         } else {
                             callback.onDataReady(BitmapFactory.decodeStream(stream));
                             stream.close();

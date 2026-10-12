@@ -111,6 +111,7 @@ import com.foobnix.pdf.search.view.VerticalViewPager;
 import com.foobnix.pageturn.CurlTurn;
 import com.foobnix.pageturn.PageTurn;
 import com.foobnix.sys.ClickUtils;
+import com.foobnix.sys.LibreraAppGlideModule;
 import com.foobnix.sys.TempHolder;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.tts.MessagePageNumber;
@@ -2052,8 +2053,13 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         return page.toPagePoints(inPage);
     }
 
-    /** A page got or lost an annotation: render it again (the memory cache still holds the old bitmap). */
+    /**
+     * A page got or lost an annotation: render it again. Glide's memory cache and the page loader's
+     * own last page (LibreraAppGlideModule) both still hold the old bitmap.
+     */
     private void redrawAnnotatedPage(int page) {
+        // any page: the loader's last page may be this one, shown again when it is turned to
+        LibreraAppGlideModule.forgetLastPage();
         if (dc == null || page != dc.getCurrentPage()) {
             return;
         }
