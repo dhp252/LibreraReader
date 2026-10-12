@@ -32,6 +32,19 @@ public final class ProfileMerge {
     private ProfileMerge() {
     }
 
+    /** For {@link FolderSync#withMerger}. */
+    public static final FolderSync.Merger MERGER = new FolderSync.Merger() {
+        @Override
+        public boolean handles(String relativePath) {
+            return ProfileMerge.handles(relativePath);
+        }
+
+        @Override
+        public String merge(String relativePath, String base, String local, String remote) throws Exception {
+            return ProfileMerge.merge(relativePath, base, local, remote);
+        }
+    };
+
     /** Whether the file (a path relative to the profile folder, or a name) is merged by item. */
     public static boolean handles(String path) {
         final String name = nameOf(path);

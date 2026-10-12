@@ -187,6 +187,9 @@ public class LibreraApp extends Application {
         WorkManager.getInstance(context).cancelUniqueWork(SEARCH_FRAGMENT_WORKER_NAME);
         WorkManager.getInstance(context).pruneWork();
 
+        // devices left open catch up with each other over WebDAV
+        com.foobnix.webdav.ForegroundSync.register(this);
+
 
 
     }

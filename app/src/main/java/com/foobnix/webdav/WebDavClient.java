@@ -324,6 +324,16 @@ public class WebDavClient implements FolderSync.Remote {
         }
     }
 
+    /** Deletes a folder and all it holds; a folder already gone is fine. */
+    public void deleteFolder(String path) throws IOException {
+        final Request request = new Request.Builder().url(url(path, true)).delete().build();
+        try (Response response = http.newCall(request).execute()) {
+            if (response.code() != 404) {
+                check(response, "DELETE " + path);
+            }
+        }
+    }
+
     HttpUrl url(String path, boolean folder) {
         final HttpUrl.Builder builder = root.newBuilder();
         // the root ends with an empty segment ("/"): replace it with the first real one

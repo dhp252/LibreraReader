@@ -616,6 +616,9 @@ public class ViewerActivityController extends ActionController<VerticalViewActiv
             try {
                 //Thread.sleep(3000);
                 m_fileName = Apps.getBookPathFromActivity(getActivity());
+                // where another device left this book: read again after the shared positions came
+                com.foobnix.webdav.WebDav.refreshPositions(getActivity().getApplicationContext());
+                SettingsManager.getBookSettings(m_fileName);
 
                 documentModel.open(m_fileName, m_password);
                 getDocumentController().init(this);

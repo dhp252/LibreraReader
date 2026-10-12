@@ -128,8 +128,16 @@ public class AppProfile {
         syncTestFolder = new File(SYNC_FOLDER_ROOT, "Test");
 
         SYNC_FOLDER_PROFILE = new File(SYNC_FOLDER_ROOT, PROFILE_PREFIX + getCurrent());
-        SYNC_FOLDER_DEVICE_PROFILE = new File(SYNC_FOLDER_PROFILE, DEVICE_MODEL);
+        // one folder for every device: the profile folder itself (.agents/planning/unified-sync-design.md)
+        try {
+            ProfileMigration.migrate(SYNC_FOLDER_PROFILE, DEVICE_MODEL);
+        } catch (Exception e) {
+            LOG.e(e);
+        }
+        SYNC_FOLDER_DEVICE_PROFILE = SYNC_FOLDER_PROFILE;
         SYNC_FOLDER_DEVICE_PROFILE.mkdirs();
+        final File deviceOnly = new File(SYNC_FOLDER_PROFILE, ProfileMigration.DEVICE_FOLDER);
+        deviceOnly.mkdirs();
 
         syncFavorite = new File(SYNC_FOLDER_DEVICE_PROFILE, APP_FAVORITE_JSON);
         syncExclude = new File(SYNC_FOLDER_DEVICE_PROFILE, APP_EXCLUDE_JSON);
@@ -141,8 +149,9 @@ public class AppProfile {
         syncProgress = new File(SYNC_FOLDER_DEVICE_PROFILE, APP_PROGRESS_JSON);
         syncRecent = new File(SYNC_FOLDER_DEVICE_PROFILE, APP_RECENT_JSON);
 
-        syncState = new File(SYNC_FOLDER_DEVICE_PROFILE, APP_STATE_JSON);
-        syncCSS = new File(SYNC_FOLDER_DEVICE_PROFILE, APP_CSS_JSON);
+        // this device's own: they hold its folders and brightness; the rest is shared via .shared
+        syncState = new File(deviceOnly, APP_STATE_JSON);
+        syncCSS = new File(deviceOnly, APP_CSS_JSON);
 
         final boolean isLoaded = AppState.get()
                                          .loadInit(c);
@@ -163,28 +172,19 @@ public class AppProfile {
 
     }
 
+    /**
+     * The profile file of that name. Upstream kept one per device and read them all; every device
+     * now shares the one in the profile folder, so the list holds one file at most.
+     */
     public static List<File> getAllFiles(String name) {
-
         List<File> list = new ArrayList<>();
         if (AppProfile.SYNC_FOLDER_PROFILE == null) {
             return list;
         }
-
-        final File[] files = AppProfile.SYNC_FOLDER_PROFILE.listFiles();
-        if (files == null) {
-            return list;
+        final File file = new File(SYNC_FOLDER_PROFILE, name);
+        if (file.isFile()) {
+            list.add(file);
         }
-        for (File f : files) {
-            if (f.isDirectory() && f.getName()
-                                    .startsWith(DEVICE_PREFIX)) {
-                File file = new File(f, name);
-                if (file.isFile()) {
-                    list.add(file);
-                    LOG.d("getAllFiles", file);
-                }
-            }
-        }
-
         return list;
     }
 
@@ -196,7 +196,11 @@ public class AppProfile {
                                                           .mutate();
         AppState s = new AppState();
         File syncState = new File(AppProfile.SYNC_FOLDER_ROOT,
-                PROFILE_PREFIX + profile + "/" + DEVICE_MODEL + "/" + APP_STATE_JSON);
+                PROFILE_PREFIX + profile + "/" + ProfileMigration.DEVICE_FOLDER + "/" + APP_STATE_JSON);
+        if (!syncState.isFile()) {
+            // a profile not opened since the folders were joined
+            syncState = new File(AppProfile.SYNC_FOLDER_ROOT, PROFILE_PREFIX + profile + "/" + DEVICE_MODEL + "/" + APP_STATE_JSON);
+        }
         IO.readObj(syncState, s);
         background.setColor(s.tintThemeColor);
         return background;
@@ -257,7 +261,7 @@ public class AppProfile {
 
     public static void ceateProfiles(Context c, String name) {
         name = name.replace(" ", "");
-        final File profileFolder = new File(SYNC_FOLDER_ROOT, PROFILE_PREFIX + name + "/" + DEVICE_MODEL);
+        final File profileFolder = new File(SYNC_FOLDER_ROOT, PROFILE_PREFIX + name + "/" + ProfileMigration.DEVICE_FOLDER);
         profileFolder.mkdirs();
 
         File state = new File(profileFolder, APP_STATE_JSON);

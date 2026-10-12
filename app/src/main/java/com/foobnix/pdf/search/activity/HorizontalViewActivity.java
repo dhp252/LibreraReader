@@ -1034,6 +1034,8 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             @Override
             protected Object doInBackground(Object... params) {
                 try {
+                    // where another device left this book, before the position is read
+                    com.foobnix.webdav.WebDav.refreshPositions(getApplicationContext());
                     LOG.d("doRotation(this)", AppState.get().orientation, HorizontalViewActivity.this.getRequestedOrientation());
                     try {
                         //Thread.sleep(3000);

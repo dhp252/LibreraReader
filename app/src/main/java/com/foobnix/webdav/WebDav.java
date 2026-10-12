@@ -10,8 +10,11 @@ import androidx.work.WorkManager;
 import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.model.AppProfile;
+import com.foobnix.model.ProfileMigration;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.work.WebDavSyncWorker;
+
+import org.ebookdroid.common.settings.books.SharedBooks;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +27,9 @@ import java.util.TreeSet;
  * WebDAV sync: settings and runs.
  * <p>
  * The server keeps the layout of the local sync folder (Librera/): every {@code profile.*} folder
- * (progress, bookmarks, recent, favorites, tags, playlists of each device) is mirrored both ways,
+ * (progress, bookmarks, recent, favorites, tags, playlists, AI data, one set for all devices) is
+ * mirrored both ways, its lists merged item by item when two devices changed them
+ * ({@link ProfileMerge}, .agents/planning/unified-sync-design.md),
  * {@code Books/} on demand (uploaded from here, downloaded when opened from the WebDAV tab), with
  * their covers in {@code Books/.covers/} (see {@link WebDavCovers}). Settings shared by every device
  * (app, book view, AI) are merged in {@code profile.*}/.shared/ (see {@link SharedSettings}).
@@ -169,8 +174,8 @@ public class WebDav {
         SharedSettings.sync(c, client, summary);
 
         for (String profile : profiles) {
-            summary.add(new FolderSync(client, new File(root, profile), profile, stateFile(c, profile, new File(root, profile)),
-                    FolderSync.Mode.MIRROR, null).sync(), profile);
+            deleteMigratedFolders(client, new File(root, profile), profile, summary);
+            summary.add(profileSync(c, client, profile, null).sync(), profile);
         }
         final FolderSync books = books(c, client);
         summary.add(books.sync(), BOOKS);
@@ -214,6 +219,64 @@ public class WebDav {
             return "!" + (e.code == 401 ? "401 wrong user or password" : e.getMessage());
         } catch (IOException e) {
             return "!" + e.getMessage();
+        }
+    }
+
+    private static FolderSync profileSync(Context c, WebDavClient client, String profile, FolderSync.Filter filter) {
+        final File local = new File(AppProfile.SYNC_FOLDER_ROOT, profile);
+        return new FolderSync(client, local, profile, stateFile(c, profile, local), FolderSync.Mode.MIRROR, filter)
+                .withMerger(ProfileMerge.MERGER);
+    }
+
+    /**
+     * The old per-device folders this device merged into the profile folder
+     * ({@link ProfileMigration}): gone from the server too, so no device brings them back.
+     */
+    private static void deleteMigratedFolders(WebDavClient client, File local, String profile, Summary summary) {
+        try {
+            for (String name : ProfileMigration.pendingOnServer(local)) {
+                client.deleteFolder(profile + "/" + name);
+                ProfileMigration.deletedOnServer(local, name);
+                summary.deletedRemote++;
+            }
+        } catch (IOException e) {
+            summary.errors.append(profile).append(": ").append(e.getMessage()).append('\n');
+        }
+    }
+
+    /** How long a book waits for its position from the server before it opens anyway. */
+    private static final long OPEN_WAIT_MS = 3000;
+
+    /**
+     * Before a book opens: the shared reading positions alone are synced, so the book opens where
+     * another device left it. Waits {@link #OPEN_WAIT_MS} at most; offline, Wi-Fi only without
+     * Wi-Fi, or WebDAV off, it returns at once. Call from a background thread.
+     */
+    public static void refreshPositions(final Context c) {
+        if (!isEnabled(c) || AppProfile.SYNC_FOLDER_ROOT == null
+                || (BookCSS.get().isSyncWifiOnly && !Apps.isWifiEnabled(c))) {
+            return;
+        }
+        final String profile = AppProfile.PROFILE_PREFIX + AppProfile.getCurrent();
+        final Thread thread = new Thread(() -> {
+            // one sync of a profile at a time: they share its state file
+            synchronized (WebDav.class) {
+                try {
+                    final FolderSync.Result r = profileSync(c, client(c), profile,
+                            path -> AppProfile.APP_PROGRESS_JSON.equals(path)).sync();
+                    if (r.changedLocal()) {
+                        SharedBooks.preloadAll(true);
+                    }
+                } catch (Exception e) {
+                    LOG.d("WebDav positions", e.getMessage());
+                }
+            }
+        }, "@T webdav positions");
+        thread.start();
+        try {
+            thread.join(OPEN_WAIT_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

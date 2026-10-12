@@ -7,6 +7,7 @@ import com.foobnix.android.utils.TxtUtils;
 import com.foobnix.dao2.FileMeta;
 import com.foobnix.model.AppBook;
 import com.foobnix.model.AppProfile;
+import com.foobnix.model.ProfileMigration;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.ui2.AppDB;
 
@@ -105,6 +106,66 @@ public class SharedBooks {
     private static final Map<String, Long> lastRead = new ConcurrentHashMap<>();
 
     /**
+     * How this device shows each book (zoom, offsets, page lock, double pages, scroll speed): its
+     * own, in the hidden device folder, laid over the record every device shares, which carries
+     * the position (.agents/planning/unified-sync-design.md, D7).
+     */
+    static final String VIEW_JSON = "app-Progress-view.json";
+    private static final String[] VIEW_FIELDS = {"z", "sp", "dp", "dc", "lk", "x", "y", "s", "d"};
+    private static LinkedJSONObject views;
+    private static File viewsFile;
+
+    private static synchronized LinkedJSONObject views() {
+        final File file = new File(new File(AppProfile.SYNC_FOLDER_PROFILE, ProfileMigration.DEVICE_FOLDER), VIEW_JSON);
+        if (views == null || !file.equals(viewsFile)) {
+            views = IO.readJsonObject(file);
+            viewsFile = file;
+        }
+        return views;
+    }
+
+    private static void applyView(String key, AppBook book) {
+        if (book == null || AppProfile.SYNC_FOLDER_PROFILE == null) {
+            return;
+        }
+        try {
+            final LinkedJSONObject all = views();
+            if (!all.has(key)) {
+                return;
+            }
+            final LinkedJSONObject view = all.getJSONObject(key);
+            final LinkedJSONObject shared = Objects.toJSONObject(book);
+            for (String field : VIEW_FIELDS) {
+                if (view.has(field)) {
+                    shared.put(field, view.get(field));
+                }
+            }
+            Objects.loadFromJson(book, shared);
+        } catch (Exception e) {
+            LOG.e(e);
+        }
+    }
+
+    private static synchronized void keepView(String key, LinkedJSONObject record) {
+        if (AppProfile.SYNC_FOLDER_PROFILE == null) {
+            return;
+        }
+        try {
+            final LinkedJSONObject view = new LinkedJSONObject();
+            for (String field : VIEW_FIELDS) {
+                if (record.has(field)) {
+                    view.put(field, record.get(field));
+                }
+            }
+            final LinkedJSONObject all = views();
+            all.put(key, view);
+            IO.writeObjSync(viewsFile, all);
+        } catch (Exception e) {
+            LOG.e(e);
+        }
+    }
+
+    /**
      * Reads every device's progress file once and merges them into the cache.
      *
      * {@link #load(String)} opens and parses all of them for a single book, so refreshing a
@@ -166,6 +227,7 @@ public class SharedBooks {
             if (held != null && held.t > merged.t) {
                 continue;
             }
+            applyView(entry.getKey(), merged);
             cache.put(entry.getKey(), merged);
         }
         LOG.d("SharedBooks-preloadAll", cache.size());
@@ -281,11 +343,13 @@ public class SharedBooks {
             original.pt = res.pt;
             original.t = Math.max(res.t, original.t);
             LOG.d("SharedBooks-load1 original", fileName, res.p);
+            applyView(key, original);
             cache.put(key, original);
             return original;
         }
 
         LOG.d("SharedBooks-load1 general", fileName, res.p);
+        applyView(key, res);
         cache.put(key, res);
         return res;
 
@@ -344,6 +408,7 @@ public class SharedBooks {
             final LinkedJSONObject value = Objects.toJSONObject(bs);
             obj.put(fileName, value);
             cache.put(fileName, bs);
+            keepView(fileName, value);
 
             LOG.d("SharedBooks-Save", value);
 

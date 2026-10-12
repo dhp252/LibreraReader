@@ -226,8 +226,9 @@ public class AiStore {
     private final String device;
 
     /**
-     * @param profile the profile folder holding a folder per device
-     * @param device  the name of this device's folder in it
+     * @param profile the profile folder
+     * @param device  the folder in it this device writes to; empty for the profile folder itself,
+     *                which every device shares now (.agents/planning/unified-sync-design.md)
      */
     AiStore(File profile, String device) {
         this.profile = profile;
@@ -236,7 +237,11 @@ public class AiStore {
 
     /** The store of the current profile. */
     public static AiStore get() {
-        return new AiStore(AppProfile.SYNC_FOLDER_PROFILE, AppProfile.DEVICE_MODEL);
+        return new AiStore(AppProfile.SYNC_FOLDER_PROFILE, "");
+    }
+
+    private File ownFolder() {
+        return device.isEmpty() ? new File(profile, FOLDER) : new File(new File(profile, device), FOLDER);
     }
 
     /** The data of a book: the newest copy of any device, or empty. */
@@ -246,11 +251,15 @@ public class AiStore {
             final File[] devices = profile == null ? null : profile.listFiles();
             if (devices != null) {
                 final String name = fileName(bookName);
+                final List<File> folders = new ArrayList<>();
+                folders.add(ownFolder());
                 for (File folder : devices) {
-                    if (!folder.isDirectory() || !folder.getName().startsWith(AppProfile.DEVICE_PREFIX)) {
-                        continue;
+                    if (folder.isDirectory() && folder.getName().startsWith(AppProfile.DEVICE_PREFIX)) {
+                        folders.add(new File(folder, FOLDER));
                     }
-                    final File file = new File(new File(folder, FOLDER), name);
+                }
+                for (File folder : folders) {
+                    final File file = new File(folder, name);
                     if (!file.isFile()) {
                         continue;
                     }
@@ -275,7 +284,7 @@ public class AiStore {
             change.apply(book);
             // newer than what it started from, even when another device's clock runs ahead
             book.updated = Math.max(System.currentTimeMillis(), book.updated + 1);
-            final File folder = new File(new File(profile, device), FOLDER);
+            final File folder = ownFolder();
             if (!folder.isDirectory() && !folder.mkdirs()) {
                 throw new IOException("cannot create " + folder);
             }

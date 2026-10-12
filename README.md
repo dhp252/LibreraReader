@@ -223,6 +223,11 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   PDF reader, check the marks are there.
 - **WebDAV**: Preferences > WebDAV sync. Enter the server and Test it. Read a few pages, sync,
   then open the same book on a second device and check that it continues there.
+- **One folder for all devices**: update both devices, open the app on each, sync. The server's
+  `profile.<name>/` has the files directly, no `device.*` folder. Read a book on one device, leave
+  it, open it on the other: it opens at that page without a manual sync. Delete a bookmark or a
+  favorite on one, sync both: it stays deleted. Tag a book on one: it is tagged on the other.
+  Zoom differently on each: each keeps its own zoom.
 - **WebDAV tab**: once WebDAV sync is on, a WebDAV tab appears in the tab bar. It shows the server's Books folder in the Folders tab's grid or list. After a
   sync on the device that has the books, the other device shows their covers, with a cloud mark
   on books that aren't downloaded. Open one: it downloads, opens, and then shows as a local book.
