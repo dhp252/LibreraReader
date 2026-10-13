@@ -7,13 +7,16 @@ import android.os.Handler;
 import android.os.Looper;
 
 /**
- * A quiet WebDAV sync every {@link #EVERY_MS} while a screen of the app is shown, so devices
- * left open catch up with each other (.agents/planning/unified-sync-design.md, D10). Nothing runs
- * while the app is in the background.
+ * WebDAV sync tied to the app being on screen: everything when it comes back
+ * ({@link SyncEvents#appForeground}), what waited when it leaves, a look at the server's change
+ * marker every {@link #POLL_MS} (.agents/planning/event-sync-design.md) and a quiet full sync
+ * every {@link #EVERY_MS} as a safety net (.agents/planning/unified-sync-design.md, D10). Nothing
+ * runs while the app is in the background.
  */
 public final class ForegroundSync implements Application.ActivityLifecycleCallbacks {
 
     static final long EVERY_MS = 15 * 60 * 1000L;
+    static final long POLL_MS = 60 * 1000L;
 
     private final Application app;
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -24,6 +27,14 @@ public final class ForegroundSync implements Application.ActivityLifecycleCallba
         public void run() {
             WebDav.runSyncService(app, false);
             handler.postDelayed(this, EVERY_MS);
+        }
+    };
+
+    private final Runnable poll = new Runnable() {
+        @Override
+        public void run() {
+            SyncEvents.poll();
+            handler.postDelayed(this, POLL_MS);
         }
     };
 
@@ -38,8 +49,10 @@ public final class ForegroundSync implements Application.ActivityLifecycleCallba
     @Override
     public void onActivityStarted(Activity activity) {
         if (started++ == 0) {
-            // opening the app already syncs: the first quiet one comes a period later
+            SyncEvents.appForeground();
+            // coming back already syncs: the first quiet one comes a period later
             handler.postDelayed(tick, EVERY_MS);
+            handler.postDelayed(poll, POLL_MS);
         }
     }
 
@@ -47,6 +60,8 @@ public final class ForegroundSync implements Application.ActivityLifecycleCallba
     public void onActivityStopped(Activity activity) {
         if (started > 0 && --started == 0) {
             handler.removeCallbacks(tick);
+            handler.removeCallbacks(poll);
+            SyncEvents.appBackground();
         }
     }
 
@@ -60,6 +75,7 @@ public final class ForegroundSync implements Application.ActivityLifecycleCallba
 
     @Override
     public void onActivityPaused(Activity activity) {
+        BookSync.hidden(activity);
     }
 
     @Override

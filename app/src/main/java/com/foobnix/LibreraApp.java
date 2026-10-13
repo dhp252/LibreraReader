@@ -188,6 +188,7 @@ public class LibreraApp extends Application {
         WorkManager.getInstance(context).pruneWork();
 
         // devices left open catch up with each other over WebDAV
+        com.foobnix.webdav.SyncEvents.init(this);
         com.foobnix.webdav.ForegroundSync.register(this);
 
 

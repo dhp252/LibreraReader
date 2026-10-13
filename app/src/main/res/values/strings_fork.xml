@@ -119,4 +119,8 @@
     <string name="stylus_pen">Pen</string>
     <string name="stylus_highlighter">Highlighter</string>
     <string name="stylus_no_text">No text under the highlighter</string>
+    <string name="sync_moved_to">Moved to p. %1$d (%2$s)</string>
+    <string name="sync_is_at">%2$s is at p. %1$d</string>
+    <string name="sync_other_device">other device</string>
+    <string name="sync_undo">Undo</string>
 </resources>

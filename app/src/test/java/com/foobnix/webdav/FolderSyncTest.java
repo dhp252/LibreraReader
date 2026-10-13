@@ -78,8 +78,27 @@ public class FolderSyncTest {
             }
         }
 
+        /** Runs before the next upload: another device writing in between. */
+        Runnable beforeUpload;
+        /** A server that refuses every condition, even a matching one. */
+        boolean refusesConditions;
+        int refused;
+
         @Override
-        public void upload(File source, String path) throws IOException {
+        public void upload(File source, String path, String ifMatch) throws IOException {
+            if (beforeUpload != null) {
+                final Runnable other = beforeUpload;
+                beforeUpload = null;
+                other.run();
+            }
+            if (ifMatch != null) {
+                final Item item = files.get(path);
+                final boolean ok = NO_FILE.equals(ifMatch) ? item == null : item != null && item.etag.equals(ifMatch);
+                if (!ok || refusesConditions) {
+                    refused++;
+                    throw new WebDavClient.WebDavException(WebDavClient.PRECONDITION_FAILED, "PUT " + path);
+                }
+            }
             put(path, new String(Files.readAllBytes(source.toPath()), StandardCharsets.UTF_8));
         }
 
@@ -365,5 +384,115 @@ public class FolderSyncTest {
         merging().sync();
 
         assertEquals("THEIRS", read("ai/a.json"));
+    }
+
+    @Test
+    public void dirtyPathsAreTheFilesChangedHereSinceTheLastSync() throws IOException {
+        write("a.json", "{a}", 10_000);
+        write("b.json", "{b}", 10_000);
+        sync(FolderSync.Mode.MIRROR).sync();
+        assertTrue(sync(FolderSync.Mode.MIRROR).dirtyPaths().isEmpty());
+
+        write("a.json", "{a2}", 20_000);
+        write("c.json", "{c}", 20_000);
+        remote.put("Librera/b.json", "{b remote}");
+
+        assertEquals(new java.util.TreeSet<>(java.util.Arrays.asList("a.json", "c.json")),
+                sync(FolderSync.Mode.MIRROR).dirtyPaths());
+    }
+
+    @Test
+    public void syncPathsTouchesOnlyTheGivenFiles() throws IOException {
+        write("a.json", "{a}", 10_000);
+        write("b.json", "{b}", 10_000);
+        sync(FolderSync.Mode.MIRROR).sync();
+        write("a.json", "{a2}", 20_000);
+        write("b.json", "{b2}", 20_000);
+        remote.put("Librera/c.json", "{c}");
+
+        FolderSync.Result result = sync(FolderSync.Mode.MIRROR).syncPaths(java.util.Collections.singleton("a.json"));
+
+        assertEquals(1, result.uploaded);
+        assertEquals("{a2}", remote.get("Librera/a.json"));
+        assertEquals("{b}", remote.get("Librera/b.json"));
+        assertFalse(new File(local, "c.json").exists());
+        // and the full sync after it sends only what is left
+        assertEquals(1, sync(FolderSync.Mode.MIRROR).sync().uploaded);
+    }
+
+    @Test
+    public void syncPathsPullsAServerChange() throws IOException {
+        write("app-Progress.json", "{p:1}", 10_000);
+        sync(FolderSync.Mode.MIRROR).sync();
+        remote.put("Librera/app-Progress.json", "{p:2}");
+
+        FolderSync.Result result = sync(FolderSync.Mode.MIRROR).syncPaths(java.util.Arrays.asList("app-Progress.json", "ai/x.json"));
+
+        assertEquals(1, result.downloaded);
+        assertEquals(java.util.Collections.singleton("app-Progress.json"), result.changedHere);
+        assertEquals("{p:2}", read("app-Progress.json"));
+        assertTrue(result.errors.isEmpty());
+    }
+
+    @Test
+    public void syncPathsNeverDeletes() throws IOException {
+        write("a.json", "{a}", 10_000);
+        write("b.json", "{b}", 10_000);
+        sync(FolderSync.Mode.MIRROR).sync();
+        remote.delete("Librera/a.json");
+        assertTrue(new File(local, "b.json").delete());
+
+        FolderSync.Result result = sync(FolderSync.Mode.MIRROR).syncPaths(java.util.Arrays.asList("a.json", "b.json"));
+
+        assertEquals(0, result.deletedLocal + result.deletedRemote + result.uploaded + result.downloaded);
+        assertTrue(new File(local, "a.json").exists());
+        assertEquals("{b}", remote.get("Librera/b.json"));
+        // the full sync still carries both deletions
+        result = sync(FolderSync.Mode.MIRROR).sync();
+        assertEquals(1, result.deletedLocal);
+        assertEquals(1, result.deletedRemote);
+    }
+
+    @Test
+    public void uploadsAreConditional() throws IOException {
+        write("a.json", "{a}", 10_000);
+        sync(FolderSync.Mode.MIRROR).sync();
+        assertEquals(0, remote.refused);
+        final String etag = remote.files.get("Librera/a.json").etag;
+        assertEquals(etag, FolderSync.ifMatch(remote.stat("Librera/a.json")));
+        assertEquals(FolderSync.Remote.NO_FILE, FolderSync.ifMatch(null));
+        assertEquals(null, FolderSync.ifMatch(new WebDavClient.Entry("a", false, 1, 1, "W/\"weak\"")));
+        assertEquals(null, FolderSync.ifMatch(new WebDavClient.Entry("a", false, 1, 1, null)));
+    }
+
+    @Test
+    public void aListWrittenByAnotherDeviceMeanwhileIsMergedNotOverwritten() throws Exception {
+        write("app-Bookmarks.json", "{\"1\":{\"t\":1}}", 10_000);
+        merging().sync();
+        write("app-Bookmarks.json", "{\"1\":{\"t\":1},\"2\":{\"t\":2}}", 20_000);
+        // between this device's look at the server and its upload, the other device adds 3
+        remote.beforeUpload = () -> remote.put("Librera/app-Bookmarks.json", "{\"1\":{\"t\":1},\"3\":{\"t\":3}}");
+
+        FolderSync.Result result = merging().syncPaths(java.util.Collections.singleton("app-Bookmarks.json"));
+
+        assertEquals(1, remote.refused);
+        assertTrue(result.errors.toString(), result.errors.isEmpty());
+        assertEquals(new java.util.HashSet<>(java.util.Arrays.asList("1", "2", "3")),
+                keys(new org.json.JSONObject(remote.get("Librera/app-Bookmarks.json"))));
+        assertEquals(new java.util.HashSet<>(java.util.Arrays.asList("1", "2", "3")),
+                keys(new org.json.JSONObject(read("app-Bookmarks.json"))));
+    }
+
+    @Test
+    public void aServerRefusingItsOwnTagsStillGetsTheUpload() throws IOException {
+        write("a.json", "{a}", 10_000);
+        sync(FolderSync.Mode.MIRROR).sync();
+        remote.refusesConditions = true;
+        write("a.json", "{a2}", 20_000);
+
+        FolderSync.Result result = sync(FolderSync.Mode.MIRROR).syncPaths(java.util.Collections.singleton("a.json"));
+
+        assertTrue(result.errors.toString(), result.errors.isEmpty());
+        assertEquals("{a2}", remote.get("Librera/a.json"));
     }
 }

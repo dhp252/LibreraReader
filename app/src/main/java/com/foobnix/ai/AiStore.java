@@ -301,8 +301,15 @@ public class AiStore {
             if (!temp.renameTo(file)) {
                 throw new IOException("cannot write " + file);
             }
+            // another device shows it as soon as it asks
+            com.foobnix.webdav.SyncEvents.aiSaved();
             return book;
         }
+    }
+
+    /** Where the data of a book is kept, relative to the profile folder (what syncing the book takes). */
+    public static String profilePath(String bookName) {
+        return FOLDER + "/" + fileName(bookName);
     }
 
     /** File name for a book: its own name made safe for any file system, long names shortened. */

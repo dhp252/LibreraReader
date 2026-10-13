@@ -837,6 +837,8 @@ public abstract class DocumentController {
                         onGoToPage(page);
                     }
                 }
+                // back on screen: what another device did with the book meanwhile
+                com.foobnix.webdav.BookSync.shown(this);
             }
         } catch (Exception e) {
             LOG.e(e);

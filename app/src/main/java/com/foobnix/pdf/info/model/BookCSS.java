@@ -300,6 +300,7 @@ public class BookCSS {
             LOG.d("Objects-save", "SAVE BookCSS");
             hashCode = currentHash;
             IO.writeObj(AppProfile.syncCSS, instance);
+            com.foobnix.webdav.SyncEvents.settingsChanged();
         }
     }
 

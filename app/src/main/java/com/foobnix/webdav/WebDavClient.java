@@ -98,6 +98,9 @@ public class WebDavClient implements FolderSync.Remote {
         }
     }
 
+    /** The server copy changed since its ETag was read (a conditional upload refused). */
+    public static final int PRECONDITION_FAILED = 412;
+
     private final OkHttpClient http;
     private final HttpUrl root;
     /** Folders known to exist (listed or created), so uploads do not repeat MKCOL for each file. */
@@ -256,15 +259,29 @@ public class WebDavClient implements FolderSync.Remote {
 
     /** Uploads a file, creating the missing parent folders. */
     public void upload(File source, String path) throws IOException {
+        upload(source, path, null);
+    }
+
+    /**
+     * Uploads a file only if the server copy is still the one this device saw (RFC 7232):
+     * {@code If-Match} with its ETag, or {@code If-None-Match: *} for {@link FolderSync.Remote#NO_FILE}.
+     * A copy changed in between is a {@link WebDavException} with code {@link #PRECONDITION_FAILED}.
+     */
+    @Override
+    public void upload(File source, String path, String ifMatch) throws IOException {
         final String parent = parentOf(path);
         if (!parent.isEmpty()) {
             mkdirs(parent);
         }
-        final Request request = new Request.Builder()
+        final Request.Builder request = new Request.Builder()
                 .url(url(path, false))
-                .put(RequestBody.create(BINARY, source))
-                .build();
-        try (Response response = http.newCall(request).execute()) {
+                .put(RequestBody.create(BINARY, source));
+        if (FolderSync.Remote.NO_FILE.equals(ifMatch)) {
+            request.header("If-None-Match", "*");
+        } else if (ifMatch != null) {
+            request.header("If-Match", ifMatch);
+        }
+        try (Response response = http.newCall(request.build()).execute()) {
             check(response, "PUT " + path);
         }
     }

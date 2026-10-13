@@ -2019,6 +2019,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         }
         ai.setOnClickListener(v -> AiMenu.show(this, v, dc));
         AiHighlights.get().open(this, dc.getCurrentBook().getPath());
+        com.foobnix.webdav.BookSync.shown(dc);
     }
 
     /** How far the page shown sits from the DrawView: add to a DrawView point for the page view's. */

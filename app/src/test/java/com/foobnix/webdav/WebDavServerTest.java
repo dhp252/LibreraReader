@@ -101,6 +101,33 @@ public class WebDavServerTest {
     }
 
     @Test
+    public void conditionalUploadsAreRefusedOnceAnotherDeviceWrote() throws IOException {
+        final File mine = write(tmp.getRoot(), "mine.json", "{mine}", 1_000_000);
+        final File theirs = write(tmp.getRoot(), "theirs.json", "{theirs, longer}", 1_000_000);
+
+        client.upload(mine, "a.json", FolderSync.Remote.NO_FILE);
+        try {
+            client.upload(mine, "a.json", FolderSync.Remote.NO_FILE);
+            fail("a.json exists already");
+        } catch (WebDavClient.WebDavException e) {
+            assertEquals(WebDavClient.PRECONDITION_FAILED, e.code);
+        }
+        final WebDavClient.Entry seen = client.stat("a.json");
+        assertNotNull(seen.etag);
+
+        client.upload(theirs, "a.json", seen.etag);
+        try {
+            client.upload(mine, "a.json", seen.etag);
+            fail("the copy seen was replaced");
+        } catch (WebDavClient.WebDavException e) {
+            assertEquals(WebDavClient.PRECONDITION_FAILED, e.code);
+        }
+        final File back = new File(tmp.getRoot(), "back.json");
+        client.download("a.json", back);
+        assertEquals("{theirs, longer}", read(back));
+    }
+
+    @Test
     public void missingRootFolderIsCreated() throws IOException {
         final WebDavClient fresh = new WebDavClient(url + "/" + folder + "/Librera", user, password);
         try {

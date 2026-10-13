@@ -355,6 +355,11 @@ public class SharedBooks {
 
     }
 
+    /** The record of a book as the progress file has it now, past the cache (what a sync brought). */
+    public static AppBook loadFromFile(String fileName) {
+        return load(IO.readJsonObject(AppProfile.syncProgress), fileName);
+    }
+
     private static AppBook load(LinkedJSONObject obj, String fileName) {
         AppBook bs = new AppBook(fileName);
         try {
@@ -422,6 +427,7 @@ public class SharedBooks {
             } else {
                 IO.writeObjSync(AppProfile.syncProgress, obj);
             }
+            com.foobnix.webdav.SyncEvents.readingChanged();
         } catch (Exception e) {
             LOG.e(e);
         }

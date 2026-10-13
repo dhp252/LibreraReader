@@ -48,6 +48,7 @@ public class WebDavSyncWorker extends MessageWorker {
                 TagData.restoreTags();
                 TempHolder.get().listHash++;
                 EventBus.getDefault().post(new UpdateAllFragments());
+                com.foobnix.webdav.SyncEvents.fullSynced();
             }
         } catch (Exception e) {
             LOG.e(e);

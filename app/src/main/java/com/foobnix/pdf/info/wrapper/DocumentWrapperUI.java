@@ -2282,6 +2282,7 @@ public class DocumentWrapperUI {
         onCloseBook.setVisibility(View.VISIBLE);
         if (dc != null && dc.getCurrentBook() != null) {
             AiHighlights.get().open(a, dc.getCurrentBook().getPath());
+            com.foobnix.webdav.BookSync.shown(dc);
         }
     }
 

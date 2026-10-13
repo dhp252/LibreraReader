@@ -791,6 +791,7 @@ public class AppState {
         if (currentHash != instance.hashCode) {
             hashCode = currentHash;
             IO.writeObj(AppProfile.syncState, instance);
+            com.foobnix.webdav.SyncEvents.settingsChanged();
         }
     }
 }

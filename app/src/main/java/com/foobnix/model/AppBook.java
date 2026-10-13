@@ -33,6 +33,10 @@ public class AppBook implements CurrentPageListener {
     public String pt; //page text at p, restores the position after re-layout (font size change, other device)
     public long t;//time
     public String ln;
+    public String dv; //the device that last moved the position, named when another device follows it
+
+    /** The page reached by following another device: still that device's read (event-sync E9). */
+    private transient int followedPage;
 
     public boolean rtl = Urls.isRtl();
 
@@ -92,7 +96,11 @@ public class AppBook implements CurrentPageListener {
         }
         this.p = percent;
         LOG.d("currentPageChanged", page, pages, p);
-        t = System.currentTimeMillis();
+        if (page != followedPage) {
+            followedPage = 0;
+            t = System.currentTimeMillis();
+            dv = android.os.Build.MODEL;
+        }
         if (page == pages) {
             LOG.d("currentPageChanged listHash", page, pages, p);
             TempHolder.listHash++;
@@ -100,6 +108,18 @@ public class AppBook implements CurrentPageListener {
 
     }
 
+
+    /**
+     * Takes another device's newer read of this book, shown at {@code page}: that page keeps the
+     * read's time, so it does not go back to the other device as a newer read of this one.
+     */
+    public void follow(AppBook other, int page) {
+        p = other.p;
+        pt = other.pt;
+        t = other.t;
+        dv = other.dv;
+        followedPage = page;
+    }
 
     public PageIndex getCurrentPage(int pages) {
         if (pages <= 0) {

@@ -42,6 +42,7 @@ public class BookmarksData {
             LinkedJSONObject obj = IO.readJsonObject(AppProfile.syncBookmarks);
             obj.put("" + bookmark.t, Objects.toJSONObject(bookmark));
             IO.writeObjSync(AppProfile.syncBookmarks, obj);
+            com.foobnix.webdav.SyncEvents.readingChanged();
         } catch (Exception e) {
             LOG.e(e);
         }
@@ -57,6 +58,7 @@ public class BookmarksData {
                 obj.remove("" + bookmark.t);
             }
             IO.writeObjSync(bookmark.file, obj);
+            com.foobnix.webdav.SyncEvents.readingChanged();
         } catch (Exception e) {
             LOG.e(e);
         }
