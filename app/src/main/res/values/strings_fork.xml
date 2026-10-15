@@ -124,10 +124,7 @@
     <string name="sync_other_device">other device</string>
     <string name="sync_undo">Undo</string>
 
-    <string name="stats_title">Reading stats</string>
-    <string name="stats_section_info">Reading time, speed, habits and books, from what you read on every device that syncs with WebDAV.</string>
-    <string name="stats_open">Open reading stats</string>
-    <string name="stats_today_status">Today %1$s · streak %2$d days</string>
+    <string name="stats_tab">Statistics</string>
     <string name="stats_day">Day</string>
     <string name="stats_week">Week</string>
     <string name="stats_month">Month</string>

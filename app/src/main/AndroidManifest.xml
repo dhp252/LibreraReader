@@ -255,11 +255,6 @@
             android:windowSoftInputMode="adjustPan" />
 
         <activity
-            android:name="com.foobnix.stats.ReadingStatsActivity"
-            android:configChanges="orientation|screenSize|keyboard|keyboardHidden"
-            android:exported="false" />
-
-        <activity
             android:name="com.foobnix.librerax.LibreraXActivity"
             android:configChanges="orientation|screenSize|keyboard|keyboardHidden"
             android:exported="false"

@@ -4,6 +4,7 @@ import com.foobnix.LibreraApp;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.AppsConfig;
+import com.foobnix.stats.StatsFragment2;
 import com.foobnix.ui2.fragment.BookmarksFragment2;
 import com.foobnix.ui2.fragment.BrowseFragment2;
 import com.foobnix.ui2.fragment.FavoritesFragment2;
@@ -30,7 +31,8 @@ public enum UITab {
     PrefFragment(6, PrefFragment2.PAIR.first, PrefFragment2.PAIR.second, PrefFragment2.class, true), //
     //CloudsFragment(7, CloudsFragment2.PAIR.first, CloudsFragment2.PAIR.second, CloudsFragment2.class, true), //
     GoogleDrive2Fragment(7, GoogleDriveFragment2.PAIR.first, GoogleDriveFragment2.PAIR.second, GoogleDriveFragment2.class, true), //
-    WebDavFragment(8, WebDavFragment2.PAIR.first, WebDavFragment2.PAIR.second, WebDavFragment2.class, true); //
+    WebDavFragment(8, WebDavFragment2.PAIR.first, WebDavFragment2.PAIR.second, WebDavFragment2.class, true), //
+    StatsFragment(9, StatsFragment2.PAIR.first, StatsFragment2.PAIR.second, StatsFragment2.class, true); //
 
     public int index;
     private int name;
@@ -84,7 +86,7 @@ public enum UITab {
                 byIndex.setVisible(isVisible);
                 list.add(byIndex);
             }
-            // tabs added since the order was saved (the WebDAV tab) come last, hidden
+            // tabs added since the order was saved (WebDAV, Statistics) come last, hidden
             for (UITab tab : values()) {
                 if (!list.contains(tab)) {
                     tab.setVisible(false);

@@ -3,21 +3,23 @@ package com.foobnix.stats;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import androidx.core.util.Pair;
 
 import com.foobnix.android.utils.Dips;
 import com.foobnix.dao2.FileMeta;
@@ -26,22 +28,26 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
+import com.foobnix.pdf.info.wrapper.UITab;
 import com.foobnix.ui2.AppDB;
+import com.foobnix.ui2.fragment.UIFragment;
 import com.foobnix.webdav.SyncEvents;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * The Reading Stats screen (F-007): a period (day ... all), the devices, and four tabs:
- * overview, habits, books, library. Built in code from {@link StatsReport}; the summaries are
- * read from the logs in the background ({@link StatsLog#refresh}).
+ * The Statistics tab (F-007), a main-screen tab like Recent or Bookmarks. The head holds the
+ * period (day ... all), the device and a menu (daily goal, clear); the scroll below holds the
+ * sections Overview, Habits, Books and Library. Built in code from {@link StatsReport}; the
+ * summaries are read from the logs in the background ({@link StatsLog#refresh}).
  */
-public class ReadingStatsActivity extends Activity {
+public class StatsFragment2 extends UIFragment<Object> {
+
+    public static final Pair<Integer, Integer> PAIR = new Pair<>(R.string.stats_tab, R.drawable.glyphicons_stats_bars);
 
     private static final int OVERVIEW = 0;
     private static final int HABITS = 1;
@@ -52,183 +58,131 @@ public class ReadingStatsActivity extends Activity {
     private static final int BY_PAGES = 2;
 
     private StatsReport.Period period = StatsReport.Period.WEEK;
-    private int tab = OVERVIEW;
+    private int section = OVERVIEW;
     private int barsBy = BY_MINUTES;
     /** null: every device. */
     private String device;
 
-    private LinearLayout periods;
-    private LinearLayout tabs;
-    private TextView devices;
+    private View topPanel;
+    private TextView periodView;
+    private TextView deviceView;
+    private ScrollView scroll;
     private LinearLayout content;
+    private Context c;
     private int accent;
     private int textSecondary;
     private boolean loaded;
     private List<StatsReport.LibBook> library;
 
-    public static void open(Context c) {
-        c.startActivity(new Intent(c, ReadingStatsActivity.class));
+    @Override
+    public Pair<Integer, Integer> getNameAndIconRes() {
+        return PAIR;
+    }
+
+    /**
+     * Shows the tab once on a device that had a tab order saved before the tab existed (those
+     * get new tabs hidden); hidden by the reader afterwards, it stays hidden.
+     */
+    public static void showTabOnce(Context context) {
+        final SharedPreferences sp = context.getSharedPreferences("stats", Context.MODE_PRIVATE);
+        if (!sp.getBoolean("tabShown", false)) {
+            UITab.show(UITab.StatsFragment);
+            sp.edit().putBoolean("tabShown", true).apply();
+        }
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        if (AppState.get().appTheme == AppState.THEME_LIGHT || AppState.get().appTheme == AppState.THEME_INK) {
-            setTheme(R.style.StyledIndicatorsWhite);
-        } else {
-            setTheme(R.style.StyledIndicatorsBlack);
-        }
-        super.onCreate(savedInstanceState);
-        accent = TintUtil.color;
-        final android.content.res.TypedArray a = getTheme().obtainStyledAttributes(new int[]{android.R.attr.textColorSecondary});
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        final View view = inflater.inflate(R.layout.fragment_stats2, container, false);
+        c = getActivity();
+        topPanel = view.findViewById(R.id.topPanel);
+        periodView = view.findViewById(R.id.statsPeriod);
+        deviceView = view.findViewById(R.id.statsDevice);
+        scroll = view.findViewById(R.id.scroll);
+        content = view.findViewById(R.id.statsContent);
+        final android.content.res.TypedArray a = c.getTheme().obtainStyledAttributes(new int[]{android.R.attr.textColorSecondary});
         textSecondary = a.getColor(0, Color.GRAY);
         a.recycle();
 
-        final LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.addView(header());
+        periodView.setOnClickListener(this::choosePeriod);
+        deviceView.setOnClickListener(this::chooseDevice);
+        view.findViewById(R.id.onSettings).setOnClickListener(this::menu);
 
-        periods = row();
-        tabs = row();
-        root.addView(scrollable(periods));
-        root.addView(scrollable(tabs));
-
-        final ScrollView scroll = new ScrollView(this);
-        content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(16), dp(8), dp(16), dp(24));
-        scroll.addView(content);
-        root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        getWindow().setStatusBarColor(Color.TRANSPARENT);
-        setContentView(root);
-        // white clock and icons over the accent header
-        new androidx.core.view.WindowInsetsControllerCompat(getWindow(), root).setAppearanceLightStatusBars(false);
-        // drawn edge to edge from Android 15 on (targetSdk 36): the header runs under the status
-        // bar, everything else keeps clear of the bars
-        final View header = root.getChildAt(0);
-        final int headerTop = header.getPaddingTop();
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
-            final androidx.core.graphics.Insets bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()
-                    | androidx.core.view.WindowInsetsCompat.Type.displayCutout());
-            v.setPadding(bars.left, 0, bars.right, bars.bottom);
-            header.setPadding(header.getPaddingLeft(), headerTop + bars.top, header.getPaddingRight(), header.getPaddingBottom());
-            return insets;
-        });
-
-        buildChips();
+        onTintChanged();
+        updateHead();
         content.addView(text(getString(R.string.stats_loading), false));
+        refresh();
+        return view;
+    }
+
+    /** Pull to refresh asks this: true while the stats are scrolled down. */
+    public boolean canScrollUp() {
+        return scroll != null && scroll.canScrollVertically(-1);
+    }
+
+    @Override
+    public void onTintChanged() {
+        accent = TintUtil.color;
+        if (topPanel != null) {
+            TintUtil.setBackgroundFillColor(topPanel, TintUtil.color);
+        }
+        render();
+    }
+
+    @Override
+    public void onTabShown(boolean selected) {
+        super.onTabShown(selected);
+        if (selected) {
+            refresh();
+        }
+    }
+
+    @Override
+    public void notifyFragment() {
+        refresh();
+    }
+
+    @Override
+    public void resetFragment() {
+        library = null;
+        refresh();
+    }
+
+    private void refresh() {
         StatsLog.refresh(() -> {
             loaded = true;
             render();
         });
     }
 
-    // ---------------------------------------------------------------- chrome
+    // ---------------------------------------------------------------- head
 
-    private View header() {
-        final LinearLayout bar = new LinearLayout(this);
-        bar.setGravity(Gravity.CENTER_VERTICAL);
-        bar.setBackgroundColor(accent);
-        bar.setPadding(dp(4), dp(4), dp(4), dp(4));
-
-        final TextView back = headerButton("←");
-        back.setOnClickListener(v -> finish());
-        bar.addView(back);
-
-        final TextView title = new TextView(this);
-        title.setText(R.string.stats_title);
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-
-        devices = headerButton("");
-        devices.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        devices.setOnClickListener(this::chooseDevice);
-        bar.addView(devices);
-
-        final TextView menu = headerButton("⋮");
-        menu.setOnClickListener(v -> {
-            final PopupMenu p = new PopupMenu(this, v);
-            p.getMenu().add(R.string.stats_clear).setOnMenuItemClickListener(item -> {
-                confirmClear();
-                return true;
-            });
-            p.show();
-        });
-        bar.addView(menu);
-        return bar;
+    private void updateHead() {
+        final int[] names = {R.string.stats_day, R.string.stats_week, R.string.stats_month, R.string.stats_year, R.string.stats_all};
+        periodView.setText(getString(names[period.ordinal()]) + " ▾");
+        deviceView.setText((device == null ? getString(R.string.stats_all_devices) : deviceNames().getOrDefault(device, device)) + " ▾");
     }
 
-    private TextView headerButton(String s) {
-        final TextView t = new TextView(this);
-        t.setText(s);
-        t.setTextColor(Color.WHITE);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
-        t.setPadding(dp(12), dp(6), dp(12), dp(6));
-        t.setGravity(Gravity.CENTER);
-        return t;
-    }
-
-    private LinearLayout row() {
-        final LinearLayout r = new LinearLayout(this);
-        r.setPadding(dp(8), dp(2), dp(8), dp(2));
-        return r;
-    }
-
-    private View scrollable(View v) {
-        final HorizontalScrollView s = new HorizontalScrollView(this);
-        s.setHorizontalScrollBarEnabled(false);
-        s.addView(v);
-        return s;
-    }
-
-    private void buildChips() {
-        periods.removeAllViews();
+    private void choosePeriod(View v) {
+        final PopupMenu p = new PopupMenu(c, v);
         final int[] names = {R.string.stats_day, R.string.stats_week, R.string.stats_month, R.string.stats_year, R.string.stats_all};
         for (int i = 0; i < names.length; i++) {
-            final StatsReport.Period p = StatsReport.Period.values()[i];
-            periods.addView(chip(getString(names[i]), p == period, v -> {
-                period = p;
-                buildChips();
+            final StatsReport.Period chosen = StatsReport.Period.values()[i];
+            p.getMenu().add(names[i]).setOnMenuItemClickListener(item -> {
+                period = chosen;
+                updateHead();
                 render();
-            }));
+                return true;
+            });
         }
-        tabs.removeAllViews();
-        final int[] tabNames = {R.string.stats_overview, R.string.stats_habits, R.string.stats_books, R.string.stats_library};
-        for (int i = 0; i < tabNames.length; i++) {
-            final int t = i;
-            tabs.addView(chip(getString(tabNames[i]), t == tab, v -> {
-                tab = t;
-                buildChips();
-                render();
-            }));
-        }
-        final Map<String, String> names2 = deviceNames();
-        devices.setText(device == null ? getString(R.string.stats_all_devices) : names2.getOrDefault(device, device));
-    }
-
-    private TextView chip(String s, boolean selected, View.OnClickListener click) {
-        final TextView t = new TextView(this);
-        t.setText(s);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        t.setPadding(dp(10), dp(8), dp(10), dp(8));
-        t.setTextColor(selected ? accent : textSecondary);
-        t.setTypeface(selected ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
-        t.setOnClickListener(click);
-        return t;
-    }
-
-    private Map<String, String> deviceNames() {
-        final StatsStore s = StatsLog.store();
-        return s == null ? Collections.emptyMap() : s.devices();
+        p.show();
     }
 
     private void chooseDevice(View v) {
-        final PopupMenu p = new PopupMenu(this, v);
+        final PopupMenu p = new PopupMenu(c, v);
         p.getMenu().add(R.string.stats_all_devices).setOnMenuItemClickListener(item -> {
             device = null;
-            buildChips();
+            updateHead();
             render();
             return true;
         });
@@ -237,7 +191,7 @@ public class ReadingStatsActivity extends Activity {
             final String mine = id.equals(StatsLog.deviceId()) ? " •" : "";
             p.getMenu().add(e.getValue() + mine).setOnMenuItemClickListener(item -> {
                 device = id;
-                buildChips();
+                updateHead();
                 render();
                 return true;
             });
@@ -245,8 +199,26 @@ public class ReadingStatsActivity extends Activity {
         p.show();
     }
 
+    private void menu(View v) {
+        final PopupMenu p = new PopupMenu(c, v);
+        p.getMenu().add(R.string.stats_goal_set).setOnMenuItemClickListener(item -> {
+            setGoal();
+            return true;
+        });
+        p.getMenu().add(R.string.stats_clear).setOnMenuItemClickListener(item -> {
+            confirmClear();
+            return true;
+        });
+        p.show();
+    }
+
+    private Map<String, String> deviceNames() {
+        final StatsStore s = StatsLog.store();
+        return s == null ? Collections.emptyMap() : s.devices();
+    }
+
     private void confirmClear() {
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(c)
                 .setMessage(R.string.stats_clear_confirm)
                 .setPositiveButton(R.string.stats_clear, (d, w) -> StatsLog.clear(() -> {
                     SyncEvents.statsWritten();
@@ -256,13 +228,38 @@ public class ReadingStatsActivity extends Activity {
                 .show();
     }
 
-    // ---------------------------------------------------------------- tabs
+    private void setGoal() {
+        final EditText input = new EditText(c);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setText(String.valueOf(AppState.get().readingGoalMinutes));
+        input.setSelectAllOnFocus(true);
+        new AlertDialog.Builder(c)
+                .setTitle(R.string.stats_goal_set)
+                .setMessage(R.string.stats_goal_minutes)
+                .setView(input)
+                .setPositiveButton(android.R.string.ok, (dialog, w) -> {
+                    try {
+                        AppState.get().readingGoalMinutes = Math.max(0, Math.min(24 * 60, Integer.parseInt(input.getText().toString().trim())));
+                    } catch (NumberFormatException e) {
+                        AppState.get().readingGoalMinutes = 0;
+                    }
+                    AppProfile.save(c);
+                    SyncEvents.settingsChanged();
+                    render();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    // ---------------------------------------------------------------- sections
 
     private void render() {
-        if (!loaded || isFinishing()) {
+        if (!loaded || content == null || !isAdded()) {
             return;
         }
+        updateHead();
         content.removeAllViews();
+        content.addView(sections());
         final StatsData d = StatsLog.data(device == null ? null : Collections.singleton(device));
         final int today = Days.today();
         if (d.days.isEmpty()) {
@@ -271,7 +268,7 @@ public class ReadingStatsActivity extends Activity {
         }
         final int[] range = period.range(today, d);
         final StatsReport.Summary s = StatsReport.summary(d, range[0], range[1]);
-        switch (tab) {
+        switch (section) {
             case HABITS:
                 habits(d, s, today);
                 break;
@@ -286,12 +283,29 @@ public class ReadingStatsActivity extends Activity {
         }
     }
 
+    /** The row of sections at the top of the scroll. */
+    private View sections() {
+        final LinearLayout row = new LinearLayout(c);
+        final int[] names = {R.string.stats_overview, R.string.stats_habits, R.string.stats_books, R.string.stats_library};
+        for (int i = 0; i < names.length; i++) {
+            final int t = i;
+            row.addView(chip(getString(names[i]), t == section, v -> {
+                section = t;
+                render();
+            }));
+        }
+        final android.widget.HorizontalScrollView s = new android.widget.HorizontalScrollView(c);
+        s.setHorizontalScrollBarEnabled(false);
+        s.addView(row);
+        return s;
+    }
+
     private void overview(StatsData d, StatsReport.Summary s, int today) {
         goal(d, today);
 
         final List<String[]> tiles = new ArrayList<>();
-        tiles.add(new String[]{getString(R.string.stats_read), StatsFormat.duration(this, s.readMs)});
-        tiles.add(new String[]{getString(R.string.stats_listened), StatsFormat.duration(this, s.listenMs)});
+        tiles.add(new String[]{getString(R.string.stats_read), StatsFormat.duration(c, s.readMs)});
+        tiles.add(new String[]{getString(R.string.stats_listened), StatsFormat.duration(c, s.listenMs)});
         tiles.add(new String[]{getString(R.string.stats_words), StatsFormat.number(s.words)});
         tiles.add(new String[]{getString(R.string.stats_pages), StatsFormat.decimal(s.pages)});
         if (s.wpm > 0 || s.cpm == 0) {
@@ -315,7 +329,7 @@ public class ReadingStatsActivity extends Activity {
 
         // bars of the period, by minutes, words or pages
         final StatsReport.Series series = StatsReport.series(d, period, today);
-        final LinearLayout by = new LinearLayout(this);
+        final LinearLayout by = new LinearLayout(c);
         final int[] byNames = {R.string.stats_minutes, R.string.stats_words, R.string.stats_pages};
         for (int i = 0; i < byNames.length; i++) {
             final int b = i;
@@ -337,13 +351,11 @@ public class ReadingStatsActivity extends Activity {
                 valueTexts[i] = StatsFormat.decimal(series.pages.get(i));
             } else {
                 values[i] = series.ms.get(i) / 60_000f;
-                valueTexts[i] = StatsFormat.duration(this, series.ms.get(i));
+                valueTexts[i] = StatsFormat.duration(c, series.ms.get(i));
             }
         }
-        final int highlight = period == StatsReport.Period.DAY || period == StatsReport.Period.WEEK || period == StatsReport.Period.MONTH
-                ? todayIndex(today) : -1;
-        final StatsCharts.Bars bars = new StatsCharts.Bars(this, accent);
-        bars.set(values, series.labels.toArray(new String[0]), highlight,
+        final StatsCharts.Bars bars = new StatsCharts.Bars(c, accent);
+        bars.set(values, series.labels.toArray(new String[0]), todayIndex(today),
                 i -> caption.setText(series.labels.get(i) + ": " + valueTexts[i]));
         content.addView(bars);
         content.addView(caption);
@@ -352,7 +364,7 @@ public class ReadingStatsActivity extends Activity {
         if (count(weekly) >= 2) {
             content.addView(title(getString(R.string.stats_speed_trend)));
             final TextView trendCaption = text("", false);
-            final StatsCharts.Line line = new StatsCharts.Line(this, accent);
+            final StatsCharts.Line line = new StatsCharts.Line(c, accent);
             line.set(weekly, StatsFormat.date(Days.weekStart(today) - 7 * 25), StatsFormat.date(Days.weekStart(today)),
                     i -> trendCaption.setText(StatsFormat.date(Days.weekStart(today) - 7 * (25 - i)) + ": " + weekly[i] + " wpm"));
             content.addView(line);
@@ -362,7 +374,7 @@ public class ReadingStatsActivity extends Activity {
         content.addView(text(getString(R.string.stats_projected_books, StatsReport.projectedBooksThisYear(d, today)), true));
     }
 
-    /** Which bar of {@link StatsReport#series} is today. */
+    /** Which bar of {@link StatsReport#series} is today, -1 when bars are months. */
     private int todayIndex(int today) {
         switch (period) {
             case DAY:
@@ -377,12 +389,12 @@ public class ReadingStatsActivity extends Activity {
     }
 
     private void goal(StatsData d, int today) {
-        final LinearLayout row = new LinearLayout(this);
+        final LinearLayout row = new LinearLayout(c);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(8), 0, dp(8));
-        final StatsCharts.Ring ring = new StatsCharts.Ring(this, accent);
+        final StatsCharts.Ring ring = new StatsCharts.Ring(c, accent);
         final StatsReport.Goal g = StatsReport.goal(d, today, AppState.get().readingGoalMinutes);
-        final LinearLayout texts = new LinearLayout(this);
+        final LinearLayout texts = new LinearLayout(c);
         texts.setOrientation(LinearLayout.VERTICAL);
         texts.setPadding(dp(16), 0, 0, 0);
         texts.addView(title(getString(R.string.stats_goal)));
@@ -392,7 +404,7 @@ public class ReadingStatsActivity extends Activity {
             texts.addView(text(getString(R.string.stats_tap_goal), false));
         } else {
             ring.set(g.todayMinutes / (float) g.goalMinutes, String.valueOf(g.todayMinutes), getString(R.string.stats_goal_of, g.goalMinutes));
-            final String balance = StatsFormat.duration(this, Math.abs(g.weekBalance) * 60_000L);
+            final String balance = StatsFormat.duration(c, Math.abs(g.weekBalance) * 60_000L);
             texts.addView(text(getString(g.weekBalance >= 0 ? R.string.stats_goal_ahead : R.string.stats_goal_behind, balance), false));
         }
         ring.setOnClickListener(v -> setGoal());
@@ -402,34 +414,11 @@ public class ReadingStatsActivity extends Activity {
         content.addView(row);
     }
 
-    private void setGoal() {
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_NUMBER);
-        input.setText(String.valueOf(AppState.get().readingGoalMinutes));
-        input.setSelectAllOnFocus(true);
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.stats_goal_set)
-                .setMessage(R.string.stats_goal_minutes)
-                .setView(input)
-                .setPositiveButton(android.R.string.ok, (dialog, w) -> {
-                    try {
-                        AppState.get().readingGoalMinutes = Math.max(0, Math.min(24 * 60, Integer.parseInt(input.getText().toString().trim())));
-                    } catch (NumberFormatException e) {
-                        AppState.get().readingGoalMinutes = 0;
-                    }
-                    AppProfile.save(this);
-                    SyncEvents.settingsChanged();
-                    render();
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
     private void habits(StatsData d, StatsReport.Summary s, int today) {
         final StatsReport.Streak streak = StatsReport.streak(d, today);
         content.addView(title(getString(R.string.stats_streak)));
         content.addView(text(getString(R.string.stats_streak_line, streak.current, streak.longest, streak.daysThisMonth), false));
-        final StatsCharts.Calendar calendar = new StatsCharts.Calendar(this, accent);
+        final StatsCharts.Calendar calendar = new StatsCharts.Calendar(c, accent);
         final int monthStart = Days.monthStart(today);
         calendar.set(streak.monthDays, StatsData.weekdayOf(monthStart), Days.monthEnd(today) - monthStart + 1,
                 today - monthStart + 1, StatsFormat.weekdayLetters());
@@ -438,9 +427,9 @@ public class ReadingStatsActivity extends Activity {
         content.addView(title(getString(R.string.stats_heatmap)));
         final TextView heatCaption = text("", false);
         final String[] weekdays = StatsFormat.weekdayLetters();
-        final StatsCharts.Heatmap heat = new StatsCharts.Heatmap(this, accent);
+        final StatsCharts.Heatmap heat = new StatsCharts.Heatmap(c, accent);
         heat.set(s.heatMs, weekdays, getString(R.string.stats_less), getString(R.string.stats_more), i -> heatCaption.setText(
-                weekdays[i / 24] + " " + String.format(java.util.Locale.US, "%02d:00", i % 24) + ": " + StatsFormat.duration(this, s.heatMs[i / 24][i % 24])));
+                weekdays[i / 24] + " " + String.format(java.util.Locale.US, "%02d:00", i % 24) + ": " + StatsFormat.duration(c, s.heatMs[i / 24][i % 24])));
         content.addView(heat);
         content.addView(heatCaption);
         final int best = StatsReport.bestHour(s);
@@ -450,7 +439,7 @@ public class ReadingStatsActivity extends Activity {
 
         content.addView(title(getString(R.string.stats_sessions)));
         content.addView(text(getString(R.string.stats_sessions_line, StatsFormat.decimal(s.sessionsPerDay()),
-                StatsFormat.duration(this, s.averageSessionMs()), StatsFormat.duration(this, s.longestSessionMs)), false));
+                StatsFormat.duration(c, s.averageSessionMs()), StatsFormat.duration(c, s.longestSessionMs)), false));
         content.addView(text(getString(R.string.stats_bounces, s.bounces), false));
 
         final List<Integer> fatigue = StatsReport.fatigue(s);
@@ -461,7 +450,7 @@ public class ReadingStatsActivity extends Activity {
                 values[i] = fatigue.get(i);
             }
             final TextView caption = text("", false);
-            final StatsCharts.Line line = new StatsCharts.Line(this, accent);
+            final StatsCharts.Line line = new StatsCharts.Line(c, accent);
             line.set(values, "0", (values.length * 10) + " min", i -> caption.setText((i * 10) + "–" + (i * 10 + 10) + " min: " + values[i] + " wpm"));
             content.addView(line);
             content.addView(caption);
@@ -488,7 +477,7 @@ public class ReadingStatsActivity extends Activity {
             }
         }
         if (langLabels.size() > 1) {
-            hbars(R.string.stats_languages, langLabels, langValues, v -> String.valueOf(v));
+            hbars(R.string.stats_languages, langLabels, langValues, String::valueOf);
         }
 
         final Map<String, String> names = deviceNames();
@@ -500,7 +489,7 @@ public class ReadingStatsActivity extends Activity {
                 devLabels.add(e.getValue());
                 devValues.add(StatsReport.summary(one, s.from, s.to).totalMs());
             }
-            hbars(R.string.stats_devices, devLabels, devValues, v -> StatsFormat.duration(this, v));
+            hbars(R.string.stats_devices, devLabels, devValues, v -> StatsFormat.duration(c, v));
         }
     }
 
@@ -510,7 +499,7 @@ public class ReadingStatsActivity extends Activity {
         content.addView(text(getString(R.string.stats_in_progress, inProgress.size(), s.switches), true));
         content.addView(text(getString(R.string.stats_started_finished, s.starts, s.finishes), false));
         for (StatsData.Book b : inProgress) {
-            content.addView(bookRow(b.displayTitle(), Math.round(b.progress * 100) + "% · " + StatsFormat.duration(this, b.totalMs())));
+            content.addView(bookRow(b.displayTitle(), Math.round(b.progress * 100) + "% · " + StatsFormat.duration(c, b.totalMs())));
         }
 
         final int tz = TimeZone.getDefault().getOffset(now) / 60_000;
@@ -518,7 +507,7 @@ public class ReadingStatsActivity extends Activity {
         if (!finished.isEmpty()) {
             content.addView(title(getString(R.string.stats_finished)));
             for (StatsReport.Finish f : finished) {
-                content.addView(bookRow(f.book.displayTitle(), getString(R.string.stats_finished_row, f.days, StatsFormat.duration(this, f.ms))));
+                content.addView(bookRow(f.book.displayTitle(), getString(R.string.stats_finished_row, f.days, StatsFormat.duration(c, f.ms))));
             }
         }
 
@@ -540,7 +529,7 @@ public class ReadingStatsActivity extends Activity {
         final List<String> labels = new ArrayList<>();
         final List<String> rows = new ArrayList<>();
         for (StatsData.Book b : d.books.values()) {
-            final double flesch = WordCounter.flesch(this, b.key);
+            final double flesch = WordCounter.flesch(c, b.key);
             if (!Double.isNaN(flesch) && b.speed.ms >= 10 * 60_000L) {
                 labels.add(b.displayTitle());
                 rows.add(getString(R.string.stats_readability_row, (int) Math.round(flesch), b.wpm.median()));
@@ -557,6 +546,7 @@ public class ReadingStatsActivity extends Activity {
     private void library(final StatsData d, final int[] range) {
         if (library == null) {
             content.addView(text(getString(R.string.stats_loading), false));
+            final Activity activity = getActivity();
             new Thread(() -> {
                 final List<StatsReport.LibBook> list = new ArrayList<>();
                 for (FileMeta m : AppDB.get().getAll()) {
@@ -567,10 +557,12 @@ public class ReadingStatsActivity extends Activity {
                             m.getPages() == null ? 0 : m.getPages(), m.getDate() == null ? 0 : m.getDate(),
                             m.getIsRecentProgress() == null ? 0 : m.getIsRecentProgress()));
                 }
-                runOnUiThread(() -> {
-                    library = list;
-                    render();
-                });
+                if (activity != null) {
+                    activity.runOnUiThread(() -> {
+                        library = list;
+                        render();
+                    });
+                }
             }, "@T stats library").start();
             return;
         }
@@ -595,7 +587,7 @@ public class ReadingStatsActivity extends Activity {
             labels.add(e.getKey());
             ms.add(e.getValue());
         }
-        hbars(title, labels, ms, v -> StatsFormat.duration(this, v));
+        hbars(title, labels, ms, v -> StatsFormat.duration(c, v));
     }
 
     // ---------------------------------------------------------------- views
@@ -615,24 +607,35 @@ public class ReadingStatsActivity extends Activity {
             v[i] = values.get(i);
             texts.add(format.of(v[i]));
         }
-        final StatsCharts.HBars bars = new StatsCharts.HBars(this, accent);
+        final StatsCharts.HBars bars = new StatsCharts.HBars(c, accent);
         bars.set(labels, v, texts);
         content.addView(bars);
     }
 
+    private TextView chip(String s, boolean selected, View.OnClickListener click) {
+        final TextView t = new TextView(c);
+        t.setText(s);
+        t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        t.setPadding(dp(10), dp(8), dp(10), dp(8));
+        t.setTextColor(selected ? accent : textSecondary);
+        t.setTypeface(selected ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+        t.setOnClickListener(click);
+        return t;
+    }
+
     private View tiles(List<String[]> tiles) {
-        final LinearLayout grid = new LinearLayout(this);
+        final LinearLayout grid = new LinearLayout(c);
         grid.setOrientation(LinearLayout.VERTICAL);
         LinearLayout row = null;
         for (int i = 0; i < tiles.size(); i++) {
             if (i % 2 == 0) {
-                row = new LinearLayout(this);
+                row = new LinearLayout(c);
                 grid.addView(row);
             }
-            final LinearLayout tile = new LinearLayout(this);
+            final LinearLayout tile = new LinearLayout(c);
             tile.setOrientation(LinearLayout.VERTICAL);
             tile.setPadding(0, dp(6), dp(8), dp(6));
-            final TextView value = new TextView(this);
+            final TextView value = new TextView(c);
             value.setText(tiles.get(i)[1]);
             value.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
             value.setTypeface(Typeface.DEFAULT_BOLD);
@@ -641,13 +644,13 @@ public class ReadingStatsActivity extends Activity {
             row.addView(tile, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         }
         if (tiles.size() % 2 == 1 && row != null) {
-            row.addView(new View(this), new LinearLayout.LayoutParams(0, 0, 1));
+            row.addView(new View(c), new LinearLayout.LayoutParams(0, 0, 1));
         }
         return grid;
     }
 
     private TextView title(String s) {
-        final TextView t = new TextView(this);
+        final TextView t = new TextView(c);
         t.setText(s);
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         t.setTypeface(Typeface.DEFAULT_BOLD);
@@ -656,7 +659,7 @@ public class ReadingStatsActivity extends Activity {
     }
 
     private TextView text(String s, boolean primary) {
-        final TextView t = new TextView(this);
+        final TextView t = new TextView(c);
         t.setText(s);
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         if (!primary) {
@@ -667,7 +670,7 @@ public class ReadingStatsActivity extends Activity {
     }
 
     private View bookRow(String title, String detail) {
-        final LinearLayout row = new LinearLayout(this);
+        final LinearLayout row = new LinearLayout(c);
         row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(0, dp(4), 0, dp(4));
         final TextView t = text(title, true);
@@ -688,34 +691,7 @@ public class ReadingStatsActivity extends Activity {
         return n;
     }
 
-    private int dp(int v) {
+    private static int dp(int v) {
         return Dips.dpToPx(v);
-    }
-
-    /** The Reading stats section of the preferences: today's line and the link to the screen. */
-    public static void bindPreferences(final Activity a, final View root) {
-        final View header = root.findViewById(R.id.statsHeader);
-        if (header == null) {
-            return;
-        }
-        TintUtil.setSectionFillColor(header, TintUtil.color);
-        root.findViewById(R.id.statsPrefOpen).setOnClickListener(v -> open(a));
-        final TextView status = root.findViewById(R.id.statsPrefStatus);
-        StatsLog.refresh(() -> {
-            final String line = status(a);
-            status.setText(line);
-            status.setVisibility(line.isEmpty() ? View.GONE : View.VISIBLE);
-        });
-    }
-
-    /** One line of reading for the settings: today's time and the streak. */
-    public static String status(Context c) {
-        final StatsData d = ReadingSpeed.data();
-        if (d == null) {
-            return "";
-        }
-        final int today = Days.today();
-        return c.getString(R.string.stats_today_status, StatsFormat.duration(c, StatsReport.summary(d, today, today).totalMs()),
-                StatsReport.streak(d, today).current);
     }
 }

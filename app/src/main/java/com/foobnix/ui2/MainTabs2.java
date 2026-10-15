@@ -452,6 +452,10 @@ public class MainTabs2 extends AdsFragmentActivity {
                 if (drawerLayout != null && drawerLayout.isDrawerVisible(GravityCompat.START)) {
                     return true;
                 }
+                if (pager != null && tabFragments.get(pager.getCurrentItem()) instanceof com.foobnix.stats.StatsFragment2) {
+                    // a plain ScrollView: it does not tell the refresh layout it is scrolled down
+                    return ((com.foobnix.stats.StatsFragment2) tabFragments.get(pager.getCurrentItem())).canScrollUp();
+                }
                 return pager != null && tabFragments.get(pager.getCurrentItem()) instanceof PrefFragment2;
             } catch (Exception e) {
                 return false;
@@ -465,6 +469,7 @@ public class MainTabs2 extends AdsFragmentActivity {
         TintUtil.setDrawableTint(toastBrightnessText.getCompoundDrawables()[0], Color.WHITE);
 
         tabFragments = new ArrayList<UIFragment>();
+        com.foobnix.stats.StatsFragment2.showTabOnce(this);
 
         try {
 
