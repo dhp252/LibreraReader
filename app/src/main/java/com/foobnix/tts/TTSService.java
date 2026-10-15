@@ -995,6 +995,7 @@ import java.util.List;
         LOG.d("playPage", preText, pageNumber, anchor);
         if (pageNumber != -1) {
             isActivated = true;
+            com.foobnix.stats.ListenTracker.reading(AppSP.get().lastBookPath);
             EventBus.getDefault()
                     .post(new MessagePageNumber(pageNumber));
             AppSP.get().lastBookPage = pageNumber;

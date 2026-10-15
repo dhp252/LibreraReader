@@ -240,6 +240,8 @@ public class WebDav {
         final WebDavClient client = client(c);
         final FolderSync profile = profileSync(c, client, currentProfile(), null);
         final Set<String> dirty = profile.dirtyPaths();
+        // the reading log grows with every page: it goes when a reader closes (pushStats)
+        dirty.removeIf(WebDav::isStats);
         if (dirty.isEmpty()) {
             return new FolderSync.Result();
         }
@@ -249,6 +251,28 @@ public class WebDav {
         }
         log("push", result);
         return result;
+    }
+
+    /**
+     * This device's reading log (F-007), changed files only. The change marker is not touched:
+     * the other devices take the log at their next full sync instead of pulling at once.
+     */
+    static synchronized void pushStats(Context c) {
+        try {
+            AppProfile.init(c);
+            final FolderSync profile = profileSync(c, client(c), currentProfile(), null);
+            final Set<String> dirty = profile.dirtyPaths();
+            dirty.removeIf(path -> !isStats(path));
+            if (!dirty.isEmpty()) {
+                log("stats", profile.syncPaths(dirty));
+            }
+        } catch (Exception e) {
+            LOG.d("WebDav stats", e.getMessage());
+        }
+    }
+
+    private static boolean isStats(String path) {
+        return path.startsWith(com.foobnix.stats.StatsLog.FOLDER + "/");
     }
 
     /** The settings shared by every device, merged with the server's (three small files). */

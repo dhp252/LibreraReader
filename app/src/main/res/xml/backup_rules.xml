@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Android backup up to Android 11 (see data_extraction_rules.xml for 12 and later).
      Everything is backed up as before, except what must stay on this device: the AI key
-     (ai.xml), the WebDAV password (webdav.xml), and the state of the last WebDAV sync, which on
+     (ai.xml), the WebDAV password (webdav.xml), the id of its reading log (stats.xml: a restored
+     copy would make two devices write one log), and the state of the last WebDAV sync, which on
      another device or a fresh install would read as books and notes deleted here. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="ai.xml" />
     <exclude domain="sharedpref" path="webdav.xml" />
+    <exclude domain="sharedpref" path="stats.xml" />
     <exclude domain="file" path="webdav/" />
 </full-backup-content>

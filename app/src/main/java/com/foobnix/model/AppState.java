@@ -365,6 +365,10 @@ public class AppState {
     public boolean isShowBottomSeekBar = true;
     public boolean isShowChaptersOnProgress = true;
     public boolean isShowSubChaptersOnProgress = true;
+    /** Reader status bar: time left in the chapter and the book at the reader's speed (F-007). */
+    public boolean isShowTimeLeft = true;
+    /** Reading stats: daily goal in minutes, 0 = none (F-007). */
+    public int readingGoalMinutes = 0;
     public int antiAliasLevel = 8;//0-8
     // n,
     // 25 - 25%

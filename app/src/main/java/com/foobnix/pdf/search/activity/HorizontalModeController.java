@@ -704,6 +704,7 @@ public abstract class HorizontalModeController extends DocumentController {
         if (codeDocument == null || selected == null || selected.isEmpty()) {
             return;
         }
+        com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.HIGHLIGHT);
         // one quad per line, in page units (TextWord.getOriginal), as VerticalModeController.underlineText
         final List<PointF> quads = new ArrayList<>();
         RectF line = null;

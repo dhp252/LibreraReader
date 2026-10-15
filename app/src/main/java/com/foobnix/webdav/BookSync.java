@@ -103,14 +103,19 @@ public final class BookSync {
         switch (JumpRule.decide(current.t, here, synced.t, page, busy)) {
             case JumpRule.JUMP:
                 current.follow(synced, page);
+                com.foobnix.stats.ReadingTracker.nextJumpVia(com.foobnix.stats.StatsEvent.VIA_SYNC);
                 dc.onGoToPage(page);
                 note(dc.getActivity(), dc.getActivity().getString(R.string.sync_moved_to, page, device),
-                        dc.getActivity().getString(R.string.sync_undo), () -> dc.onGoToPage(here));
+                        dc.getActivity().getString(R.string.sync_undo), () -> {
+                            com.foobnix.stats.ReadingTracker.nextJumpVia(com.foobnix.stats.StatsEvent.VIA_SYNC);
+                            dc.onGoToPage(here);
+                        });
                 break;
             case JumpRule.OFFER:
                 note(dc.getActivity(), dc.getActivity().getString(R.string.sync_is_at, page, device),
                         dc.getActivity().getString(R.string.go), () -> {
                             current.follow(synced, page);
+                            com.foobnix.stats.ReadingTracker.nextJumpVia(com.foobnix.stats.StatsEvent.VIA_SYNC);
                             dc.onGoToPage(page);
                         });
                 break;

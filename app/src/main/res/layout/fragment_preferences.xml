@@ -1852,6 +1852,44 @@
                     android:text="@string/webdav_settings" />
             </LinearLayout>
 
+            <!-- Reading stats (F-007) -->
+            <LinearLayout
+                android:id="@+id/sectionStats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/statsHeader"
+                    style="@style/textSectionTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dip"
+                    android:background="@drawable/bg_search_second"
+                    android:text="@string/stats_title" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="4dip"
+                    android:text="@string/stats_section_info" />
+
+                <TextView
+                    android:id="@+id/statsPrefStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="4dip"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/statsPrefOpen"
+                    style="@style/textLink"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="5dip"
+                    android:text="@string/stats_open" />
+            </LinearLayout>
+
             <TextView
                 android:id="@+id/section6"
                 style="@style/textSectionTitle"

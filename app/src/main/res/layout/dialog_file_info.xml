@@ -551,6 +551,22 @@
                 android:maxLines="5"
                 android:text="" />
 
+            <!-- Reading stats of the book (F-007), filled by BookStatsView -->
+            <TextView
+                android:id="@+id/readingStatsSection"
+                style="@style/infoBlockLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stats_book_reading"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/readingStats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone" />
+
             <!-- What can be done to the file, set apart from what is known about it. -->
             <LinearLayout
                 android:layout_width="match_parent"

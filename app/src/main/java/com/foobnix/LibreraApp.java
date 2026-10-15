@@ -189,6 +189,7 @@ public class LibreraApp extends Application {
 
         // devices left open catch up with each other over WebDAV
         com.foobnix.webdav.SyncEvents.init(this);
+        com.foobnix.stats.StatsLog.init(this);
         com.foobnix.webdav.ForegroundSync.register(this);
 
 

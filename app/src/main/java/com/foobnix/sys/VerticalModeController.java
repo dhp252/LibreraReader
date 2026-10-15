@@ -542,11 +542,17 @@ public class VerticalModeController extends DocumentController {
         }
         final int first = ctr.getDocumentController().getFirstVisiblePage();
         final int last = ctr.getDocumentController().getLastVisiblePage();
+        boolean counted = false;
         for (int i = first; i < last + 1; i++) {
             final Page page = ctr.getDocumentModel().getPageByDocIndex(i);
             // an empty selection would still create an (empty, invisible) markup annotation
             if (page == null || page.selectedText == null || page.selectedText.isEmpty()) {
                 continue;
+            }
+            if (!counted) {
+                // one selection over two pages is one highlight
+                com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.HIGHLIGHT);
+                counted = true;
             }
             List<TextWord> texts = page.selectedText;
 

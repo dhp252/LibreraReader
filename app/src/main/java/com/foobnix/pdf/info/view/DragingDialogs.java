@@ -1652,6 +1652,7 @@ public class DragingDialogs {
 
                         Keyboards.close(searchEdit);
                         hMessage.removeCallbacksAndMessages(null);
+                        com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.SEARCH);
                         controller.doSearch(searchString, new ResultResponse<Integer>() {
                             @Override public boolean onResultRecive(final Integer pageNumber) {
                                 hMessage.sendEmptyMessage(pageNumber);
@@ -2143,6 +2144,7 @@ public class DragingDialogs {
                                     @Override public void onClick(View v) {
                                         String selecteText = editText.getText().toString().trim();
                                         closeDialog();
+                                        com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.LOOKUP);
                                         final ActivityInfo activity = app.activityInfo;
                                         final ComponentName name =
                                                 new ComponentName(activity.applicationInfo.packageName, activity.name);
@@ -3652,6 +3654,15 @@ public class DragingDialogs {
                         if (onRefresh != null) {
                             onRefresh.run();
                         }
+                    }
+                });
+
+                final CheckBox isShowTimeLeft = inflate.findViewById(R.id.isShowTimeLeft);
+                isShowTimeLeft.setChecked(AppState.get().isShowTimeLeft);
+                isShowTimeLeft.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    AppState.get().isShowTimeLeft = isChecked;
+                    if (onRefresh != null) {
+                        onRefresh.run();
                     }
                 });
 

@@ -123,6 +123,11 @@ public class OutlineHelper {
             }
         }
 
+        final String timeLeft = com.foobnix.stats.StatsFormat.timeLeft(dc);
+        if (timeLeft != null) {
+            info.chText = info.chText + SP + timeLeft;
+        }
+
         if (AppState.get().isAutoScroll) {
             info.chText = String.format("{%s} %s", AppState.get().autoScrollSpeed, info.chText);
         }

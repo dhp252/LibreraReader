@@ -221,6 +221,7 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
             Keyboards.hideNavigation(this);
         }
         getController().onResume();
+        com.foobnix.stats.ReadingTracker.resumed(this);
         if (handler != null) {
             handler.removeCallbacks(closeRunnable);
         }
@@ -260,6 +261,7 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
     protected void onPause() {
         super.onPause();
         LOG.d("onPause", this.getClass());
+        com.foobnix.stats.ReadingTracker.paused(this);
         getController().onPause();
         needToRestore = AppState.get().isAutoScroll;
         AppState.get().isAutoScroll = false;
@@ -314,6 +316,7 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        com.foobnix.stats.ReadingTracker.destroyed(this);
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
         }

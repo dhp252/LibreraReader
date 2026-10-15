@@ -299,6 +299,9 @@ public class FileInformationDialog {
             bookmarks.setVisibility(View.GONE);
         }
 
+        com.foobnix.stats.BookStatsView.fill(a, file, dialog.findViewById(R.id.readingStatsSection),
+                dialog.findViewById(R.id.readingStats));
+
         bookmarks.setOnClickListener(new OnClickListener() {
 
             @Override public void onClick(View v) {

@@ -1602,6 +1602,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     protected void onDestroy() {
         super.onDestroy();
         AiHighlights.get().close(this);
+        com.foobnix.stats.ReadingTracker.destroyed(this);
 
         if (loadinAsyncTask != null) {
             try {
@@ -1671,6 +1672,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         if (dc != null) {
             dc.goToPageByTTS();
         }
+        com.foobnix.stats.ReadingTracker.resumed(this);
 
         handler.removeCallbacks(closeRunnable);
         handlerTimer.removeCallbacks(updateTimePower);
@@ -1694,6 +1696,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         if (curlTurn != null) {
             curlTurn.finishNow();
         }
+        com.foobnix.stats.ReadingTracker.paused(this);
         AppProfile.save(this);
         TempHolder.isSeaching = false;
         TempHolder.isActiveSpeedRead.set(false);

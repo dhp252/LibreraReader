@@ -102,6 +102,22 @@ public final class SyncEvents {
         shownBook = null;
     }
 
+    /**
+     * A reader closed: this device's reading log goes up now. The log is left out of the
+     * pushes while reading (it grows with every page) and of the change marker (the other
+     * device reads it at its next full sync).
+     */
+    public static void statsWritten() {
+        if (!enabled()) {
+            return;
+        }
+        run(() -> {
+            if (WebDav.mayRunAuto(app)) {
+                WebDav.pushStats(app);
+            }
+        });
+    }
+
     /** A full sync was queued: it takes whatever waited. */
     static void fullQueued() {
         synchronized (plan) {

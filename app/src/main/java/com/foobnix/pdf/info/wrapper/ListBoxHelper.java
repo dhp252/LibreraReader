@@ -24,6 +24,7 @@ public class ListBoxHelper {
                                      String text,
                                      final Runnable onRefresh) {
         final Activity a = controller.getActivity();
+        final String suggested = text;
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(a);
 
@@ -60,6 +61,9 @@ public class ListBoxHelper {
                         bookmark.isF = isFloat.isChecked();
                         bookmark.pt = controller.getBookmarkText();
                         BookmarksData.get().add(bookmark);
+                        // words of the reader's own instead of the page's: a note
+                        com.foobnix.stats.ReadingTracker.count(text.trim().equals(suggested == null ? "" : suggested.trim())
+                                ? com.foobnix.stats.StatsEvent.BOOKMARK : com.foobnix.stats.StatsEvent.NOTE);
                         if (objects != null) {
                             objects.add(0, bookmark);
                             allData.add(0, bookmark);
@@ -134,6 +138,9 @@ public class ListBoxHelper {
                 try {
                     final String text = editText.getText().toString();
                     if (text != null && !text.trim().equals("")) {
+                        if (!text.trim().equals(bookmark.text == null ? "" : bookmark.text.trim())) {
+                            com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.NOTE);
+                        }
                         bookmark.text = text;
                         //BookmarksData.get().remove(bookmark);
                         bookmark.isF = isFloat.isChecked();
