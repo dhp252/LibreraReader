@@ -32,7 +32,6 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.view.BrightnessHelper;
-import com.foobnix.pdf.info.view.Dialogs;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
 import com.foobnix.pdf.search.activity.msg.InvalidateMessage;
 import com.foobnix.pdf.search.activity.msg.MessageAutoFit;
@@ -329,6 +328,77 @@ public class PageImaveView extends View {
         invalidate();
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMarksChanged(com.foobnix.annotation.MessageMarks event) {
+        invalidate();
+    }
+
+    /** The reader's own marks, kept outside the book (F-008, see MarksLayer). */
+    private void drawMarks(Canvas canvas) {
+        final com.foobnix.annotation.MarksLayer layer = com.foobnix.annotation.MarksLayer.get();
+        if (layer.count() == 0) {
+            return;
+        }
+        if (AppSP.get().isDouble) {
+            final int first = pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+            drawMarksOf(canvas, layer, first, getPageText(1), 1);
+            drawMarksOf(canvas, layer, first + 1, getPageText(2), 2);
+        } else {
+            drawMarksOf(canvas, layer, pageNumber, getPageText(0), 0);
+        }
+    }
+
+    private void drawMarksOf(Canvas canvas, com.foobnix.annotation.MarksLayer layer, int docPage, TextWord[][] text, int number) {
+        if (docPage < 0) {
+            return;
+        }
+        final List<com.foobnix.annotation.MarksLayer.Shape> shapes = layer.shapesFor(docPage, text);
+        if (shapes.isEmpty()) {
+            return;
+        }
+        // page-relative to bitmap coordinates: the transform the words and AI marks take
+        final RectF unit = transform(new RectF(0, 0, 1, 1), number);
+        layer.draw(canvas, shapes, unit.left, unit.top, unit.width(), unit.height());
+    }
+
+    /** The reader's mark under a point of this view, or null. */
+    private com.foobnix.annotation.MarkTap.Hit markAt(float x, float y) {
+        final com.foobnix.annotation.MarksLayer layer = com.foobnix.annotation.MarksLayer.get();
+        if (layer.count() == 0 || AppSP.get().isCut || !isCropMappable(0) || drawableWidth <= 0) {
+            return null;
+        }
+        // view to bitmap coordinates, as getPageLinkClicked
+        final RectF tr = new RectF();
+        imageMatrix().mapRect(tr);
+        final float[] f = new float[9];
+        imageMatrix().getValues(f);
+        final float scale = f[Matrix.MSCALE_X];
+        final float bx = (x - tr.left) / scale;
+        final float by = (y - tr.top) / scale;
+        // a finger is about this wide
+        final float slop = Dips.dpToPx(12) / scale;
+        if (AppSP.get().isDouble) {
+            final int first = pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+            final int number = bx < drawableWidth / 2f ? 1 : 2;
+            return markOn(layer, number == 1 ? first : first + 1, getPageText(number), number, bx, by, slop);
+        }
+        return markOn(layer, pageNumber, getPageText(0), 0, bx, by, slop);
+    }
+
+    private com.foobnix.annotation.MarkTap.Hit markOn(com.foobnix.annotation.MarksLayer layer, int docPage, TextWord[][] text,
+                                                    int number, float bx, float by, float slop) {
+        if (docPage < 0) {
+            return null;
+        }
+        final RectF unit = transform(new RectF(0, 0, 1, 1), number);
+        if (unit.width() <= 0 || unit.height() <= 0) {
+            return null;
+        }
+        final com.foobnix.annotation.Mark mark = layer.hit(docPage, text, layer.pageCount(), (bx - unit.left) / unit.width(),
+                (by - unit.top) / unit.height(), slop / unit.width(), slop / unit.height());
+        return mark == null ? null : new com.foobnix.annotation.MarkTap.Hit(mark, docPage);
+    }
+
     /** Marks the key passages the AI picked, see {@link AiHighlights}. */
     private void drawAiHighlights(Canvas canvas) {
         final AiHighlights highlights = AiHighlights.get();
@@ -581,6 +651,7 @@ public class PageImaveView extends View {
 //            }
 
             if (!AppSP.get().isCut && isCropMappable(0)) {
+                drawMarks(canvas);
                 drawAiHighlights(canvas);
                 drawReadAloud(canvas);
 
@@ -1228,6 +1299,15 @@ public class PageImaveView extends View {
                     }
                 }
 
+                if (!isIgronerClick && !isLognPress) {
+                    // a tap on the reader's own mark: the eraser deletes it, else its card opens (F-008)
+                    final com.foobnix.annotation.MarkTap.Hit hit = markAt(event.getX(), event.getY());
+                    if (hit != null && com.foobnix.annotation.AnnotationSession.onMarkTap(hit)) {
+                        isIgronerClick = false;
+                        return true;
+                    }
+                }
+
                 if (!isIgronerClick && AppState.get().editWith == AppState.EDIT_DELETE) {
                     // annotation eraser: a tap on an annotation deletes it, other taps do nothing
                     final Annotation hit = getPageLinkClicked(event.getX(), event.getY()).second;
@@ -1250,8 +1330,14 @@ public class PageImaveView extends View {
                         TempHolder.get().linkPage = target;
                         LOG.d("Go to targetPage", target);
                     }
-                    if (pair.second != null && TxtUtils.isNotEmpty(pair.second.text)) {
-                        Dialogs.showTextDialog(getContext(), pair.second.text);
+                    if (pair.second != null && pageLink == null && !AppState.get().isIgnoreAnnotatations
+                            && getContext() instanceof android.app.Activity) {
+                        // an annotation inside the PDF: its comment, and a way to delete it (F-008)
+                        final Annotation tapped = pair.second;
+                        com.foobnix.annotation.MarkCard.showEmbedded((android.app.Activity) getContext(), tapped,
+                                () -> EventBus.getDefault().post(new MessageAnnotationErase(tapped.getPage(), tapped.getIndex())));
+                        isIgronerClick = false;
+                        return true;
                     }
 
                     if (isMoveNextPrev != 0) {

@@ -738,6 +738,89 @@ public abstract class HorizontalModeController extends DocumentController {
         });
     }
 
+    // ---- separate marks (F-008) ----
+
+    @Override public int docPageCount() {
+        return pagesCount;
+    }
+
+    /** The document page a word of the page view shown is on (two pages a screen: its side). */
+    private int docPageOf(TextWord word) {
+        if (!AppSP.get().isDouble) {
+            return currentPage;
+        }
+        final int first = currentPage * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+        return word.number == 2 ? first + 1 : first;
+    }
+
+    @Override public java.util.SortedMap<Integer, List<TextWord>> selectedWords() {
+        final java.util.TreeMap<Integer, List<TextWord>> byPage = new java.util.TreeMap<>();
+        final List<TextWord> selected = AppSP.get().isCut ? null : PageImageState.get().getSelectedWords(currentPage);
+        if (selected == null) {
+            return byPage;
+        }
+        for (TextWord word : selected) {
+            final int page = docPageOf(word);
+            List<TextWord> words = byPage.get(page);
+            if (words == null) {
+                words = new ArrayList<>();
+                byPage.put(page, words);
+            }
+            words.add(word);
+        }
+        return byPage;
+    }
+
+    @Override public TextWord[][] pageText(int docPage) {
+        return docPage < 0 ? null : PageImageState.get().pagesText.get(docPage);
+    }
+
+    @Override public float[] pageSizeUnits(int docPage) {
+        if (codeDocument == null || docPage < 0 || docPage >= pagesCount) {
+            return null;
+        }
+        final CodecPageInfo info = codeDocument.getPageInfo(docPage);
+        return info == null || info.width <= 0 || info.height <= 0 ? null : new float[]{info.width, info.height};
+    }
+
+    @Override public void addMarkupForSave(final int page, List<RectF> lines, final AnnotationType type, int color, final String note) {
+        if (codeDocument == null || lines == null || lines.isEmpty()) {
+            return;
+        }
+        final PointF[] quads = toQuadPoints(lines);
+        final float[] mupdfColor = Colors.toMupdfColor(color);
+        changePage(page, codecPage -> {
+            codecPage.addMarkupAnnotation(quads, type, mupdfColor);
+            if (note != null && !note.isEmpty()) {
+                // the new annotation is the page's last one
+                codecPage.setAnnotationContents(codecPage.getAnnotationsImpl().size() - 1, note);
+            }
+            return true;
+        });
+    }
+
+    @Override public void saveAnnotationsNow(final com.foobnix.android.utils.ResultResponse<Boolean> done) {
+        // after the changes asked for before: one thread runs them in order
+        annotationExecutor.execute(() -> {
+            boolean saved = false;
+            try {
+                if (codeDocument != null && !codeDocument.isRecycled()) {
+                    if (codeDocument.hasChanges()) {
+                        codeDocument.saveAnnotations(bookPath);
+                    }
+                    saved = !codeDocument.hasChanges();
+                }
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+            if (saved) {
+                forgetCreatedAnnotations();
+            }
+            final boolean result = saved;
+            activity.runOnUiThread(() -> done.onResultRecive(result));
+        });
+    }
+
     @Override public void addHighlightLines(final int page, List<RectF> lines, int color) {
         if (codeDocument == null || lines == null || lines.isEmpty()) {
             return;

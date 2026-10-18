@@ -6,36 +6,39 @@ import android.graphics.PointF;
 import android.graphics.drawable.GradientDrawable;
 import android.os.SystemClock;
 import android.view.Gravity;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.model.AppSP;
 import com.foobnix.model.AppState;
+import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.view.DrawView;
-import com.foobnix.pdf.info.model.AnnotationType;
 import com.foobnix.pdf.info.wrapper.DocumentController;
 import com.foobnix.pdf.search.activity.HorizontalModeController;
 
 import org.ebookdroid.BookType;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
- * Connects the annotation toolbar to an open book: the pen draws on a {@link DrawView} over the
- * page, the eraser deletes the annotation tapped (AppState.EDIT_DELETE, which both views
- * handle), and with a markup tool on a finished text selection becomes a highlight, underline or
- * strikethrough at once ({@link #markSelection}) instead of opening the selection menu.
+ * Connects the annotation toolbar to an open book. Every mark made here (markup and note tools on
+ * selected text, the pen, the stylus) is a separate mark kept outside the book ({@link MarksStore},
+ * .agents/features/F-008-separate-marks/design-2026-10-18.md): a PDF only changes when the reader
+ * asks ("Save marks into PDF"). The eraser deletes the mark tapped; annotations already inside a
+ * PDF are erased as before (AppState.EDIT_DELETE, which both views handle). Undo takes back the last
+ * mark made or erased.
  */
 public class AnnotationSession implements AnnotationToolbar.Listener {
 
@@ -44,13 +47,27 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     private final Activity activity;
     private final DocumentController dc;
     private final DrawView drawView;
-    private final AnnotationToolbar toolbar;
+    /** Built when first shown: the book (and whether its text reflows) is known by then. */
+    private AnnotationToolbar toolbar;
     /** Short messages of the session, shown above the toolbar: a system toast would cover it. */
     private final TextView note;
     private final Runnable hideNote;
     /** Where the toolbar stands above the bottom of the screen. */
     private static final int TOOLBAR_MARGIN_DP = 80;
     private int activeTool = AnnotationTools.NONE;
+
+    /** A mark made (undo removes it) or erased (undo puts it back). */
+    private static final class UndoStep {
+        final boolean made;
+        final Mark mark;
+
+        UndoStep(boolean made, Mark mark) {
+            this.made = made;
+            this.mark = mark;
+        }
+    }
+
+    private final ArrayDeque<UndoStep> undo = new ArrayDeque<>();
 
     /** One per open book; the toolbar floats at the bottom of the reader. */
     public static AnnotationSession attach(Activity activity, DocumentController dc, DrawView drawView) {
@@ -66,15 +83,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         // a tool left on when an earlier book was closed must not act in this one
         AppState.get().editWith = AppState.EDIT_NONE;
 
-        toolbar = new AnnotationToolbar(activity);
-        toolbar.setListener(this);
-        toolbar.setVisibility(View.GONE);
         final FrameLayout content = activity.findViewById(android.R.id.content);
-        final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        params.bottomMargin = Dips.dpToPx(TOOLBAR_MARGIN_DP);
-        content.addView(toolbar, params);
-
         note = new TextView(activity);
         note.setTextColor(Color.WHITE);
         note.setTextSize(14);
@@ -88,6 +97,34 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         content.addView(note, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
         hideNote = () -> note.animate().alpha(0).setDuration(200).withEndAction(() -> note.setVisibility(View.GONE));
+    }
+
+    /** Whether marks can be made in a book: PDF, XPS, DjVu and every book whose text reflows. */
+    public static boolean supports(String path) {
+        return path != null && (BookType.PDF.is(path) || BookType.DJVU.is(path) || ExtUtils.isTextFomat(path));
+    }
+
+    /** A fixed layout: marks are pinned to page positions, and the pen can draw. */
+    private boolean fixedLayout() {
+        return !dc.isTextFormat();
+    }
+
+    private String book() {
+        return dc.getCurrentBook() == null ? null : MarksLayer.bookName(dc.getCurrentBook().getPath());
+    }
+
+    private AnnotationToolbar toolbar() {
+        if (toolbar == null) {
+            toolbar = new AnnotationToolbar(activity, fixedLayout());
+            toolbar.setListener(this);
+            toolbar.setVisibility(View.GONE);
+            final FrameLayout content = activity.findViewById(android.R.id.content);
+            final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            params.bottomMargin = Dips.dpToPx(TOOLBAR_MARGIN_DP);
+            content.addView(toolbar, params);
+        }
+        return toolbar;
     }
 
     /** A short message above the toolbar (or where it would stand), gone after a moment. */
@@ -109,7 +146,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     }
 
     public boolean isShown() {
-        return toolbar.getVisibility() == View.VISIBLE;
+        return toolbar != null && toolbar.getVisibility() == View.VISIBLE;
     }
 
     public void toggle() {
@@ -121,16 +158,23 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     }
 
     public void show() {
-        toolbar.setVisibility(View.VISIBLE);
-        toolbar.bringToFront();
-        final int tool = AppState.get().annotTool;
-        toolbar.setTool(tool);
+        final AnnotationToolbar bar = toolbar();
+        bar.setVisibility(View.VISIBLE);
+        bar.bringToFront();
+        int tool = AppState.get().annotTool;
+        if (!bar.has(tool)) {
+            // the pen of a PDF in a book whose text reflows
+            tool = AnnotationTools.HIGHLIGHT;
+        }
+        bar.setTool(tool);
         apply(tool);
         hint(tool);
     }
 
     public void hide() {
-        toolbar.setVisibility(View.GONE);
+        if (toolbar != null) {
+            toolbar.setVisibility(View.GONE);
+        }
         apply(AnnotationTools.NONE);
     }
 
@@ -148,9 +192,37 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
 
     @Override
     public void onUndo() {
-        if (!dc.undoLastAnnotation()) {
-            note(R.string.annot_nothing_to_undo);
+        final UndoStep step = undo.poll();
+        if (step == null) {
+            // annotations made in the PDF itself this time (none come from the toolbar any more)
+            if (!dc.undoLastAnnotation()) {
+                note(R.string.annot_nothing_to_undo);
+            }
+            return;
         }
+        if (step.made) {
+            MarkEdits.remove(book(), step.mark.id, this::failed);
+        } else {
+            step.mark.touch();
+            MarkEdits.add(book(), step.mark, this::failed);
+        }
+    }
+
+    @Override
+    public void onMore(View anchor) {
+        final PopupMenu menu = new PopupMenu(activity, anchor);
+        menu.getMenu().add(R.string.marks_export).setOnMenuItemClickListener((MenuItem item) -> {
+            MarksExport.start(activity, dc.getCurrentBook().getPath(), dc);
+            return true;
+        });
+        final int count = SaveIntoPdf.countFor(dc);
+        if (count > 0) {
+            menu.getMenu().add(activity.getString(R.string.marks_save_into_pdf, count)).setOnMenuItemClickListener((MenuItem item) -> {
+                SaveIntoPdf.confirm(activity, dc, this::note);
+                return true;
+            });
+        }
+        menu.show();
     }
 
     @Override
@@ -173,7 +245,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
             drawView.setOnFinishDraw(this::onStroke);
             drawView.setColor(AnnotationTools.colorInt(AnnotationTools.PEN), AppState.get().editLineWidth);
             drawView.setVisibility(View.VISIBLE);
-            toolbar.bringToFront();
+            toolbar().bringToFront();
         } else {
             drawView.setVisibility(View.GONE);
         }
@@ -181,7 +253,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
 
     private void hint(int tool) {
         final int text;
-        if (AnnotationTools.isMarkup(tool)) {
+        if (AnnotationTools.isText(tool)) {
             text = R.string.annot_hint_markup;
         } else if (tool == AnnotationTools.PEN) {
             text = R.string.annot_hint_pen;
@@ -193,6 +265,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         note(text);
     }
 
+    /** A finger stroke of the pen: one mark at the pen's width. */
     private void onStroke() {
         final List<PointF> points = new ArrayList<>();
         for (PointF p : drawView.getPoints()) {
@@ -202,7 +275,40 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         if (points.size() < 2) {
             return;
         }
-        dc.saveChanges(points, AnnotationTools.colorInt(AnnotationTools.PEN));
+        final List<DocumentController.PagePoint> onPages = dc.toPageUnits(points);
+        if (onPages == null) {
+            note(R.string.fail);
+            return;
+        }
+        // page units, as the pen drew into the PDF before
+        final float width = AppState.get().editLineWidth * 3;
+        final Mark mark = MarkMaker.fromStroke(dc, onPages, null, step -> width, AnnotationTools.color(AnnotationTools.PEN));
+        if (mark != null) {
+            made(mark);
+        }
+    }
+
+    /** A new mark is kept, and Undo can take it back. */
+    private void made(Mark mark) {
+        undo.push(new UndoStep(true, mark));
+        if (!mark.isInk()) {
+            com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.HIGHLIGHT);
+        }
+        if (mark.hasNote()) {
+            com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.NOTE);
+        }
+        MarkEdits.add(book(), mark, this::failed);
+    }
+
+    private void erase(Mark mark) {
+        undo.push(new UndoStep(false, mark));
+        MarkEdits.remove(book(), mark.id, this::failed);
+    }
+
+    private void failed(Exception error) {
+        if (error != null) {
+            note(activity.getString(R.string.marks_write_failed, String.valueOf(error.getMessage())));
+        }
     }
 
     /** True while the toolbar of {@code dc} is shown: the old edit panel stays closed then. */
@@ -212,18 +318,109 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
     }
 
     /**
-     * A text selection is finished: with a markup tool on it is marked at once.
+     * A text selection is finished: with a markup or the note tool on it is marked at once.
      *
      * @return true when it was, so the selection menu is not shown
      */
     public static boolean markSelection(DocumentController dc) {
         final AnnotationSession session = current.get();
-        if (session == null || session.dc != dc || !session.isShown() || !AnnotationTools.isMarkup(session.activeTool)) {
+        if (session == null || session.dc != dc || !session.isShown() || !AnnotationTools.isText(session.activeTool)) {
             return false;
         }
-        dc.underlineText(AnnotationTools.colorInt(session.activeTool), 2.0f, AnnotationTools.markupType(session.activeTool));
-        dc.clearSelectedText();
+        session.markSelected(session.activeTool, AnnotationTools.color(session.activeTool));
         return true;
+    }
+
+    /**
+     * The selection menu's highlight, underline and strikethrough buttons: a separate mark in that
+     * color, as the toolbar makes.
+     */
+    public static void markSelectionAs(DocumentController dc, int tool, int color) {
+        final AnnotationSession session = current.get();
+        final String hex = ColorNames.hex(color);
+        if (session != null && session.dc == dc) {
+            session.markSelected(tool, hex);
+            return;
+        }
+        final Mark mark = MarkMaker.fromSelection(dc, AnnotationTools.kind(tool), hex);
+        dc.clearSelectedText();
+        if (mark != null && dc.getCurrentBook() != null) {
+            com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.HIGHLIGHT);
+            MarkEdits.add(MarksLayer.bookName(dc.getCurrentBook().getPath()), mark, null);
+        }
+    }
+
+    private void markSelected(int tool, String color) {
+        final Mark mark = MarkMaker.fromSelection(dc, AnnotationTools.kind(tool), color);
+        if (mark == null) {
+            dc.clearSelectedText();
+            note(R.string.marks_no_text);
+            return;
+        }
+        if (tool != AnnotationTools.NOTE) {
+            dc.clearSelectedText();
+            made(mark);
+            return;
+        }
+        // the note box shows the words; the mark is made when the note is saved
+        MarkCard.askNote(activity, mark.quote, text -> {
+            mark.note = text;
+            made(mark);
+        });
+        dc.clearSelectedText();
+    }
+
+    /**
+     * A tap landed on a separate mark: the eraser deletes it, anything else opens its card.
+     *
+     * @return true when the tap was used
+     */
+    public static boolean onMarkTap(MarkTap.Hit hit) {
+        final AnnotationSession session = current.get();
+        if (hit == null || session == null || session.activity.isFinishing()) {
+            return false;
+        }
+        if (AppState.get().editWith == AppState.EDIT_DELETE) {
+            session.erase(hit.mark);
+            return true;
+        }
+        session.showCard(hit);
+        return true;
+    }
+
+    private void showCard(final MarkTap.Hit hit) {
+        final Mark mark = hit.mark;
+        MarkCard.show(activity, mark, hit.page, new MarkCard.Listener() {
+            @Override
+            public void onNote(final String text) {
+                if (!mark.hasNote() && !text.isEmpty()) {
+                    com.foobnix.stats.ReadingTracker.count(com.foobnix.stats.StatsEvent.NOTE);
+                }
+                MarkEdits.apply(book(), marks -> {
+                    final Mark stored = marks.get(mark.id);
+                    if (stored != null) {
+                        stored.note = text;
+                        stored.touch();
+                    }
+                }, AnnotationSession.this::failed);
+            }
+
+            @Override
+            public void onColor(final String color) {
+                MarkEdits.apply(book(), marks -> {
+                    final Mark stored = marks.get(mark.id);
+                    if (stored != null) {
+                        stored.color = color;
+                        stored.touch();
+                    }
+                }, AnnotationSession.this::failed);
+            }
+
+            @Override
+            public void onDelete() {
+                erase(mark);
+            }
+        });
     }
 
     // ---- the stylus: draws at once, fingers keep reading (.agents/planning/stylus-annotation-design.md) ----
@@ -281,10 +478,9 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         session.stylusLastSeen = SystemClock.uptimeMillis();
     }
 
-    /** PDFs only, and one page per screen in book mode, as the toolbar. */
+    /** Books marks can be made in, and one page per screen in book mode, as the toolbar. */
     private boolean stylusWorks() {
-        if (dc.getCurrentBook() == null || !BookType.PDF.is(dc.getCurrentBook().getPath()) || dc.isTextFormat()
-                || dc.isPasswordProtected()) {
+        if (dc.getCurrentBook() == null || !supports(dc.getCurrentBook().getPath())) {
             return false;
         }
         return !(dc instanceof HorizontalModeController) || !(AppSP.get().isDouble || AppSP.get().isCut);
@@ -321,6 +517,10 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
             stylusDraw = stylusWorks()
                     ? StylusRules.draw(ev.getToolType(stylus), toolbarTool(), AppState.get().stylusTool, sideButton)
                     : StylusRules.DRAW_NONE;
+            if (stylusDraw == StylusRules.DRAW_PEN && !fixedLayout()) {
+                // a pen stroke cannot follow text that reflows: the stylus highlights it instead
+                stylusDraw = StylusRules.DRAW_HIGHLIGHTER;
+            }
             if (stylusDraw == StylusRules.DRAW_PEN || stylusDraw == StylusRules.DRAW_HIGHLIGHTER) {
                 if (ev.getPointerCount() > 1) {
                     // a finger already on the page lets go of what it was doing
@@ -342,7 +542,7 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
             return false;
         }
         if (stylusDraw == StylusRules.DRAW_ERASER) {
-            // the page sees the touch as a tap and deletes the annotation under it
+            // the page sees the touch as a tap and deletes the mark under it
             if (up) {
                 endEraserLater();
                 stylusDraw = StylusRules.DRAW_NONE;
@@ -404,7 +604,9 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         // the same width the pen draws with under a finger (DrawView.setColor)
         drawView.startStylus(x, y, ev.getPressure(stylus), AnnotationTools.colorInt(AnnotationTools.PEN),
                 Dips.dpToPx((int) AppState.get().editLineWidth * 2));
-        toolbar.bringToFront();
+        if (toolbar != null) {
+            toolbar.bringToFront();
+        }
     }
 
     private void moveStroke(MotionEvent ev, int stylus) {
@@ -450,61 +652,20 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
         savePen(points, steps);
     }
 
-    /** One ink annotation per pressure width, each holding the pieces of the stroke drawn at it, page by page. */
+    /** One mark per stroke: runs of points drawn at one pressure width, page by page. */
     private void savePen(List<PointF> points, int[] steps) {
         final List<DocumentController.PagePoint> onPages = dc.toPageUnits(points);
         if (onPages == null) {
             note(R.string.fail);
             return;
         }
-        final int[] steady = StylusRules.steady(steps, STEADY_POINTS);
-        final List<int[]> runs = StylusRules.runs(steady);
-        final int color = AnnotationTools.colorInt(AnnotationTools.PEN);
-        // page units, as the pen under a finger (saveChanges)
+        // page units, as the pen under a finger
         final float width = AppState.get().editLineWidth * 3;
-        dc.beginAnnotationGroup();
-        try {
-            for (int step = StylusRules.STEP_THIN; step <= StylusRules.STEP_BOLD; step++) {
-                final Map<Integer, List<PointF[]>> arcs = new TreeMap<>();
-                for (int[] run : runs) {
-                    if (steady[run[0]] != step) {
-                        continue;
-                    }
-                    List<PointF> piece = new ArrayList<>();
-                    int piecePage = -1;
-                    for (int i = run[0]; i <= run[1]; i++) {
-                        final DocumentController.PagePoint p = onPages.get(i);
-                        final int page = p == null ? -1 : p.page;
-                        if (page != piecePage) {
-                            addArc(arcs, piecePage, piece);
-                            piece = new ArrayList<>();
-                            piecePage = page;
-                        }
-                        if (p != null) {
-                            piece.add(p.point);
-                        }
-                    }
-                    addArc(arcs, piecePage, piece);
-                }
-                for (Map.Entry<Integer, List<PointF[]>> page : arcs.entrySet()) {
-                    dc.addInk(page.getKey(), page.getValue(), color, width * StylusRules.stepWidth(step));
-                }
-            }
-        } finally {
-            dc.endAnnotationGroup();
+        final Mark mark = MarkMaker.fromStroke(dc, onPages, StylusRules.steady(steps, STEADY_POINTS),
+                step -> width * StylusRules.stepWidth(step), AnnotationTools.color(AnnotationTools.PEN));
+        if (mark != null) {
+            made(mark);
         }
-    }
-
-    private static void addArc(Map<Integer, List<PointF[]>> arcs, int page, List<PointF> piece) {
-        if (page < 0 || piece.size() < 2) {
-            return;
-        }
-        List<PointF[]> list = arcs.get(page);
-        if (list == null) {
-            list = new ArrayList<>();
-            arcs.put(page, list);
-        }
-        list.add(piece.toArray(new PointF[0]));
     }
 
     /**
@@ -517,7 +678,12 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
             return;
         }
         if (dc.selectTextBetween(highlightStart.x, highlightStart.y, highlightEnd.x, highlightEnd.y)) {
-            dc.underlineText(AnnotationTools.colorInt(AnnotationTools.HIGHLIGHT), 2.0f, AnnotationType.HIGHLIGHT);
+            final Mark mark = MarkMaker.fromSelection(dc, Mark.HIGHLIGHT, AnnotationTools.color(AnnotationTools.HIGHLIGHT));
+            if (mark != null) {
+                made(mark);
+            } else {
+                note(R.string.stylus_no_text);
+            }
         } else {
             note(R.string.stylus_no_text);
         }

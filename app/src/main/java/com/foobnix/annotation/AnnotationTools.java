@@ -14,9 +14,11 @@ public final class AnnotationTools {
     public static final int STRIKEOUT = 3;
     public static final int PEN = 4;
     public static final int ERASER = 5;
+    /** Selected text gets a highlight with a note (F-008). */
+    public static final int NOTE = 6;
 
     /** Zotero's annotation colors. */
-    public static final String[] COLORS = {"#ffd400", "#ff6666", "#5fb236", "#2ea8e5", "#a28ae5", "#e56eee", "#f19837", "#aaaaaa", "#000000"};
+    public static final String[] COLORS = ColorNames.PALETTE;
 
     private AnnotationTools() {
     }
@@ -25,8 +27,13 @@ public final class AnnotationTools {
         return tool == HIGHLIGHT || tool == UNDERLINE || tool == STRIKEOUT;
     }
 
+    /** A tool that acts on selected text: the markup tools and the Note tool. */
+    public static boolean isText(int tool) {
+        return isMarkup(tool) || tool == NOTE;
+    }
+
     public static boolean hasColor(int tool) {
-        return isMarkup(tool) || tool == PEN;
+        return isText(tool) || tool == PEN;
     }
 
     public static AnnotationType markupType(int tool) {
@@ -40,6 +47,31 @@ public final class AnnotationTools {
         }
     }
 
+    /** The kind of mark a tool makes ({@link Mark#HIGHLIGHT}...). */
+    public static String kind(int tool) {
+        switch (tool) {
+            case UNDERLINE:
+                return Mark.UNDERLINE;
+            case STRIKEOUT:
+                return Mark.STRIKE;
+            case PEN:
+                return Mark.INK;
+            default:
+                return Mark.HIGHLIGHT;
+        }
+    }
+
+    /** The PDF annotation type of a mark's kind, for "Save marks into PDF". */
+    public static AnnotationType annotationType(String kind) {
+        if (Mark.UNDERLINE.equals(kind)) {
+            return AnnotationType.UNDERLINE;
+        }
+        if (Mark.STRIKE.equals(kind)) {
+            return AnnotationType.STRIKEOUT;
+        }
+        return AnnotationType.HIGHLIGHT;
+    }
+
     public static String color(int tool) {
         final AppState s = AppState.get();
         switch (tool) {
@@ -51,6 +83,8 @@ public final class AnnotationTools {
                 return s.annotStrikeoutColor;
             case PEN:
                 return s.annotPenColor;
+            case NOTE:
+                return s.annotNoteColor;
             default:
                 return COLORS[0];
         }
@@ -70,6 +104,9 @@ public final class AnnotationTools {
                 break;
             case PEN:
                 s.annotPenColor = color;
+                break;
+            case NOTE:
+                s.annotNoteColor = color;
                 break;
             default:
         }

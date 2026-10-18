@@ -81,6 +81,8 @@ import androidx.viewpager.widget.ViewPager;
 
 import com.foobnix.LibreraApp;
 import com.foobnix.StringResponse;
+import com.foobnix.annotation.AnnotationSession;
+import com.foobnix.annotation.AnnotationTools;
 import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.BaseItemAdapter;
 import com.foobnix.android.utils.BaseItemLayoutAdapter;
@@ -1792,16 +1794,16 @@ public class DragingDialogs {
 
                             image.setOnClickListener(new OnClickListener() {
                                 @Override public void onClick(View v) {
+                                    // a separate mark, never written into the file (F-008)
                                     if (line.startsWith("H")) {
-                                        controller.underlineText(colorInt, 2.0f, AnnotationType.HIGHLIGHT);
+                                        AnnotationSession.markSelectionAs(controller, AnnotationTools.HIGHLIGHT, colorInt);
                                     } else if (line.startsWith("U")) {
-                                        controller.underlineText(colorInt, 2.0f, AnnotationType.UNDERLINE);
+                                        AnnotationSession.markSelectionAs(controller, AnnotationTools.UNDERLINE, colorInt);
                                     } else if (line.startsWith("S")) {
-                                        controller.underlineText(colorInt, 2.0f, AnnotationType.STRIKEOUT);
+                                        AnnotationSession.markSelectionAs(controller, AnnotationTools.STRIKEOUT, colorInt);
                                     }
 
                                     closeDialog();
-                                    controller.saveAnnotationsToFile();
                                 }
                             });
                             image.setOnLongClickListener(new OnLongClickListener() {
@@ -2303,40 +2305,32 @@ public class DragingDialogs {
 
                         setOnClickListener(new OnClickListener() {
                     @Override public void onClick(View v) {
-                        controller.underlineText(Color.parseColor(AppState.get().annotationTextColor),
-                                                 2.0f,
-                                                 AnnotationType.UNDERLINE);
+                        AnnotationSession.markSelectionAs(controller, AnnotationTools.UNDERLINE,
+                                                          Color.parseColor(AppState.get().annotationTextColor));
                         closeDialog();
-                        controller.saveAnnotationsToFile();
                     }
                 });
                 view.findViewById(R.id.onStrike).
 
                         setOnClickListener(new OnClickListener() {
                     @Override public void onClick(View v) {
-                        controller.underlineText(Color.parseColor(AppState.get().annotationTextColor),
-                                                 2.0f,
-                                                 AnnotationType.STRIKEOUT);
+                        AnnotationSession.markSelectionAs(controller, AnnotationTools.STRIKEOUT,
+                                                          Color.parseColor(AppState.get().annotationTextColor));
                         closeDialog();
-                        controller.saveAnnotationsToFile();
                     }
                 });
                 view.findViewById(R.id.onSelection).
 
                         setOnClickListener(new OnClickListener() {
                     @Override public void onClick(View v) {
-                        controller.underlineText(Color.parseColor(AppState.get().annotationTextColor),
-                                                 2.0f,
-                                                 AnnotationType.HIGHLIGHT);
+                        AnnotationSession.markSelectionAs(controller, AnnotationTools.HIGHLIGHT,
+                                                          Color.parseColor(AppState.get().annotationTextColor));
                         closeDialog();
-                        controller.saveAnnotationsToFile();
                     }
                 });
 
-                if (!BookType.PDF.is(controller.getCurrentBook().
-
-                        getPath()) || !withAnnotation || controller.getActivity() instanceof HorizontalViewActivity ||
-                    controller.isPasswordProtected()) {
+                // every book marks can be made in, both view modes (F-008)
+                if (!AnnotationSession.supports(controller.getCurrentBook().getPath()) || !withAnnotation) {
                     linearLayoutColor.setVisibility(View.GONE);
                     view.findViewById(R.id.onUnderline).setVisibility(View.GONE);
                     view.findViewById(R.id.onStrike).setVisibility(View.GONE);

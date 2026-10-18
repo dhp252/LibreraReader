@@ -153,10 +153,30 @@ public class EventDraw implements IEvent {
         // drawSomething(page);
         // drawHighlights(page);
         drawSelectedText(page);
+        drawMarks(page);
         drawAiHighlights(page);
         drawReadAloud(page);
 
         return res;
+    }
+
+    /** The reader's own marks, kept outside the book (F-008, see MarksLayer). */
+    private void drawMarks(final Page page) {
+        final com.foobnix.annotation.MarksLayer layer = com.foobnix.annotation.MarksLayer.get();
+        if (layer.count() == 0) {
+            return;
+        }
+        final List<com.foobnix.annotation.MarksLayer.Shape> shapes = layer.shapesFor(page.index.docIndex, page.texts);
+        if (shapes.isEmpty()) {
+            return;
+        }
+        // the page's place on screen: marks are page-relative like the words
+        final RectF unit = page.getPageRegion(pageBounds, new RectF(0, 0, 1, 1));
+        if (unit == null) {
+            return;
+        }
+        unit.offset(-viewState.viewBase.x, -viewState.viewBase.y);
+        layer.draw(canvas, shapes, unit.left, unit.top, unit.width(), unit.height());
     }
 
     /** Marks the key passages the AI picked, see {@link AiHighlights}. */

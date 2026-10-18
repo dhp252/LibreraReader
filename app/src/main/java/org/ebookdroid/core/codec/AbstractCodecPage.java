@@ -50,4 +50,14 @@ public abstract class AbstractCodecPage implements CodecPage {
     }
 
     public abstract TextWord[][] getTextImpl();
+
+    @Override
+    public List<AnnotationLook> getAnnotationLooks() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public boolean setAnnotationContents(int index, String text) {
+        return false;
+    }
 }

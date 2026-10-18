@@ -77,6 +77,12 @@ public interface DecodeService {
 
 	void underlineText(int page, PointF[] points, int color, AnnotationType type, ResultResponse<List<Annotation>> resultResponse);
 
+	/** Fork (F-008): a markup annotation with its comment, for "Save marks into PDF". */
+	void underlineText(int page, PointF[] points, int color, AnnotationType type, String note, ResultResponse<List<Annotation>> resultResponse);
+
+	/** Fork (F-008): saves after every annotation change asked for before (ink included), then {@code runnable}. */
+	void saveAnnotationsAfterChanges(String path, Runnable runnable);
+
 	void processTextForPages(Page[] pages);
 
 	void searchText(String text, Page[] pages, ResultResponse<Integer> response, Runnable finish, int firstPage, int lastPage);

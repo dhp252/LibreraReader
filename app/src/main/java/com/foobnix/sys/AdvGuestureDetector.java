@@ -15,7 +15,6 @@ import com.foobnix.model.AppSP;
 import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.R;
-import com.foobnix.pdf.info.model.AnnotationType;
 import com.foobnix.pdf.info.view.BrightnessHelper;
 import com.foobnix.pdf.info.wrapper.DocumentController;
 import com.foobnix.pdf.search.activity.msg.MessagePageXY;
@@ -169,6 +168,15 @@ public class AdvGuestureDetector extends SimpleOnGestureListener implements IMul
             return true;
         }
 
+        // a tap on the reader's own mark: the eraser deletes it, else its card opens (F-008)
+        if (AppSP.get().readingMode != AppState.READING_MODE_MUSICIAN) {
+            final com.foobnix.annotation.MarkTap.Hit hit = docCtrl.markAt(e.getX(), e.getY());
+            if (hit != null && com.foobnix.annotation.AnnotationSession.onMarkTap(hit)) {
+                alowConfirm = false;
+                return true;
+            }
+        }
+
         if (!(AppSP.get().readingMode == AppState.READING_MODE_MUSICIAN) && !AppState.get().isIgnoreAnnotatations || AppState.get().editWith == AppState.EDIT_DELETE) {
             alowConfirm = false;
             Annotation annotation2 = avc.isAnnotationTap(e.getX(), e.getY());
@@ -187,11 +195,8 @@ public class AdvGuestureDetector extends SimpleOnGestureListener implements IMul
                     avc.selectAnnotation(null);
                     annotation = null;
                 } else {
-                    if (annotation.type == AnnotationType.TEXT) {
-                        docCtrl.showAnnotation(annotation);
-                    } else {
-                        docCtrl.showEditDialogIfNeed();
-                    }
+                    // its comment, and a way to delete it (F-008: the toolbar replaced the old edit panel)
+                    docCtrl.showEmbeddedAnnotation(annotation);
                 }
                 return true;
             }

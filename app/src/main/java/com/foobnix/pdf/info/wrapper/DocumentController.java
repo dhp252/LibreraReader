@@ -1194,6 +1194,67 @@ public abstract class DocumentController {
     public void addHighlightLines(int page, List<RectF> lines, int color) {
     }
 
+    // ---- separate marks (F-008, .agents/features/F-008-separate-marks/) ----
+
+    /**
+     * The words selected now by 0-based document page, pages in order, each page's words in
+     * reading order; empty when nothing is selected.
+     */
+    public java.util.SortedMap<Integer, List<org.ebookdroid.droids.mupdf.codec.TextWord>> selectedWords() {
+        return new java.util.TreeMap<>();
+    }
+
+    /** Pages of the document in its layout (book mode with two pages a screen counts spreads in getPageCount). */
+    public int docPageCount() {
+        return getPageCount();
+    }
+
+    /** The words of a document page as the view holds them; null when its text is not at hand. */
+    public org.ebookdroid.droids.mupdf.codec.TextWord[][] pageText(int docPage) {
+        return null;
+    }
+
+    /** Width and height of a document page in page units ({@code TextWord.getOriginal}); null when unknown. */
+    public float[] pageSizeUnits(int docPage) {
+        return null;
+    }
+
+    /** The separate mark drawn under a point over the pages (view coordinates), or null. */
+    public com.foobnix.annotation.MarkTap.Hit markAt(float x, float y) {
+        return null;
+    }
+
+    /**
+     * A markup annotation for "Save marks into PDF": lines in page units, with its comment. It
+     * belongs to the open undo group, so a failed save can take it back.
+     */
+    public void addMarkupForSave(int page, List<RectF> lines, AnnotationType type, int color, String note) {
+    }
+
+    /**
+     * Writes the annotation changes into the file now, after the changes asked for before.
+     *
+     * @param done gets true on the main thread when the file holds them all
+     */
+    public void saveAnnotationsNow(final com.foobnix.android.utils.ResultResponse<Boolean> done) {
+        done.onResultRecive(false);
+    }
+
+    /** The annotations made so far are no longer undone by {@link #undoLastAnnotation} (they are in the file now). */
+    protected void forgetCreatedAnnotations() {
+        synchronized (createdAnnotations) {
+            createdAnnotations.clear();
+        }
+    }
+
+    /** A tap on an annotation inside the PDF: its comment, and a way to delete it. */
+    public void showEmbeddedAnnotation(final Annotation annotation) {
+        com.foobnix.annotation.MarkCard.showEmbedded(activity, annotation, () -> {
+            deleteAnnotation(annotation.getPageHandler(), annotation.getPage(), annotation.getIndex());
+            saveAnnotationsToFile();
+        });
+    }
+
     /** One quad per line, in the order MuPDF takes them, as {@code underlineText} builds them. */
     protected static PointF[] toQuadPoints(List<RectF> lines) {
         final PointF[] quads = new PointF[lines.size() * 4];

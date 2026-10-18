@@ -107,6 +107,45 @@ public class BookText implements Closeable {
         }
     }
 
+    /** The annotations inside a PDF page, how they look, and the page's words (F-008 export). */
+    public static final class PageAnnotations {
+        public final List<org.ebookdroid.core.codec.Annotation> annotations;
+        public final List<org.ebookdroid.core.codec.AnnotationLook> looks;
+        public final TextWord[][] text;
+
+        PageAnnotations(List<org.ebookdroid.core.codec.Annotation> annotations,
+                        List<org.ebookdroid.core.codec.AnnotationLook> looks, TextWord[][] text) {
+            this.annotations = annotations;
+            this.looks = looks;
+            this.text = text;
+        }
+    }
+
+    /** The annotations inside a page (PDF), with their colors and lines; empty for a page without any. */
+    public PageAnnotations annotations(int page) {
+        final List<org.ebookdroid.core.codec.Annotation> none = new ArrayList<>();
+        if (page < 0 || page >= pageCount) {
+            return new PageAnnotations(none, new ArrayList<org.ebookdroid.core.codec.AnnotationLook>(), new TextWord[0][0]);
+        }
+        CodecPage codecPage = null;
+        try {
+            codecPage = doc.getPage(page);
+            final List<org.ebookdroid.core.codec.Annotation> annotations = codecPage == null ? null : codecPage.getAnnotations();
+            if (annotations == null || annotations.isEmpty()) {
+                return new PageAnnotations(none, new ArrayList<org.ebookdroid.core.codec.AnnotationLook>(), new TextWord[0][0]);
+            }
+            final TextWord[][] text = codecPage.getText();
+            return new PageAnnotations(annotations, codecPage.getAnnotationLooks(), text == null ? new TextWord[0][0] : text);
+        } catch (Exception e) {
+            LOG.e(e);
+            return new PageAnnotations(none, new ArrayList<org.ebookdroid.core.codec.AnnotationLook>(), new TextWord[0][0]);
+        } finally {
+            if (codecPage != null) {
+                codecPage.recycle();
+            }
+        }
+    }
+
     /** The words of a page in reading order, as the reader views mark them. */
     public static List<String> words(TextWord[][] text) {
         final List<TextWord> words = TTSHighlight.words(text);

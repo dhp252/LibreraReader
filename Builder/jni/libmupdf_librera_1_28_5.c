@@ -2056,6 +2056,147 @@ Java_org_ebookdroid_droids_mupdf_codec_MuPdfPage_addMarkupAnnotationInternal(JNI
     }
 }
 
+/*
+ * Fork (F-008, separate marks): the comment of the page's annotation annot_index (in
+ * pdf_first_annot order), UTF-8: the note of a mark saved into the PDF.
+ */
+JNIEXPORT jboolean JNICALL
+Java_org_ebookdroid_droids_mupdf_codec_MuPdfPage_setAnnotationContentsInternal(JNIEnv* env,
+                                                                               jobject thiz,
+                                                                               jlong handle,
+                                                                               jlong pagehandle,
+                                                                               jint annot_index,
+                                                                               jbyteArray text)
+{
+    renderdocument_t* doc_t = (renderdocument_t*)(long)handle;
+    renderpage_t* page = (renderpage_t*)(long)pagehandle;
+    if (!doc_t || !doc_t->ctx || !doc_t->document || !page || !text) {
+        return JNI_FALSE;
+    }
+    fz_context* ctx = doc_t->ctx;
+
+    jsize len = (*env)->GetArrayLength(env, text);
+    char* utf8 = malloc(len + 1);
+    if (!utf8) {
+        return JNI_FALSE;
+    }
+    (*env)->GetByteArrayRegion(env, text, 0, len, (jbyte*)utf8);
+    utf8[len] = 0;
+
+    jboolean done = JNI_FALSE;
+    fz_var(done);
+    fz_try(ctx)
+    {
+        if (pdf_specifics(ctx, doc_t->document)) {
+            pdf_annot* annot = pdf_first_annot(ctx, (pdf_page*)page->page);
+            int i;
+            for (i = 0; i < annot_index && annot; i++) {
+                annot = pdf_next_annot(ctx, annot);
+            }
+            if (annot) {
+                pdf_set_annot_contents(ctx, annot, utf8);
+                pdf_update_page(ctx, (pdf_page*)page->page);
+                done = JNI_TRUE;
+            }
+        }
+    }
+    fz_always(ctx)
+    {
+        free(utf8);
+    }
+    fz_catch(ctx)
+    {
+        done = JNI_FALSE;
+    }
+    return done;
+}
+
+/*
+ * Fork (F-008): how each annotation of the page looks, in pdf_first_annot order, one float[] each:
+ * {n, c0, c1, c2, c3, quadCount, then per quad ul.x ul.y ur.x ur.y ll.x ll.y lr.x lr.y}, n the color
+ * components (0 none, 1 gray, 3 RGB, 4 CMYK), quads in page space as pdf_bound_annot.
+ */
+JNIEXPORT jobjectArray JNICALL
+Java_org_ebookdroid_droids_mupdf_codec_MuPdfPage_getAnnotationDetailsInternal(JNIEnv* env,
+                                                                              jobject thiz,
+                                                                              jlong handle,
+                                                                              jlong pagehandle)
+{
+    renderdocument_t* doc_t = (renderdocument_t*)(long)handle;
+    renderpage_t* page = (renderpage_t*)(long)pagehandle;
+    if (!doc_t || !doc_t->ctx || !doc_t->document || !page) {
+        return NULL;
+    }
+    fz_context* ctx = doc_t->ctx;
+    pdf_document* idoc = NULL;
+    fz_try(ctx)
+    {
+        idoc = pdf_specifics(ctx, doc_t->document);
+    }
+    fz_catch(ctx)
+    {
+        return NULL;
+    }
+    if (!idoc) {
+        return NULL;
+    }
+
+    jclass floatArrayClass = (*env)->FindClass(env, "[F");
+    if (floatArrayClass == NULL) {
+        return NULL;
+    }
+
+    pdf_annot* annot;
+    int count = 0;
+    fz_try(ctx)
+    {
+        for (annot = pdf_first_annot(ctx, (pdf_page*)page->page); annot != NULL; annot = pdf_next_annot(ctx, annot))
+            count++;
+    }
+    fz_catch(ctx)
+    {
+        return NULL;
+    }
+
+    jobjectArray arr = (*env)->NewObjectArray(env, count, floatArrayClass, NULL);
+    if (arr == NULL) {
+        return NULL;
+    }
+
+    int i = 0;
+    fz_var(i);
+    fz_try(ctx)
+    {
+        for (annot = pdf_first_annot(ctx, (pdf_page*)page->page); annot != NULL && i < count;
+             annot = pdf_next_annot(ctx, annot), i++) {
+            int n = 0;
+            float color[4] = {0, 0, 0, 0};
+            pdf_annot_color(ctx, annot, &n, color);
+            int quads = pdf_annot_has_quad_points(ctx, annot) ? pdf_annot_quad_point_count(ctx, annot) : 0;
+
+            jfloatArray values = (*env)->NewFloatArray(env, 6 + quads * 8);
+            if (values == NULL) {
+                fz_throw(ctx, FZ_ERROR_GENERIC, "NewFloatArray");
+            }
+            float head[6] = {(float)n, color[0], color[1], color[2], color[3], (float)quads};
+            (*env)->SetFloatArrayRegion(env, values, 0, 6, head);
+            int q;
+            for (q = 0; q < quads; q++) {
+                fz_quad quad = pdf_annot_quad_point(ctx, annot, q);
+                float qv[8] = {quad.ul.x, quad.ul.y, quad.ur.x, quad.ur.y, quad.ll.x, quad.ll.y, quad.lr.x, quad.lr.y};
+                (*env)->SetFloatArrayRegion(env, values, 6 + q * 8, 8, qv);
+            }
+            (*env)->SetObjectArrayElement(env, arr, i, values);
+            (*env)->DeleteLocalRef(env, values);
+        }
+    }
+    fz_catch(ctx)
+    {
+        // what was read before the error is still worth having; the rest stays null
+    }
+    return arr;
+}
+
 static void
 fz_print_stext_image_as_html_my(fz_context* ctx, fz_output* out, fz_stext_block* block)
 {

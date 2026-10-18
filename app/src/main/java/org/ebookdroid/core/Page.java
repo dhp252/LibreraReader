@@ -62,6 +62,11 @@ public class Page {
         return findText(text, texts);
     }
 
+    /** The page's words by line once its text was read, else null (fork: separate marks, F-008). */
+    public TextWord[][] getTexts() {
+        return texts;
+    }
+
     public static List<TextWord> findText(String text, TextWord[][] texts) {
         List<TextWord> result = new ArrayList<TextWord>();
         if (texts == null) {

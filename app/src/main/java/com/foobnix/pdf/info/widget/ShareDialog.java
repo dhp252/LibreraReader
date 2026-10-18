@@ -299,6 +299,12 @@ public class ShareDialog {
         items.add(iconText(a, "⎘", R.string.open_with));
         items.add(iconText(a, "➥", R.string.send_file));
 
+        // the book's marks, notes, bookmarks and AI passages as Markdown (F-008)
+        final boolean canExportNotes = com.foobnix.annotation.AnnotationSession.supports(file.getPath());
+        if (canExportNotes) {
+            items.add(iconText(a, "✎", R.string.marks_export));
+        }
+
         final boolean isExternalOrCloud = ExtUtils.isExteralSD(file.getPath()) || Clouds.isCloud(file.getPath());
         boolean canDelete1 =
                 ExtUtils.isExteralSD(file.getPath()) || Clouds.isCloud(file.getPath()) ? true : file.canWrite();
@@ -457,6 +463,8 @@ public class ShareDialog {
                     ExtUtils.openWith(a, file);
                 } else if (which == i++) {
                     ExtUtils.sendFileTo(a, file);
+                } else if (canExportNotes && which == i++) {
+                    com.foobnix.annotation.MarksExport.start(a, file.getPath(), dc);
                 } else if (isMainTabs && canDelete && which == i++) {
                     FileInformationDialog.dialogDelete(a, file, onDeleteAction);
                 } else if (isMainTabs && canCopy && which == i++) {

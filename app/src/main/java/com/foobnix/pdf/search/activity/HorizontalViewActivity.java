@@ -126,7 +126,6 @@ import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.MainTabs2;
 import com.foobnix.ui2.MyContextWrapper;
 
-import org.ebookdroid.BookType;
 import org.ebookdroid.common.settings.SettingsManager;
 import org.ebookdroid.common.settings.books.SharedBooks;
 import org.ebookdroid.droids.mupdf.codec.exceptions.MuPdfPasswordException;
@@ -1602,6 +1601,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     protected void onDestroy() {
         super.onDestroy();
         AiHighlights.get().close(this);
+        com.foobnix.annotation.MarksLayer.get().close(this);
         com.foobnix.stats.ReadingTracker.destroyed(this);
 
         if (loadinAsyncTask != null) {
@@ -1987,12 +1987,15 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         closePlaylist.setVisibility(show && AppState.get().isPlayListVisible ? View.VISIBLE : View.INVISIBLE);
     }
 
-    /** The annotation toolbar, for PDFs: the edit button of the top bar shows and hides it. */
+    /**
+     * The annotation toolbar, for every book marks can be made in (F-008: PDF, DjVu, and books whose
+     * text reflows): the edit button of the top bar shows and hides it.
+     */
     private void initAnnotations() {
         final View edit = findViewById(R.id.editTop2);
-        final boolean pdf = dc != null && dc.getCurrentBook() != null && BookType.PDF.is(dc.getCurrentBook().getPath())
-                && !dc.isTextFormat() && !dc.isPasswordProtected();
-        if (!pdf) {
+        final boolean marks = dc != null && dc.getCurrentBook() != null
+                && AnnotationSession.supports(dc.getCurrentBook().getPath());
+        if (!marks) {
             edit.setVisibility(View.GONE);
             return;
         }
@@ -2005,7 +2008,8 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         }
         edit.setVisibility(View.VISIBLE);
         edit.setOnClickListener(v -> {
-            if (AppSP.get().isDouble || AppSP.get().isCut) {
+            // a book whose text reflows has no pen, so two pages a screen are fine there
+            if (AppSP.get().isCut || (AppSP.get().isDouble && !dc.isTextFormat())) {
                 Toast.makeText(this, R.string.annot_one_page, Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -2022,6 +2026,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         }
         ai.setOnClickListener(v -> AiMenu.show(this, v, dc));
         AiHighlights.get().open(this, dc.getCurrentBook().getPath());
+        com.foobnix.annotation.MarksLayer.get().open(this, dc.getCurrentBook().getPath(), dc.docPageCount());
         com.foobnix.webdav.BookSync.shown(dc);
     }
 

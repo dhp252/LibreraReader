@@ -289,10 +289,11 @@ public class WebDav {
         }
     }
 
-    /** The files a book is read with, relative to the profile folder: position, bookmarks, AI. */
+    /** The files a book is read with, relative to the profile folder: position, bookmarks, AI, marks. */
     static List<String> bookFiles(String bookPath) {
         return Arrays.asList(AppProfile.APP_PROGRESS_JSON, AppProfile.APP_BOOKMARKS_JSON,
-                AiStore.profilePath(AiHighlights.bookName(bookPath)));
+                AiStore.profilePath(AiHighlights.bookName(bookPath)),
+                com.foobnix.annotation.MarksStore.profilePath(AiHighlights.bookName(bookPath)));
     }
 
     /**

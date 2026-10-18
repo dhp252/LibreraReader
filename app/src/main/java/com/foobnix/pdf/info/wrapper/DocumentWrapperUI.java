@@ -45,7 +45,6 @@ import com.foobnix.android.utils.Vibro;
 import com.foobnix.android.utils.Views;
 import com.foobnix.model.AppSP;
 import com.foobnix.model.AppState;
-import com.foobnix.pdf.info.AppsConfig;
 import com.foobnix.pdf.info.BookmarksData;
 import com.foobnix.pdf.info.DictsHelper;
 import com.foobnix.pdf.info.ExtUtils;
@@ -88,7 +87,6 @@ import com.foobnix.ui2.AdsFragmentActivity;
 import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.MainTabs2;
 
-import org.ebookdroid.BookType;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -455,6 +453,13 @@ public class DocumentWrapperUI {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onAiHighlightsChanged(MessageAiHighlights event) {
+        if (dc != null) {
+            dc.redrawReadAloud();
+        }
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMarksChanged(com.foobnix.annotation.MessageMarks event) {
         if (dc != null) {
             dc.redrawReadAloud();
         }
@@ -1536,16 +1541,8 @@ public class DocumentWrapperUI {
     }
 
     public void showEditDialogIfNeed() {
-        if (AnnotationSession.isShownFor(dc)) {
-            // the annotation toolbar is in charge; the old panel would take over its pen
-            return;
-        }
-        DragingDialogs.dialogEditColors(anchor, dc, drawView, true, new Runnable() {
-            @Override
-            public void run() {
-                hideShowAnnotationLine();
-            }
-        });
+        // The annotation toolbar replaced the old edit panel: its pen wrote straight into the PDF,
+        // and marks are only written into a file when the reader asks (F-008, D-56).
     }
 
     public void doDoubleTap(int x, int y) {
@@ -2091,24 +2088,15 @@ public class DocumentWrapperUI {
     }
 
     public void hideShowEditIcon() {
-        if (dc != null && !BookType.PDF.is(dc.getCurrentBook().getPath())) {
+        // the annotation toolbar (F-008): every book marks can be made in; marks never write into
+        // the file, so a password-protected PDF can have them too
+        if (dc == null || dc.getCurrentBook() == null || !AnnotationSession.supports(dc.getCurrentBook().getPath())) {
             editTop2.setVisibility(View.GONE);
         } else if (AppSP.get().isCut) {
             editTop2.setVisibility(View.GONE);
         } else {
-            boolean passwordProtected = dc.isPasswordProtected();
-            LOG.d("passwordProtected", passwordProtected);
-            if (dc != null && passwordProtected) {
-                editTop2.setVisibility(View.GONE);
-            } else {
-                if (AppsConfig.MUPDF_FZ_VERSION.equals(AppsConfig.MUPDF_1_11)) {
-                    editTop2.setVisibility(View.VISIBLE);
-                } else {
-                    editTop2.setVisibility(View.VISIBLE);
-                }
-            }
+            editTop2.setVisibility(View.VISIBLE);
         }
-
     }
 
     public DocumentController getController() {
@@ -2268,6 +2256,7 @@ public class DocumentWrapperUI {
         handlerTimer.removeCallbacksAndMessages(null);
         handler.removeCallbacksAndMessages(null);
         AiHighlights.get().close(a);
+        com.foobnix.annotation.MarksLayer.get().close(a);
     }
 
     public void onConfigChanged() {
@@ -2282,6 +2271,7 @@ public class DocumentWrapperUI {
         onCloseBook.setVisibility(View.VISIBLE);
         if (dc != null && dc.getCurrentBook() != null) {
             AiHighlights.get().open(a, dc.getCurrentBook().getPath());
+            com.foobnix.annotation.MarksLayer.get().open(a, dc.getCurrentBook().getPath(), dc.docPageCount());
             com.foobnix.webdav.BookSync.shown(dc);
         }
     }

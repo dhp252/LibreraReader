@@ -425,6 +425,105 @@ public class VerticalModeController extends DocumentController {
         return highlights.categoryAt(p.page, p.point.x / page.cpi.width, p.point.y / page.cpi.height);
     }
 
+    // ---- separate marks (F-008) ----
+
+    @Override
+    public java.util.SortedMap<Integer, List<TextWord>> selectedWords() {
+        final java.util.TreeMap<Integer, List<TextWord>> byPage = new java.util.TreeMap<>();
+        if (ctr == null || ctr.getDocumentModel() == null || ctr.getDocumentController() == null) {
+            return byPage;
+        }
+        final int first = ctr.getDocumentController().getFirstVisiblePage();
+        final int last = ctr.getDocumentController().getLastVisiblePage();
+        for (int i = first; i <= last; i++) {
+            final Page page = ctr.getDocumentModel().getPageByDocIndex(i);
+            if (page != null && page.selectedText != null && !page.selectedText.isEmpty()) {
+                byPage.put(page.index.docIndex, new ArrayList<>(page.selectedText));
+            }
+        }
+        return byPage;
+    }
+
+    @Override
+    public TextWord[][] pageText(int docPage) {
+        if (ctr == null || ctr.getDocumentModel() == null || docPage < 0) {
+            return null;
+        }
+        final Page page = ctr.getDocumentModel().getPageByDocIndex(docPage);
+        return page == null ? null : page.getTexts();
+    }
+
+    @Override
+    public float[] pageSizeUnits(int docPage) {
+        if (ctr == null || ctr.getDocumentModel() == null || docPage < 0) {
+            return null;
+        }
+        final Page page = ctr.getDocumentModel().getPageByDocIndex(docPage);
+        return page == null || page.cpi == null || page.cpi.width <= 0 || page.cpi.height <= 0
+                ? null : new float[]{page.cpi.width, page.cpi.height};
+    }
+
+    @Override
+    public com.foobnix.annotation.MarkTap.Hit markAt(float x, float y) {
+        final com.foobnix.annotation.MarksLayer layer = com.foobnix.annotation.MarksLayer.get();
+        if (layer.count() == 0) {
+            return null;
+        }
+        final List<PagePoint> at = toPageUnits(Collections.singletonList(new PointF(x, y)));
+        if (at == null || at.isEmpty() || at.get(0) == null) {
+            return null;
+        }
+        final PagePoint p = at.get(0);
+        final Page page = ctr.getDocumentModel().getPageByDocIndex(p.page);
+        if (page == null || page.cpi == null || page.cpi.width <= 0 || page.cpi.height <= 0) {
+            return null;
+        }
+        // a finger is about this wide
+        final float slop = Dips.dpToPx(12) * p.unitsPerPx;
+        final com.foobnix.annotation.Mark mark = layer.hit(p.page, page.getTexts(), docPageCount(),
+                p.point.x / page.cpi.width, p.point.y / page.cpi.height, slop / page.cpi.width, slop / page.cpi.height);
+        return mark == null ? null : new com.foobnix.annotation.MarkTap.Hit(mark, p.page);
+    }
+
+    @Override
+    public void addMarkupForSave(final int page, List<RectF> lines, AnnotationType type, int color, String note) {
+        if (ctr == null || ctr.getDecodeService() == null || lines == null || lines.isEmpty()) {
+            return;
+        }
+        final int group = annotationGroup();
+        final Page target = ctr.getDocumentModel().getPageByDocIndex(page);
+        ctr.getDecodeService().underlineText(page, toQuadPoints(lines), color, type, note,
+                new ResultResponse<List<Annotation>>() {
+
+                    @Override
+                    public boolean onResultRecive(List<Annotation> annotations) {
+                        if (target != null) {
+                            target.annotations = annotations;
+                        }
+                        if (ctr.getDocumentController() != null) {
+                            ctr.getDocumentController().toggleRenderingEffects();
+                        }
+                        recordCreatedAnnotation(page, annotations == null ? 0 : annotations.size(), group);
+                        return false;
+                    }
+                });
+    }
+
+    @Override
+    public void saveAnnotationsNow(final ResultResponse<Boolean> done) {
+        if (ctr == null || ctr.getDecodeService() == null || getCurrentBook() == null) {
+            done.onResultRecive(false);
+            return;
+        }
+        ctr.getDecodeService().saveAnnotationsAfterChanges(getCurrentBook().getAbsolutePath(), () -> {
+            final boolean saved = !ctr.getDecodeService().hasAnnotationChanges();
+            if (saved) {
+                forgetCreatedAnnotations();
+            }
+            getActivity().runOnUiThread(() -> done.onResultRecive(saved));
+        });
+    }
+
     /** The scroll view takes the first point as a selection anchor's corner (AdvGuestureDetector). */
     @Override
     public boolean selectTextBetween(float x1, float y1, float x2, float y2) {

@@ -54,18 +54,23 @@ public final class QuoteMatcher {
             return count;
         }
 
+        /** The letters and digits of all the words, run together. */
+        public String letters() {
+            return text;
+        }
+
         /** The words holding letters {@code from} to {@code to} - 1: {first, last}, inclusive. */
-        int[] range(int from, int to) {
+        public int[] range(int from, int to) {
             return new int[]{owner[from], owner[to - 1]};
         }
 
         /** Letter {@code at} is the first of its word. */
-        boolean startsWord(int at) {
+        public boolean startsWord(int at) {
             return at == 0 || (at < owner.length && owner[at - 1] != owner[at]);
         }
 
         /** Letter {@code at} - 1 is the last of its word. */
-        boolean endsWord(int at) {
+        public boolean endsWord(int at) {
             return at == owner.length || (at > 0 && at < owner.length && owner[at - 1] != owner[at]);
         }
     }

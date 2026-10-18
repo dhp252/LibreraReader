@@ -18,6 +18,28 @@
     <string name="annot_hint_pen">Draw on the page; tap the pen again to scroll</string>
     <string name="annot_hint_eraser">Tap an annotation to delete it</string>
     <string name="annot_one_page">Drawing needs one page per screen</string>
+    <string name="annot_note">Note</string>
+    <string name="annot_add_note">Add a note</string>
+    <string name="annot_more">More</string>
+
+    <string name="marks_page_kind">p. %1$d · %2$s · %3$s</string>
+    <string name="marks_in_pdf">Annotation in the PDF</string>
+    <string name="marks_no_comment">No comment</string>
+    <string name="marks_no_text">No text to mark there</string>
+    <string name="marks_write_failed">The mark could not be saved: %1$s</string>
+    <string name="marks_save_into_pdf">Save marks into PDF (%1$d)</string>
+    <string name="marks_save_confirm">Write %1$d marks into this PDF? Zotero, Acrobat and Xodo will see them; in Librera they become part of the file and are no longer merged between devices.</string>
+    <string name="marks_saved_into_pdf">%1$d marks are now in the PDF.</string>
+    <string name="marks_save_failed">The PDF could not be written; your marks are kept.</string>
+    <string name="marks_export">Export notes (Markdown)</string>
+    <string name="marks_exporting">Exporting notes…</string>
+    <string name="marks_export_failed">The export failed: %1$s</string>
+    <string name="marks_export_nothing">This book has no marks, bookmarks or AI passages yet.</string>
+    <string name="marks_export_share">Share</string>
+    <string name="marks_export_save_to">Save to %1$s</string>
+    <string name="marks_export_choose_folder">Save to a folder</string>
+    <string name="marks_export_other_folder">Save to another folder</string>
+    <string name="marks_export_saved">Saved to %1$s</string>
 
     <string name="webdav_sync">WebDAV sync</string>
     <string name="webdav_sync_info">Keep reading progress, bookmarks, recent books, tags and settings (AI settings included) in step between your devices through your own WebDAV server (Nextcloud, ownCloud, a NAS…).</string>

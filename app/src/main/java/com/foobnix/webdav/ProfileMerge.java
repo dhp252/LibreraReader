@@ -1,5 +1,7 @@
 package com.foobnix.webdav;
 
+import com.foobnix.annotation.MarksStore;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -49,7 +51,7 @@ public final class ProfileMerge {
     public static boolean handles(String path) {
         final String name = nameOf(path);
         return PROGRESS.equals(name) || BOOKMARKS.equals(name) || RECENT.equals(name) || FAVORITE.equals(name)
-                || EXCLUDE.equals(name) || TAGS.equals(name);
+                || EXCLUDE.equals(name) || TAGS.equals(name) || MarksStore.isMarksFile(path);
     }
 
     /**
@@ -60,7 +62,8 @@ public final class ProfileMerge {
      */
     public static String merge(String path, String base, String local, String remote) throws JSONException {
         final String name = nameOf(path);
-        if (PROGRESS.equals(name) || BOOKMARKS.equals(name)) {
+        // a book's marks (F-008): {id: mark}, the newer change of one mark by its "t"
+        if (PROGRESS.equals(name) || BOOKMARKS.equals(name) || MarksStore.isMarksFile(path)) {
             return mergeObjects(base, local, remote, "t").toString();
         }
         if (RECENT.equals(name) || FAVORITE.equals(name) || EXCLUDE.equals(name)) {

@@ -43,6 +43,12 @@ public interface CodecPage {
 
 	void addMarkupAnnotation(PointF[] quadPoints, AnnotationType type, float[] color);
 
+	/** Fork (F-008): color and lines of each annotation, as {@link #getAnnotationsImpl} lists them; empty when unknown. */
+	List<AnnotationLook> getAnnotationLooks();
+
+	/** Fork (F-008): the comment of annotation {@code index} of the page; false when it could not be set. */
+	boolean setAnnotationContents(int index, String text);
+
     String getPageHTML();
 
     String getPageHTMLWithImages();

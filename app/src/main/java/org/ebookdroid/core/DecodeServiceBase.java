@@ -311,6 +311,40 @@ public class DecodeServiceBase implements DecodeService {
 
     }
 
+    @Override
+    public void underlineText(final int page, final PointF[] points, final int color, final AnnotationType type, final String note,
+                              final ResultResponse<List<Annotation>> callback) {
+        executor.addAny(new Task(0) {
+
+            @Override
+            public void run() {
+                final CodecPage codecPage = getPage(page);
+                codecPage.addMarkupAnnotation(points, type, Colors.toMupdfColor(color));
+                if (note != null && !note.isEmpty()) {
+                    // the new annotation is the page's last one
+                    codecPage.setAnnotationContents(codecPage.getAnnotationsImpl().size() - 1, note);
+                }
+                pages.clear();
+                callback.onResultRecive(getPage(page).getAnnotations());
+            }
+        });
+    }
+
+    @Override
+    public void saveAnnotationsAfterChanges(final String path, final Runnable response) {
+        // priority 1, as addInk: tasks of one priority run in the order asked, and priority 0 first
+        executor.addAny(new Task(1) {
+
+            @Override
+            public void run() {
+                if (hasAnnotationChanges()) {
+                    codecDocument.saveAnnotations(path);
+                }
+                response.run();
+            }
+        });
+    }
+
     void performDecode(final DecodeTask task) {
         if (executor.isTaskDead(task)) {
             return;

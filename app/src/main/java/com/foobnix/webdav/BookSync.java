@@ -33,7 +33,7 @@ import java.util.Set;
 /**
  * The open book and the sync (.agents/planning/event-sync-design.md): a reader on screen has its
  * book's files pulled ({@link SyncEvents#bookShown}), and what came from another device is shown
- * at once: the newer position (with a note to undo it), the AI highlights.
+ * at once: the newer position (with a note to undo it), the AI highlights, the marks.
  */
 public final class BookSync {
 
@@ -83,6 +83,11 @@ public final class BookSync {
             final String name = AiHighlights.bookName(book);
             if (open && changed.contains(AiStore.profilePath(name)) && name.equals(AiHighlights.get().getBook())) {
                 AiHighlights.get().reload(name);
+            }
+            // marks another device made or erased (F-008)
+            final com.foobnix.annotation.MarksLayer marks = com.foobnix.annotation.MarksLayer.get();
+            if (open && changed.contains(com.foobnix.annotation.MarksStore.profilePath(name)) && name.equals(marks.getBook())) {
+                marks.reload(name);
             }
         } catch (Exception e) {
             LOG.e(e);

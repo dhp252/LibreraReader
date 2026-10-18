@@ -313,7 +313,7 @@ public class AiStore {
     }
 
     /** File name for a book: its own name made safe for any file system, long names shortened. */
-    static String fileName(String bookName) {
+    public static String fileName(String bookName) {
         String name = bookName == null ? "book" : bookName.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
         if (name.isEmpty()) {
             name = "book";

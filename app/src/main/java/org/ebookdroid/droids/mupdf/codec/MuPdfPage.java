@@ -343,6 +343,66 @@ public class MuPdfPage extends AbstractCodecPage {
 
     private native void addMarkupAnnotationInternal(long docHandle, long pageHandle, PointF[] quadPoints, int type, float color[]);
 
+    private native boolean setAnnotationContentsInternal(long docHandle, long pageHandle, int index, byte[] text);
+
+    private native float[][] getAnnotationDetailsInternal(long docHandle, long pageHandle);
+
+    /** Fork (F-008); only libMuPDF built from libmupdf_librera_1_28_5.c has it. */
+    @Override
+    public boolean setAnnotationContents(int index, String text) {
+        TempHolder.lock.lock();
+        try {
+            if (isRecycled() || text == null) {
+                return false;
+            }
+            return setAnnotationContentsInternal(docHandle, pageHandle, index, text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        } catch (UnsatisfiedLinkError e) {
+            LOG.e(e);
+            return false;
+        } finally {
+            TempHolder.lock.unlock();
+        }
+    }
+
+    /** Fork (F-008): color and lines of each annotation, page-relative like {@link #getAnnotationsImpl}. */
+    @Override
+    public List<org.ebookdroid.core.codec.AnnotationLook> getAnnotationLooks() {
+        final List<org.ebookdroid.core.codec.AnnotationLook> looks = new ArrayList<>();
+        TempHolder.lock.lock();
+        try {
+            if (isRecycled()) {
+                return looks;
+            }
+            final float[][] details = getAnnotationDetailsInternal(docHandle, pageHandle);
+            if (details == null) {
+                return looks;
+            }
+            for (float[] d : details) {
+                if (d == null || d.length < 6) {
+                    looks.add(new org.ebookdroid.core.codec.AnnotationLook(0, new ArrayList<RectF>()));
+                    continue;
+                }
+                final int color = org.ebookdroid.core.codec.AnnotationLook.rgb((int) d[0], d[1], d[2], d[3], d[4]);
+                final List<RectF> lines = new ArrayList<>();
+                for (int q = 0; q < (int) d[5] && 6 + q * 8 + 7 < d.length; q++) {
+                    final int at = 6 + q * 8;
+                    final RectF line = new RectF(d[at], d[at + 1], d[at], d[at + 1]);
+                    for (int p = 2; p < 8; p += 2) {
+                        line.union(d[at + p], d[at + p + 1]);
+                    }
+                    update(line);
+                    lines.add(line);
+                }
+                looks.add(new org.ebookdroid.core.codec.AnnotationLook(color, lines));
+            }
+        } catch (UnsatisfiedLinkError e) {
+            LOG.e(e);
+        } finally {
+            TempHolder.lock.unlock();
+        }
+        return looks;
+    }
+
     private native byte[] getPageAsHtml(long docHandle, long pageHandle, int opts);
 
     @Override

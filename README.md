@@ -174,6 +174,7 @@ The fork's tests all pass.
 | `com.foobnix.webdav` | two-way folder sync (conflicts, deletions, mass-deletion guard), WebDAV client |
 | `com.foobnix.ai` | quote matching, per-book AI store, TOC chapters, prompts, Claude/OpenAI request and stream parsing |
 | `com.foobnix.sys` | the crash marks that keep a book which crashed a codec from crashing the app again |
+| `com.foobnix.annotation` | stylus rules; marks found again after an EPUB re-layout; the marks file; Markdown export; color names |
 
 `WebDavServerTest` runs against a real WebDAV server and is skipped when there is none. To run
 it, start a local one ([wsgidav](https://github.com/mar10/wsgidav)) and advertise it in
@@ -207,9 +208,24 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
 
 - **TTS**: start read-aloud. The spoken sentence is highlighted, and a double tap on another
   sentence continues from there. Try both paged and scroll mode (switches in the TTS dialog).
-- **PDF annotation**: open a PDF and tap the edit button in the top bar. Highlight, underline,
-  strike, draw, erase and undo. Close the book (it asks to save, unless saving is automatic),
-  reopen it and check the annotations are still there.
+- **Marks (PDF)**: open a PDF and tap the edit button in the top bar. Highlight, underline,
+  strike, note, draw, erase and undo (undo also brings back an erased mark). Close the book: it
+  does not ask to save (the PDF is not changed). Reopen it: the marks are there. Check them in book
+  and scroll mode, zoomed, cropped, and in a page curl.
+- **Marks (EPUB, FB2, MOBI...)**: the edit button shows the same toolbar without the pen. Mark a
+  few passages, then change the font size: the marks move with their words. Try two pages per
+  screen on a tablet.
+- **Notes**: the Note tool: select text, type a note, Save: a highlight with a small round sign.
+  Tap any mark: its card (quote, page, color, kind) lets you add or edit a note, change the color
+  or delete it. A stylus on an EPUB highlights the text it passes over.
+- **Save marks into PDF**: in a PDF, toolbar ⋮ > Save marks into PDF: it asks, then writes them.
+  Open the PDF in another app (Xodo, Zotero): the highlights are there, notes as comments. In
+  Librera they are now ordinary PDF annotations (tap one: its comment and Delete).
+- **Export notes**: book menu (reader, or long-press in the library) > Export notes (Markdown).
+  Share it to Obsidian; then Save to a folder (pick the vault folder once): `<Title>.md` with the
+  marks under chapter headings, notes, bookmarks and AI passages. Export again: the file is replaced.
+- **Marks over WebDAV**: mark the same book on two devices before syncing: after a sync both
+  devices show both sets. Erase one on a device: it goes on the other too.
 - **AI colors**: ✦ > Highlight key passages on a non-fiction chapter: the first time it asks what
   you want from the book. Marks come in red, blue, purple, orange, green and grey, never yellow.
   ✦ > Colors shows what each means; tap a mark and its category shows. Messages of the pen
@@ -219,8 +235,8 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   pages. Rest your palm while writing: nothing happens. Set "Stylus draws with" to Highlighter
   (reader menu > advanced preferences) and drag over a line of text: the text under it is selected
   as you go and highlighted when you lift (over a picture: nothing, with a message). Hold the side button: the other tool. Tap a mark with the eraser
-  end (if the pen has one). Undo after a pressure stroke removes all of it. Save, reopen in another
-  PDF reader, check the marks are there.
+  end (if the pen has one). Undo after a pressure stroke removes all of it. ⋮ > Save marks into PDF,
+  reopen in another PDF reader, check the marks are there.
 - **WebDAV**: Preferences > WebDAV sync. Enter the server and Test it. Read a few pages, sync,
   then open the same book on a second device and check that it continues there.
 - **One folder for all devices**: update both devices, open the app on each, sync. The server's

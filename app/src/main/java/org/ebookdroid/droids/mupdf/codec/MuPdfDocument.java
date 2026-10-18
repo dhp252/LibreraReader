@@ -449,7 +449,10 @@ public class MuPdfDocument extends AbstractCodecDocument {
                 return;
             }
             saveInternal(documentHandle, path);
-            LOG.d("Save Annotations saveInternal 2");
+            // MuPDF has no unsaved change left after a successful save: read it again, so a save
+            // that worked is not asked for again on close (and one that failed still shows)
+            isHasChanges = hasChangesInternal(documentHandle);
+            LOG.d("Save Annotations saveInternal 2", isHasChanges);
         } finally {
             TempHolder.lock.unlock();
         }

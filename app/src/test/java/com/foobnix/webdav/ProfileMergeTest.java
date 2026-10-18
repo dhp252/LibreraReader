@@ -158,4 +158,31 @@ public class ProfileMergeTest {
     public void otherFilesAreNotMerged() throws Exception {
         assertNull(ProfileMerge.merge("ai/a.json", "{}", "{}", "{}"));
     }
+
+    @Test
+    public void theMarksOfABookAreMergedMarkByMark() throws Exception {
+        assertTrue(ProfileMerge.handles("marks/Book.epub.json"));
+        assertFalse(ProfileMerge.handles("ai/Book.epub.json"));
+        String base = "{\"a\":{\"t\":1,\"k\":\"highlight\"},\"b\":{\"t\":1,\"k\":\"underline\"}}";
+        // this device made c and erased b; the other made d and wrote a note on a
+        String local = "{\"a\":{\"t\":1,\"k\":\"highlight\"},\"c\":{\"t\":2,\"k\":\"highlight\"}}";
+        String remote = "{\"a\":{\"t\":3,\"k\":\"highlight\",\"note\":\"x\"},\"b\":{\"t\":1,\"k\":\"underline\"},"
+                + "\"d\":{\"t\":2,\"k\":\"strike\"}}";
+        JSONObject merged = obj(ProfileMerge.merge("marks/Book.epub.json", base, local, remote));
+        assertEquals("x", merged.getJSONObject("a").getString("note"));
+        assertFalse(merged.has("b"));
+        assertTrue(merged.has("c"));
+        assertTrue(merged.has("d"));
+    }
+
+    @Test
+    public void aMarkChangedOnOneDeviceStaysWhenTheOtherErasedIt() throws Exception {
+        String base = "{\"a\":{\"t\":1,\"col\":\"#ffd400\"}}";
+        JSONObject merged = obj(ProfileMerge.merge("marks/Book.pdf.json", base, "{}", "{\"a\":{\"t\":5,\"col\":\"#ff6666\"}}"));
+        assertEquals("#ff6666", merged.getJSONObject("a").getString("col"));
+        // both changed it: the newer change
+        merged = obj(ProfileMerge.merge("marks/Book.pdf.json", base, "{\"a\":{\"t\":7,\"col\":\"#5fb236\"}}",
+                "{\"a\":{\"t\":5,\"col\":\"#ff6666\"}}"));
+        assertEquals("#5fb236", merged.getJSONObject("a").getString("col"));
+    }
 }

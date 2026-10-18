@@ -102,6 +102,14 @@ public class DecodeServiceStub implements DecodeService {
 	public void saveAnnotations(String path, Runnable runnable) {
 	}
 
+	@Override
+	public void underlineText(int page, PointF[] points, int color, AnnotationType type, String note, ResultResponse<List<Annotation>> resultResponse) {
+	}
+
+	@Override
+	public void saveAnnotationsAfterChanges(String path, Runnable runnable) {
+	}
+
 	/**
 	 * {@inheritDoc}
 	 * 
