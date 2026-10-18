@@ -315,6 +315,9 @@ public class StatsFragment2 extends UIFragment<Object> {
             tiles.add(new String[]{getString(R.string.stats_cpm), String.valueOf(s.cpm)});
         }
         tiles.add(new String[]{getString(R.string.stats_sessions), String.valueOf(s.sessions)});
+        if (s.eyeMs > 0) {
+            tiles.add(new String[]{getString(R.string.stats_looking), Math.round(100f * s.lookMs / s.eyeMs) + "%"});
+        }
         content.addView(tiles(tiles));
 
         final int[] previous = period.previous(today, d);

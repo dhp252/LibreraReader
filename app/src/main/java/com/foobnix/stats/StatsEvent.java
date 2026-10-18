@@ -65,6 +65,9 @@ public class StatsEvent {
     public long raw;
     public String chapter;
     public String mode;
+    /** Eye mode (F-010): ms of {@link #raw} it could tell whether the reader looked, and ms they did. */
+    public long eye;
+    public long look;
 
     public int from;
     public int to;
@@ -107,6 +110,10 @@ public class StatsEvent {
                 o.put("raw", raw);
                 putIf(o, "ch", chapter);
                 putIf(o, "m", mode);
+                if (eye > 0) {
+                    o.put("eye", eye);
+                    o.put("lk", look);
+                }
             } else if (page > 0) {
                 o.put("pg", page);
             }
@@ -152,6 +159,8 @@ public class StatsEvent {
             e.raw = o.optLong("raw", 0);
             e.chapter = o.optString("ch", null);
             e.mode = o.optString("m", MODE_READ);
+            e.eye = o.optLong("eye", 0);
+            e.look = o.optLong("lk", 0);
             e.from = o.optInt("from", 0);
             e.to = o.optInt("to", 0);
             e.via = o.optString("via", null);

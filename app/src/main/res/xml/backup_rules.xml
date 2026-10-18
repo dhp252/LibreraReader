@@ -3,10 +3,12 @@
      Everything is backed up as before, except what must stay on this device: the AI key
      (ai.xml), the WebDAV password (webdav.xml), the id of its reading log (stats.xml: a restored
      copy would make two devices write one log), and the state of the last WebDAV sync, which on
-     another device or a fresh install would read as books and notes deleted here. -->
+     another device or a fresh install would read as books and notes deleted here. Eye mode's
+     face traces (file/eye/, F-010) are shared only by hand. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="ai.xml" />
     <exclude domain="sharedpref" path="webdav.xml" />
     <exclude domain="sharedpref" path="stats.xml" />
     <exclude domain="file" path="webdav/" />
+    <exclude domain="file" path="eye/" />
 </full-backup-content>

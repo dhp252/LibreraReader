@@ -195,11 +195,13 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         Android6.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
+        com.foobnix.eye.EyeMode.onPermissionResult(this, requestCode, grantResults);
     }
 
     /** A stylus draws on the page before the page sees it; a palm under the writing hand is dropped (AnnotationSession). */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        com.foobnix.eye.EyeMode.onTouch(this);
         if (com.foobnix.annotation.AnnotationSession.onTouch(this, ev)) {
             return true;
         }
@@ -222,6 +224,7 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
         }
         getController().onResume();
         com.foobnix.stats.ReadingTracker.resumed(this);
+        com.foobnix.eye.EyeMode.resumed(getController().getWrapperControlls().eyeHost);
         if (handler != null) {
             handler.removeCallbacks(closeRunnable);
         }
@@ -262,6 +265,7 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
         super.onPause();
         LOG.d("onPause", this.getClass());
         com.foobnix.stats.ReadingTracker.paused(this);
+        com.foobnix.eye.EyeMode.paused(this);
         getController().onPause();
         needToRestore = AppState.get().isAutoScroll;
         AppState.get().isAutoScroll = false;
@@ -318,6 +322,7 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
         super.onDestroy();
         com.foobnix.stats.ReadingTracker.destroyed(this);
         com.foobnix.study.StudySession.destroyed(this);
+        com.foobnix.eye.EyeMode.destroyed(this);
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
         }

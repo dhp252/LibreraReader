@@ -310,4 +310,45 @@ public class StatsEngineTest {
         assertNull(StatsEvent.fromJson("{\"e\":\"page\"}"));
         assertFalse(StatsEvent.fromJson(simple(StatsEvent.TTS, T0, "b").toJson()).on);
     }
+
+    @Test
+    public void eyeModeTimeRoundTripAndOnlyWhenWatched() {
+        final StatsEvent e = page(T0, "b.epub", 3, 120, 45 * SEC);
+        assertFalse(e.toJson().contains("\"eye\""));
+        e.eye = 40 * SEC;
+        e.look = 30 * SEC;
+        final StatsEvent back = StatsEvent.fromJson(e.toJson());
+        assertEquals(40 * SEC, back.eye);
+        assertEquals(30 * SEC, back.look);
+    }
+
+    @Test
+    public void eyeModeTimeAddsUpPerDayAndBookAcrossDevices() {
+        final StatsEngine engine = new StatsEngine();
+        engine.feed("a", open(T0, "b.epub"));
+        final StatsEvent watched = page(T0 + MIN, "b.epub", 1, 250, MIN);
+        watched.eye = 50 * SEC;
+        watched.look = 40 * SEC;
+        engine.feed("a", watched);
+        engine.feed("a", page(T0 + 2 * MIN, "b.epub", 2, 250, MIN));
+        engine.feed("b", open(T0 + 3 * MIN, "b.epub"));
+        final StatsEvent other = page(T0 + 4 * MIN, "b.epub", 3, 250, MIN);
+        other.eye = 30 * SEC;
+        other.look = 60 * SEC; // more than watched: counted as all of it
+        engine.feed("b", other);
+        // read aloud: not reading time, so not Eye mode time either
+        final StatsEvent tts = page(T0 + 5 * MIN, "b.epub", 4, 250, MIN, StatsEvent.MODE_TTS);
+        tts.eye = 60 * SEC;
+        tts.look = 60 * SEC;
+        engine.feed("b", tts);
+
+        final StatsData d = all(engine);
+        assertEquals(80 * SEC, d.day(today()).eyeMs);
+        assertEquals(70 * SEC, d.day(today()).lookMs);
+        assertEquals(80 * SEC, d.books.get("b.epub").eyeMs);
+        assertEquals(70 * SEC, d.books.get("b.epub").lookMs);
+        final StatsReport.Summary s = StatsReport.summary(d, today(), today());
+        assertEquals(80 * SEC, s.eyeMs);
+        assertEquals(70 * SEC, s.lookMs);
+    }
 }

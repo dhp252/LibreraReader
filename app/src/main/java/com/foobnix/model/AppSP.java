@@ -49,6 +49,14 @@ public class AppSP {
     public String currentProfile = "";
     public String rootPath1 = getRootDir();
 
+    // Eye mode (F-010): on this device only (D-91)
+    public boolean eyeExplained = false;
+    public boolean eyePauseAway = true;
+    public boolean eyePauseTts = false;
+    public boolean eyeScreen = true;
+    public boolean eyePreview = false;
+    public boolean eyeTrace = false;
+
     transient SharedPreferences sp;
 
     public long interstitialLoadAdTime = 0;

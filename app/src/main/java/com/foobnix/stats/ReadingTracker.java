@@ -49,6 +49,9 @@ public final class ReadingTracker {
     private boolean onScreen;
     private boolean byTts;
     private boolean byAutoScroll;
+    /** Eye mode (F-010): time of {@link #shownMs} it could tell whether the reader looked, and did. */
+    private long eyeMs;
+    private long lookMs;
     private String chapter;
     private String jumpVia;
 
@@ -177,6 +180,8 @@ public final class ReadingTracker {
         page = p;
         pages = n;
         shownMs = 0;
+        eyeMs = 0;
+        lookMs = 0;
         lastTick = System.currentTimeMillis();
         byTts = false;
         byAutoScroll = false;
@@ -199,16 +204,28 @@ public final class ReadingTracker {
         e.pages = pages;
         e.words = viewWords(page);
         e.raw = shownMs;
+        e.eye = eyeMs;
+        e.look = lookMs;
         e.chapter = chapter == null || chapter.trim().isEmpty() ? null : chapter.trim();
         e.mode = byTts ? StatsEvent.MODE_TTS : byAutoScroll ? StatsEvent.MODE_AUTO : StatsEvent.MODE_READ;
         StatsLog.log(e);
         shownMs = 0;
+        eyeMs = 0;
+        lookMs = 0;
     }
 
     private void tick() {
         final long now = System.currentTimeMillis();
         if (onScreen && !dc.isVisibleDialog()) {
-            shownMs += Math.max(0, now - lastTick);
+            final long ms = Math.max(0, now - lastTick);
+            shownMs += ms;
+            final int look = com.foobnix.eye.EyeMode.lookState(owner);
+            if (look >= 0) {
+                eyeMs += ms;
+                if (look == 1) {
+                    lookMs += ms;
+                }
+            }
         }
         lastTick = now;
         if (TTSEngine.get().isPlaying()) {

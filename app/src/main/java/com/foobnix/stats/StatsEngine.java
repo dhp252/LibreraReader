@@ -163,6 +163,14 @@ public class StatsEngine {
             day.hourMs[StatsData.hourOf(start, e.tz)] += ms;
             day.addBookMs(e.book, ms);
             b.readMs += ms;
+            if (e.eye > 0) {
+                final long eye = Math.min(e.eye, StatsRules.PAGE_CAP_MS);
+                final long look = Math.min(Math.max(0, e.look), eye);
+                day.eyeMs += eye;
+                day.lookMs += look;
+                b.eyeMs += eye;
+                b.lookMs += look;
+            }
 
             final boolean read = raw >= StatsRules.SKIM_MS;
             final StatsData.Chapter chapter = chapter(b, e);

@@ -172,6 +172,61 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
 
     int flippingTimer = 0;
     boolean isFlipping = false;
+    /** Page flipping waits while Eye mode sees nobody (F-010): the timer stops, isFlipping stays. */
+    boolean flippingPaused = false;
+    ImageView eyeButton, eyeState;
+    /** Eye mode's side of this reader (F-010). */
+    final com.foobnix.eye.EyeMode.Host eyeHost = new com.foobnix.eye.EyeMode.Host() {
+        @Override
+        public android.app.Activity activity() {
+            return HorizontalViewActivity.this;
+        }
+
+        @Override
+        public String bookPath() {
+            return getIntent().getData() != null ? String.valueOf(getIntent().getData().getPath()) : "";
+        }
+
+        @Override
+        public boolean isAutoRunning() {
+            return isFlipping && !flippingPaused;
+        }
+
+        @Override
+        public void pauseAuto() {
+            flippingPaused = true;
+            flippingHandler.removeCallbacks(flippingRunnable);
+        }
+
+        @Override
+        public void resumeAuto() {
+            if (isFlipping && flippingPaused) {
+                flippingPaused = false;
+                flippingHandler.removeCallbacks(flippingRunnable);
+                flippingHandler.post(flippingRunnable);
+            }
+        }
+
+        @Override
+        public boolean isDialogOpen() {
+            return dc != null && dc.isVisibleDialog();
+        }
+
+        @Override
+        public void restartScreenTimer() {
+            restartKeepScreenOn();
+        }
+
+        @Override
+        public void showEyeState(com.foobnix.eye.PresenceDetector.State state) {
+            com.foobnix.eye.EyeUi.showState(eyeState, state, this);
+        }
+
+        @Override
+        public void showEyeButton(boolean on) {
+            com.foobnix.eye.EyeUi.showButton(eyeButton, on);
+        }
+    };
     Runnable reloadDocBrigntness = new Runnable() {
 
         @Override
@@ -557,6 +612,9 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
                 DragingDialogs.dialogPageFlipping(anchor, dc, onRefresh);
             }
         });
+        eyeButton = findViewById(R.id.eyeMode);
+        eyeState = findViewById(R.id.eyeState);
+        com.foobnix.eye.EyeUi.setUpButton(eyeButton, eyeHost);
 
         pageshelper = (LinearLayout) findViewById(R.id.pageshelper);
         musicButtonPanel = findViewById(R.id.musicButtonPanel);
@@ -1390,6 +1448,9 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         TintUtil.setTintText(pagesCountIndicator, TintUtil.getStatusBarTextColor());
         TintUtil.setTintText(pannelBookTitle, TintUtil.getStatusBarTextColor());
         TintUtil.setTintText(flippingIntervalView, TintUtil.getStatusBarTextColor());
+        if (eyeState != null) {
+            TintUtil.setTintImageWithAlpha(eyeState, TintUtil.getStatusBarTextColor());
+        }
 
         if (false) {
             GradientDrawable bg = (GradientDrawable) pagesPower.getBackground();
@@ -1446,6 +1507,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     @Subscribe
     public void onFlippingStart(FlippingStart event) {
         isFlipping = true;
+        flippingPaused = false;
         flippingTimer = 0;
         flippingHandler.removeCallbacks(flippingRunnable);
         flippingHandler.post(flippingRunnable);
@@ -1497,6 +1559,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     @Subscribe
     public void onFlippingStop(FlippingStop event) {
         isFlipping = false;
+        flippingPaused = false;
         flippingHandler.removeCallbacks(flippingRunnable);
         flippingHandler.removeCallbacksAndMessages(null);
         flippingIntervalView.setVisibility(View.GONE);
@@ -1562,6 +1625,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         Android6.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
+        com.foobnix.eye.EyeMode.onPermissionResult(this, requestCode, grantResults);
     }
 
     public void updateLockMode() {
@@ -1604,6 +1668,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         com.foobnix.annotation.MarksLayer.get().close(this);
         com.foobnix.stats.ReadingTracker.destroyed(this);
         com.foobnix.study.StudySession.destroyed(this);
+        com.foobnix.eye.EyeMode.destroyed(this);
 
         if (loadinAsyncTask != null) {
             try {
@@ -1643,6 +1708,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     /** A stylus draws on the page before the page sees it; a palm under the writing hand is dropped (AnnotationSession). */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
+        com.foobnix.eye.EyeMode.onTouch(this);
         if (com.foobnix.annotation.AnnotationSession.onTouch(this, ev)) {
             return true;
         }
@@ -1674,6 +1740,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             dc.goToPageByTTS();
         }
         com.foobnix.stats.ReadingTracker.resumed(this);
+        com.foobnix.eye.EyeMode.resumed(eyeHost);
 
         handler.removeCallbacks(closeRunnable);
         handlerTimer.removeCallbacks(updateTimePower);
@@ -1698,6 +1765,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             curlTurn.finishNow();
         }
         com.foobnix.stats.ReadingTracker.paused(this);
+        com.foobnix.eye.EyeMode.paused(this);
         AppProfile.save(this);
         TempHolder.isSeaching = false;
         TempHolder.isActiveSpeedRead.set(false);
@@ -1709,6 +1777,21 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
 
     public synchronized void nextPage() {
         nextPage(true);
+    }
+
+    /** The keep-screen-on time from now: minutes from the settings, "system" lets the screen go. */
+    void restartKeepScreenOn() {
+        final int minutes = AppState.get().inactivityTime;
+        if (minutes == -1) {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            return;
+        }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        LOG.d("FLAG addFlags", "FLAG_KEEP_SCREEN_ON", "add", minutes);
+        handler.removeCallbacks(clearFlags);
+        if (minutes > 0) {
+            handler.postDelayed(clearFlags, TimeUnit.MINUTES.toMillis(minutes));
+        }
     }
 
     public synchronized void nextPage(boolean byUser) {
@@ -2896,10 +2979,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             }
 
             if (AppState.get().inactivityTime > 0) {
-                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                LOG.d("FLAG addFlags", "FLAG_KEEP_SCREEN_ON", "add", AppState.get().inactivityTime);
-                handler.removeCallbacks(clearFlags);
-                handler.postDelayed(clearFlags, TimeUnit.MINUTES.toMillis(AppState.get().inactivityTime));
+                restartKeepScreenOn();
             }
 
             LOG.d("onPageSelected", pos);

@@ -98,3 +98,12 @@
 -keepclassmembers class com.foobnix.study.StudyMap$Bridge {
     @android.webkit.JavascriptInterface <methods>;
 }
+
+# Eye mode (F-010): MediaPipe Tasks ship no R8 rules. Its native code finds Java classes,
+# fields and methods by name, and its graphs are protobuf-lite messages read by reflection.
+-keep class com.google.mediapipe.** { *; }
+-keep class com.google.protobuf.** { *; }
+-dontwarn com.google.mediapipe.**
+-dontwarn com.google.protobuf.**
+-dontwarn com.google.auto.value.**
+-dontwarn com.google.common.flogger.**

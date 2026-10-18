@@ -316,6 +316,13 @@ dependencies {
     implementation('org.commonmark:commonmark:0.29.0')
     implementation ('org.commonmark:commonmark-ext-gfm-tables:0.30.0')
 
+    // Eye mode (F-010): front camera frames to on-device face landmarks. tasks-core's usage
+    // logging goes nowhere: the manifest removes its Clearcut backend.
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.mediapipe.tasks.vision)
+
 
 
 

@@ -58,6 +58,9 @@ material3 = "1.10.0-alpha05"
 androidx-lifecycle = "2.11.0"
 zip4j="2.11.6"
 workRuntime="2.11.2"
+# Eye mode (F-010): front camera and on-device face landmarks
+camerax = "1.6.2"
+mediapipe = "1.0.0"
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
@@ -125,6 +128,11 @@ runner = { module = "androidx.test:runner", version.ref = "runner" }
 stax-api = { module = "javax.xml.stream:stax-api", version.ref = "staxApi" }
 user-messaging-platform = { module = "com.google.android.ump:user-messaging-platform", version.ref = "userMessagingPlatform" }
 work-runtime = { module = "androidx.work:work-runtime", version.ref = "workRuntime" }
+camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+# 1.1.x pulls litertlm-android (an LLM runtime) and was under two weeks old on 2026-10-18
+mediapipe-tasks-vision = { module = "com.google.mediapipe:tasks-vision", version.ref = "mediapipe" }
 zip4j = { module = "net.lingala.zip4j:zip4j", version.ref = "zip4j" }
 xmlutil-serialization = { module = "io.github.pdvrieze.xmlutil:serialization", version.ref = "xmlutil" }
 

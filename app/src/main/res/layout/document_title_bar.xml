@@ -88,6 +88,19 @@
                 android:text="R"
                 android:textSize="@dimen/title_h_adv" />
 
+            <!-- Eye mode (F-010) state, shown while it is on -->
+            <ImageView
+                android:id="@+id/eyeState"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginLeft="2dip"
+                android:layout_marginTop="0.5dip"
+                android:layout_weight="0"
+                android:contentDescription="@string/eye_mode"
+                android:src="@drawable/ic_eye_off"
+                android:tint="@color/tint_gray"
+                android:visibility="gone" />
+
             <ImageView
                 android:id="@+id/clockIcon"
                 android:layout_width="14dp"

@@ -244,6 +244,66 @@ public class DocumentWrapperUI {
             batteryIcon, fullscreen, onTextReplacement;
     ImageView showSearch, nextScreenType, moveCenter, autoScroll, textToSpeach, onModeChange, imageMenuArrow, editTop2,
             goToPage1, goToPage1Top;
+    ImageView eyeButton, eyeState;
+    /** Auto-scroll stopped by Eye mode while nobody looked (F-010); a tap on play forgets it. */
+    boolean autoScrollPausedByEye;
+    /** Eye mode's side of the scroll-mode reader (F-010). */
+    public final com.foobnix.eye.EyeMode.Host eyeHost = new com.foobnix.eye.EyeMode.Host() {
+        @Override
+        public android.app.Activity activity() {
+            return dc.getActivity();
+        }
+
+        @Override
+        public String bookPath() {
+            final android.content.Intent intent = dc.getActivity().getIntent();
+            return intent.getData() != null ? String.valueOf(intent.getData().getPath()) : "";
+        }
+
+        @Override
+        public boolean isAutoRunning() {
+            return AppState.get().isAutoScroll;
+        }
+
+        @Override
+        public void pauseAuto() {
+            if (AppState.get().isAutoScroll) {
+                AppState.get().isAutoScroll = false;
+                autoScrollPausedByEye = true;
+                updateUI();
+            }
+        }
+
+        @Override
+        public void resumeAuto() {
+            if (autoScrollPausedByEye && !AppState.get().isAutoScroll) {
+                autoScrollPausedByEye = false;
+                AppState.get().isAutoScroll = true;
+                dc.onAutoScroll();
+                updateUI();
+            }
+        }
+
+        @Override
+        public boolean isDialogOpen() {
+            return dc.isVisibleDialog();
+        }
+
+        @Override
+        public void restartScreenTimer() {
+            restartKeepScreenOn();
+        }
+
+        @Override
+        public void showEyeState(com.foobnix.eye.PresenceDetector.State state) {
+            com.foobnix.eye.EyeUi.showState(eyeState, state, this);
+        }
+
+        @Override
+        public void showEyeButton(boolean on) {
+            com.foobnix.eye.EyeUi.showButton(eyeButton, on);
+        }
+    };
     View  titleBar, overlay, menuLayout, moveLeft, moveRight, bottomBar, seekLine, onCloseBook, seekSpeedLayot, zoomPlus,
             zoomMinus;
     public View.OnLongClickListener onCloseLongClick = new View.OnLongClickListener() {
@@ -842,10 +902,7 @@ public class DocumentWrapperUI {
         progressDraw.updateProgress(current - 1);
 
         if (AppState.get().inactivityTime > 0) {
-            dc.getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            LOG.d("FLAG addFlags", "FLAG_KEEP_SCREEN_ON", "add", AppState.get().inactivityTime);
-            handler.removeCallbacks(clearFlags);
-            handler.postDelayed(clearFlags, TimeUnit.MINUTES.toMillis(AppState.get().inactivityTime));
+            restartKeepScreenOn();
         }
 
         if (AppState.get().isAutoScroll) {
@@ -1232,6 +1289,9 @@ public class DocumentWrapperUI {
         showSearch.setOnClickListener(onShowSearch);
         autoScroll = ((ImageView) a.findViewById(R.id.autoScroll));
         autoScroll.setOnClickListener(onAutoScroll);
+        eyeButton = a.findViewById(R.id.eyeMode);
+        eyeState = a.findViewById(R.id.eyeState);
+        com.foobnix.eye.EyeUi.setUpButton(eyeButton, eyeHost);
 
         // ((View)
         // a.findViewById(R.id.onScreenMode)).setOnClickListener(onScreenMode);
@@ -1466,6 +1526,9 @@ public class DocumentWrapperUI {
         TintUtil.setTintImageWithAlpha((ImageView) closeTop, textColor);
         TintUtil.setTintImageWithAlpha(toolBarButton, textColor);
         TintUtil.setTintImageWithAlpha(clockIcon, textColor).setImageAlpha(200);
+        if (eyeState != null) {
+            TintUtil.setTintImageWithAlpha(eyeState, textColor).setImageAlpha(200);
+        }
         TintUtil.setTintImageWithAlpha(batteryIcon, textColor).setImageAlpha(200);
 
         //int titleColor = AppState.get().isDayNotInvert ? MagicHelper.otherColor(AppState.get().colorDayBg, -0.05f) : MagicHelper.otherColor(AppState.get().colorNigthBg, 0.05f);
@@ -1957,9 +2020,26 @@ public class DocumentWrapperUI {
         }
 
         AppState.get().isAutoScroll = !AppState.get().isAutoScroll;
+        autoScrollPausedByEye = false;
         // changeAutoScrollButton();
         dc.onAutoScroll();
         updateUI();
+    }
+
+    /** The keep-screen-on time from now: minutes from the settings, "system" lets the screen go. */
+    void restartKeepScreenOn() {
+        final int minutes = AppState.get().inactivityTime;
+        final android.view.Window window = dc.getActivity().getWindow();
+        if (minutes == -1) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            return;
+        }
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        LOG.d("FLAG addFlags", "FLAG_KEEP_SCREEN_ON", "add", minutes);
+        handler.removeCallbacks(clearFlags);
+        if (minutes > 0) {
+            handler.postDelayed(clearFlags, TimeUnit.MINUTES.toMillis(minutes));
+        }
     }
 
     public View.OnClickListener onReverseKeys = new View.OnClickListener() {

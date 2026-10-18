@@ -50,6 +50,9 @@ public final class BookStatsView {
             add(box, a.getString(R.string.stats_book_speed, wpm, all, skimmed, b.finishes()));
         }
         add(box, a.getString(R.string.stats_book_marks, b.highlights, b.notes, b.lookups, StatsFormat.duration(a, b.listenMs)));
+        if (b.eyeMs > 0) {
+            add(box, a.getString(R.string.stats_book_looking, Math.round(100f * b.lookMs / b.eyeMs)));
+        }
 
         if (!b.finished) {
             final int speed = ReadingSpeed.wpm(key);

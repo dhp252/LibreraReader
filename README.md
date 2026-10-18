@@ -304,6 +304,27 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   - Page curl on a page with a TTS or AI highlight: the highlight curls with the page.
   - A right-to-left book (manga): every style is mirrored.
   - "Vibrate lightly when a page turns": a light tick for your own turns, none during autoplay.
+- **Eye mode** (release APK; a device with a front camera): open a book, open the menu, tap the eye
+  next to the headphones. The first time a card explains it, then Android asks for the camera
+  (deny once: a note offers the app settings). "Eye mode on"; an eye shows in the status bar (book
+  mode: bottom, beside the battery; scroll mode: top bar, beside the clock) and the green camera
+  dot appears. Long-press the eye button: its settings. Turn on "Show what the camera sees": a
+  corner panel shows the camera picture (mirrored), dots on your face, the state and the numbers.
+  - Lit room: look at the page: open eye. Look away or close your eyes for 2 s: closed eye. Start
+    auto-scroll (scroll mode) or page flipping (book mode), look away: it stops; look back: it
+    goes on. Stay away 30 s: the screen dims; look back or touch: it comes back.
+  - Read with no touch for longer than "keep screen on" minutes: the screen stays on while you
+    look.
+  - In bed at night with the night theme: what does the corner panel say (face found? "dark"?
+    luma)? The icon should be the slashed eye ("can't see you") when it cannot tell, and then
+    auto-scroll must not stop.
+  - "Also pause read-aloud" on: start read-aloud, look away: it pauses; look back: it goes on.
+  - Turn the phone: the dots stay on your face. Switch book ↔ scroll mode: Eye mode stays on.
+    Close the book and open it again: Eye mode is off.
+  - Battery: note the level, read 30 min with Eye mode on (corner panel off), compare.
+  - Statistics tab after an Eye mode session: a "Looking" tile; book info: "Looking at the page".
+  - "Record face traces" on, read a few minutes, "Share the last trace": a .jsonl of numbers, no
+    pictures. Send it if something behaved wrong.
 
 # Download application
 

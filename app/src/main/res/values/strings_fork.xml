@@ -296,4 +296,28 @@
     <string name="study_last_read_days">Last read %1$d days ago.</string>
     <string name="study_look_back">Look back first</string>
     <string name="study_continue">Continue</string>
+
+    <!-- Eye mode (F-010) -->
+    <string name="eye_mode">Eye mode</string>
+    <string name="eye_intro">Eye mode uses the front camera to see whether you are looking at the page. When you look away, auto-scroll and page flipping wait for you; while you read, the screen stays on. Everything stays on this device: no picture is saved or sent.</string>
+    <string name="eye_turn_on">Turn on</string>
+    <string name="eye_on">Eye mode on</string>
+    <string name="eye_off">Eye mode off</string>
+    <string name="eye_needs_camera">Eye mode needs the camera. You can allow it in the app\'s settings.</string>
+    <string name="eye_app_settings">App settings</string>
+    <string name="eye_cannot_start">Eye mode cannot start on this device (%1$s).</string>
+    <string name="eye_camera_busy">Eye mode cannot use the camera right now. Another app may be using it.</string>
+    <string name="eye_settings_about">For this device only. Eye mode stays on until you close the book.</string>
+    <string name="eye_pause_away">Pause auto-scroll and page flipping when I look away</string>
+    <string name="eye_pause_tts">Also pause read-aloud</string>
+    <string name="eye_screen">Keep the screen on while I look, dim it when I\'m away</string>
+    <string name="eye_preview">Show what the camera sees</string>
+    <string name="eye_trace">Record face traces for tuning (numbers only, no pictures)</string>
+    <string name="eye_share_trace">Share the last trace</string>
+    <string name="eye_no_trace">No trace recorded yet.</string>
+    <string name="eye_sees_you">Eye mode: sees you</string>
+    <string name="eye_away">Eye mode: you looked away</string>
+    <string name="eye_cant_see">Eye mode: can\'t see you</string>
+    <string name="stats_looking">Looking</string>
+    <string name="stats_book_looking">Looking at the page: %1$d%% of Eye mode time</string>
 </resources>

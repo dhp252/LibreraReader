@@ -65,6 +65,9 @@ public final class StatsReport {
         public int to;
         public long readMs;
         public long listenMs;
+        /** Eye mode (F-010): reading time it watched, and the time the reader looked. */
+        public long eyeMs;
+        public long lookMs;
         public long words;
         public float pages;
         /** Median words per minute, 0 without timed pages. */
@@ -126,6 +129,8 @@ public final class StatsReport {
             final StatsData.Day day = e.getValue();
             s.readMs += day.readMs;
             s.listenMs += day.listenMs;
+            s.eyeMs += day.eyeMs;
+            s.lookMs += day.lookMs;
             s.words += day.words;
             s.pages += day.pages;
             s.opens += day.opens;

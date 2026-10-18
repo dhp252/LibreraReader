@@ -110,6 +110,9 @@ public class StatsData {
     public static class Day {
         public long readMs;
         public long listenMs;
+        /** Eye mode (F-010): reading time it could tell whether the reader looked, and the time they did. */
+        public long eyeMs;
+        public long lookMs;
         /** Words of pages read (not of skimmed ones). */
         public long words;
         /** Real pages of fixed-layout books plus virtual pages of the others. */
@@ -152,6 +155,8 @@ public class StatsData {
         void addAll(Day o) {
             readMs += o.readMs;
             listenMs += o.listenMs;
+            eyeMs += o.eyeMs;
+            lookMs += o.lookMs;
             words += o.words;
             pages += o.pages;
             opens += o.opens;
@@ -210,6 +215,9 @@ public class StatsData {
         public long firstRead;
         public long readMs;
         public long listenMs;
+        /** Eye mode (F-010), as {@link Day#eyeMs}. */
+        public long eyeMs;
+        public long lookMs;
         public long words;
         public float pagesRead;
         /** Page views read (2 s or more), the count skims are compared with. */
@@ -307,6 +315,8 @@ public class StatsData {
             lastOpen = Math.max(lastOpen, o.lastOpen);
             readMs += o.readMs;
             listenMs += o.listenMs;
+            eyeMs += o.eyeMs;
+            lookMs += o.lookMs;
             words += o.words;
             pagesRead += o.pagesRead;
             pageViews += o.pageViews;
