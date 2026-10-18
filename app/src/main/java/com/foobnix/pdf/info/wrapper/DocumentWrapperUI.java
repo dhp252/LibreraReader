@@ -306,7 +306,9 @@ public class DocumentWrapperUI {
 
         @Override
         public void nextPageByEye() {
-            dc.onNextScreen(true);
+            // as a tap on the next-page zone: by pages or by the screen share in the settings
+            // (onNextScreen alone scrolls by 0 when "by pages" is set, the default)
+            nextChose(false);
         }
     };
     View  titleBar, overlay, menuLayout, moveLeft, moveRight, bottomBar, seekLine, onCloseBook, seekSpeedLayot, zoomPlus,
