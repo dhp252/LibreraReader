@@ -34,6 +34,7 @@ public final class PresenceDetector {
      */
     private long goneSince = -1;
     private final ReadingPose pose = new ReadingPose();
+    private long lastFrame = -1;
 
     public State state() {
         return state;
@@ -66,16 +67,26 @@ public final class PresenceDetector {
     }
 
     public State update(FaceFrame f) {
+        return update(f, f.eyesClosed());
+    }
+
+    /**
+     * @param eyesClosed whether the frame's eyes are closed; Eye mode passes {@link LongBlink#isClosed},
+     *                   which does not take narrowed eyes (reading the bottom lines) for closed ones
+     */
+    public State update(FaceFrame f, boolean eyesClosed) {
         final long t = f.t;
         final float frameLuma = f.luma;
-        luma = luma < 0 ? frameLuma : luma + EyeRules.LUMA_SMOOTH * (frameLuma - luma);
+        final long dt = lastFrame < 0 ? 0 : t - lastFrame;
+        lastFrame = t;
+        luma = luma < 0 ? frameLuma : luma + EyeRules.alpha(EyeRules.LUMA_SMOOTH, dt) * (frameLuma - luma);
         if (dark && luma > EyeRules.BRIGHT_LUMA) {
             dark = false;
         } else if (!dark && luma < EyeRules.DARK_LUMA) {
             dark = true;
         }
 
-        final boolean closed = f.eyesClosed() && !dark;
+        final boolean closed = eyesClosed && !dark;
         boolean looking = false;
         if (f.face && !closed && Math.abs(f.yaw) <= EyeRules.LOOK_YAW && Math.abs(f.pitch) <= EyeRules.LOOK_PITCH) {
             looking = pose.observe(f);

@@ -54,6 +54,7 @@ public class AppSP {
     public boolean eyePauseAway = true;
     public boolean eyePauseTts = false;
     public boolean eyeScreen = true;
+    public boolean eyeLongBlink = true;
     public boolean eyePreview = false;
     public boolean eyeTrace = false;
 

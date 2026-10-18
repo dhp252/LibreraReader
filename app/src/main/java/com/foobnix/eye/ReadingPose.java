@@ -44,13 +44,15 @@ public final class ReadingPose {
     public boolean observe(FaceFrame f) {
         final float h = gazeH(f);
         final float v = gazeV(f);
+        final long dt = frameAt < 0 ? 0 : f.t - frameAt;
         if (!hasFrame) {
             sH = h;
             sV = v;
             hasFrame = true;
         } else {
-            sH += EyeRules.POSE_SMOOTH * (h - sH);
-            sV += EyeRules.POSE_SMOOTH * (v - sV);
+            final float a = EyeRules.alpha(EyeRules.POSE_SMOOTH, dt);
+            sH += a * (h - sH);
+            sV += a * (v - sV);
         }
         frameAt = f.t;
 
@@ -70,8 +72,9 @@ public final class ReadingPose {
         final float dh = Math.abs(dH());
         final float dv = Math.abs(dV());
         if (dh <= EyeRules.DEV_GAZE_H / 2 && dv <= EyeRules.DEV_GAZE_V / 2) {
-            gazeH += EyeRules.POSE_FOLLOW * (sH - gazeH);
-            gazeV += EyeRules.POSE_FOLLOW * (sV - gazeV);
+            final float a = EyeRules.alpha(EyeRules.POSE_FOLLOW, dt);
+            gazeH += a * (sH - gazeH);
+            gazeV += a * (sV - gazeV);
         }
         return dh <= EyeRules.DEV_GAZE_H && dv <= EyeRules.DEV_GAZE_V;
     }

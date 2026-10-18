@@ -87,8 +87,9 @@ public class ReadingPoseTest {
     @Test
     public void oneJitteryFrameStaysOn() {
         final ReadingPose p = learned();
-        assertTrue(p.observe(f(4_000, -2, -10, 0.45f, -0.35f)));
-        assertTrue(p.observe(reading(4_200)));
+        // the next frame (a frame after a long gap rightly counts almost whole)
+        assertTrue(p.observe(f(3_200, -2, -10, 0.45f, -0.35f)));
+        assertTrue(p.observe(reading(3_400)));
     }
 
     @Test

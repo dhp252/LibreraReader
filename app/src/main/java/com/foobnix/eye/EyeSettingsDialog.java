@@ -66,6 +66,15 @@ final class EyeSettingsDialog {
                 sp.eyeScreen = on;
             }
         });
+        add(box, a, R.string.eye_long_blink, new Flag() {
+            public boolean get() {
+                return sp.eyeLongBlink;
+            }
+
+            public void set(boolean on) {
+                sp.eyeLongBlink = on;
+            }
+        });
         add(box, a, R.string.eye_preview, new Flag() {
             public boolean get() {
                 return sp.eyePreview;

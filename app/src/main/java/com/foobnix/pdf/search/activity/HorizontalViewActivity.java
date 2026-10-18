@@ -226,6 +226,11 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         public void showEyeButton(boolean on) {
             com.foobnix.eye.EyeUi.showButton(eyeButton, on);
         }
+
+        @Override
+        public void nextPageByEye() {
+            nextPage();
+        }
     };
     Runnable reloadDocBrigntness = new Runnable() {
 

@@ -44,8 +44,8 @@ final class EyeDebugView extends View {
     }
 
     /** Main thread. */
-    void show(FaceFrame f, Bitmap preview, PresenceDetector.State state, PresenceDetector presence, float fps,
-              String lastAction, long actionAgeMs) {
+    void show(FaceFrame f, Bitmap preview, PresenceDetector.State state, PresenceDetector presence, LongBlink blink,
+              float fps, String lastAction, long actionAgeMs) {
         final boolean dark = presence.isDark();
         final ReadingPose pose = presence.pose();
         if (preview != null) {
@@ -63,6 +63,10 @@ final class EyeDebugView extends View {
                 !pose.isLearned() ? "learning your reading pose…"
                         : String.format(Locale.US, "off gaze: across %+.0f° · up %+.0f° (limits %.0f, %.0f)",
                         pose.dH(), pose.dV(), EyeRules.DEV_GAZE_H, EyeRules.DEV_GAZE_V),
+                !f.face ? "" : !blink.knowsOpen() ? String.format(Locale.US, "eyes %.2f %.2f · learning open eyes…", f.earL, f.earR)
+                        : String.format(Locale.US, "eyes open %.0f%% %.0f%%%s · last closure %.1f s %s",
+                        100 * blink.openShareL(f), 100 * blink.openShareR(f), blink.isClosed(f) ? " CLOSED" : "",
+                        blink.lastMs() / 1000f, blink.last().name()),
                 lastAction == null ? "no action yet" : String.format(Locale.US, "%s · %ds ago", lastAction, actionAgeMs / 1000),
         };
         invalidate();

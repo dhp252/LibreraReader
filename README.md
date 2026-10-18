@@ -325,6 +325,12 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
     luma)? The icon should be the slashed eye ("can't see you") when it cannot tell, and then
     auto-scroll must not stop.
   - "Also pause read-aloud" on: start read-aloud, look away: it pauses; look back: it goes on.
+  - Long blink (M2, "Long blink turns the page", on): close your eyes for about a second and open
+    them: the next page (book mode) or screen (scroll mode), with a tick. The corner panel shows
+    "eyes open N% N%" (CLOSED while closed) and the last closure ("0.9 s LONG"). Normal blinking,
+    reading the bottom lines, looking down at your lap, resting the eyes 3 s: no turn. Not while
+    read-aloud plays or a dialog is open. Record a trace with a few long blinks and a few looks
+    down, in a lit room and in bed.
   - Turn the phone: the dots stay on your face. Switch book ↔ scroll mode: Eye mode stays on.
     Close the book and open it again: Eye mode is off.
   - Battery: note the level, read 30 min with Eye mode on (corner panel off), compare.

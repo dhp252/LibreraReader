@@ -98,6 +98,19 @@ final class EyeCamera {
         preview = on;
     }
 
+    int fps() {
+        return fps;
+    }
+
+    /** Takes effect at the next {@link #start}: the exposure range is picked when the camera binds. */
+    void setFps(int fps) {
+        this.fps = fps;
+    }
+
+    boolean isRunning() {
+        return running;
+    }
+
     /** Main thread. */
     void start(Activity activity) {
         if (running || released) {

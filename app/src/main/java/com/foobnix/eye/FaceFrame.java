@@ -33,6 +33,9 @@ public final class FaceFrame {
      */
     public float eyesH;
     public float eyesV;
+    /** Eye aspect ratio per eye ({@link FaceSignals#ear}): lid gap over eye width. */
+    public float earL;
+    public float earR;
     /** Head pose in degrees ({@link HeadPose}). */
     public float yaw;
     public float pitch;
@@ -72,6 +75,8 @@ public final class FaceFrame {
                 o.put("dr", round(downR));
                 o.put("eh", round(eyesH));
                 o.put("ev", round(eyesV));
+                o.put("el", round(earL));
+                o.put("er", round(earR));
                 o.put("y", round(yaw));
                 o.put("p", round(pitch));
                 o.put("ro", round(roll));
@@ -116,6 +121,8 @@ public final class FaceFrame {
                 f.downR = (float) o.optDouble("dr", 0);
                 f.eyesH = (float) o.optDouble("eh", 0);
                 f.eyesV = (float) o.optDouble("ev", 0);
+                f.earL = (float) o.optDouble("el", 0);
+                f.earR = (float) o.optDouble("er", 0);
                 f.yaw = (float) o.optDouble("y", 0);
                 f.pitch = (float) o.optDouble("p", 0);
                 f.roll = (float) o.optDouble("ro", 0);

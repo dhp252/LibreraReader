@@ -19,8 +19,12 @@ public final class FaceSignals {
     static final int R_UPPER = 159;
     static final int R_LOWER = 145;
     static final int R_IRIS = 468;
-    /** With the iris points; the plain face mesh has 468. */
+    /** With the iris points; the plain face mesh has {@link #MESH}. */
     public static final int LANDMARKS = 478;
+    public static final int MESH = 468;
+    /** Eye aspect ratio points p1..p6 (corner, upper, upper, corner, lower, lower) per eye. */
+    static final int[] EAR_R = {33, 160, 158, 133, 153, 144};
+    static final int[] EAR_L = {362, 385, 387, 263, 373, 380};
 
     private FaceSignals() {
     }
@@ -55,8 +59,24 @@ public final class FaceSignals {
         return new float[]{along, across};
     }
 
+    /**
+     * The eye aspect ratio: lid gap over eye width, (|p2−p6| + |p3−p5|) / (2 |p1−p4|). About 0.25–0.3
+     * open, under 0.1 closed; the same for a face near or far, upright or tilted.
+     */
+    public static float ear(float[] x, float[] y, int[] p) {
+        final double width = Math.hypot(x[p[0]] - x[p[3]], y[p[0]] - y[p[3]]);
+        if (width <= 0) {
+            return 0;
+        }
+        final double a = Math.hypot(x[p[1]] - x[p[5]], y[p[1]] - y[p[5]]);
+        final double b = Math.hypot(x[p[2]] - x[p[4]], y[p[2]] - y[p[4]]);
+        return (float) ((a + b) / (2 * width));
+    }
+
     /** Fills the face fields of {@code f} from landmark pixel coordinates (frame {@code f.w} × {@code f.h}). */
     public static void landmarks(FaceFrame f, float[] x, float[] y) {
+        f.earL = ear(x, y, EAR_L);
+        f.earR = ear(x, y, EAR_R);
         if (x.length >= LANDMARKS) {
             final float[] l = iris(x, y, L_OUTER, L_INNER, L_UPPER, L_LOWER, L_IRIS);
             final float[] r = iris(x, y, R_OUTER, R_INNER, R_UPPER, R_LOWER, R_IRIS);

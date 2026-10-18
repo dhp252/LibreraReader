@@ -93,7 +93,7 @@ final class MediaPipeFaceEngine implements FaceEngine {
             x[i] = p.x() * f.w;
             y[i] = p.y() * f.h;
         }
-        if (n > FaceSignals.L_UPPER) {
+        if (n >= FaceSignals.MESH) {
             FaceSignals.landmarks(f, x, y);
         }
         f.lx = nx;

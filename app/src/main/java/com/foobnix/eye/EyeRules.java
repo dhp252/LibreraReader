@@ -58,6 +58,38 @@ public final class EyeRules {
 
     /** Frames analysed per second while only the presence features are on. */
     public static final int PRESENCE_FPS = 5;
+    /** ...and while long blink is on: a 0.6 s closure is 6 frames, a natural blink 1–3. */
+    public static final int LONG_BLINK_FPS = 10;
+
+    // long blink (M2, design 5.1 feature 3, D-103)
+    /** eyeBlink of both eyes from which a frame may be closed. */
+    public static final float BLINK_CLOSED = 0.5f;
+    /** ...and before the open-eye ratio is known, from which it is. */
+    public static final float BLINK_CLOSED_ALONE = 0.75f;
+    /** A closed eye has at most this share of its open aspect ratio (looking down narrows it less). */
+    public static final float EAR_CLOSED = 0.55f;
+    /** Frames with eyeBlink under this, looking, teach the open aspect ratio. */
+    public static final float BLINK_OPEN = 0.4f;
+    /** Open frames needed before the open aspect ratio is trusted. */
+    public static final int EAR_LEARN_FRAMES = 10;
+    /** A closure this long, ended by opening the eyes, turns the page; longer is resting the eyes. */
+    public static final long LONG_BLINK_MIN_MS = 600L;
+    public static final long LONG_BLINK_MAX_MS = 2_000L;
+    /** One open frame inside a closure up to this long does not split it. */
+    public static final long BLINK_GAP_MS = 150L;
+    /** No second long blink this soon after one. */
+    public static final long BLINK_COOLDOWN_MS = 1_000L;
+
+    /**
+     * A smoothing weight given per frame at {@link #PRESENCE_FPS}, for a frame {@code dtMs} after
+     * the last: the same smoothing in time at any frame rate.
+     */
+    public static float alpha(float perFrameAt5fps, long dtMs) {
+        if (dtMs <= 0) {
+            return perFrameAt5fps;
+        }
+        return (float) (1 - Math.pow(1 - perFrameAt5fps, dtMs / (1000.0 / PRESENCE_FPS)));
+    }
     /** Requested analysis frame size (the camera picks the closest it has). */
     public static final int FRAME_W = 640;
     public static final int FRAME_H = 480;

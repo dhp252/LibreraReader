@@ -100,6 +100,42 @@ public class FaceMathTest {
         assertEquals(-0.55f, f.eyesV, E);
     }
 
+    // ------------------------------------------------------------------ eye aspect ratio
+
+    /** One eye's six points: corners 10 apart, lids {@code gap} apart; then scaled and turned. */
+    static float earOf(float gap, float scale, double turnDeg) {
+        final float[][] p = {{0, 0}, {3, -gap / 2}, {7, -gap / 2}, {10, 0}, {7, gap / 2}, {3, gap / 2}};
+        final float[] x = new float[6];
+        final float[] y = new float[6];
+        final double a = Math.toRadians(turnDeg);
+        for (int i = 0; i < 6; i++) {
+            x[i] = (float) (scale * (p[i][0] * Math.cos(a) - p[i][1] * Math.sin(a)));
+            y[i] = (float) (scale * (p[i][0] * Math.sin(a) + p[i][1] * Math.cos(a)));
+        }
+        return FaceSignals.ear(x, y, new int[]{0, 1, 2, 3, 4, 5});
+    }
+
+    @Test
+    public void eyeAspectRatioOpenHalfClosed() {
+        assertEquals(0.3f, earOf(3, 1, 0), E);
+        assertEquals(0.15f, earOf(1.5f, 1, 0), E);
+        assertEquals(0.02f, earOf(0.2f, 1, 0), E);
+    }
+
+    @Test
+    public void eyeAspectRatioKeepsItsValueNearFarOrTilted() {
+        assertEquals(earOf(3, 1, 0), earOf(3, 3.5f, 30), E);
+    }
+
+    @Test
+    public void smoothingIsTheSameInTime() {
+        assertEquals(0.5f, EyeRules.alpha(0.5f, 200), E);
+        // two frames at 10 fps move as far as one at 5 fps
+        final float half = EyeRules.alpha(0.5f, 100);
+        assertEquals(0.5f, 1 - (1 - half) * (1 - half), E);
+        assertEquals(0.3f, EyeRules.alpha(0.3f, 0), E);
+    }
+
     // ------------------------------------------------------------------ head pose
 
     /** Column-major 4×4 from a row-major 3×3 rotation, scaled. */

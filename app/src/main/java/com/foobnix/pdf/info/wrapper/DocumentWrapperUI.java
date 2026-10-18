@@ -303,6 +303,11 @@ public class DocumentWrapperUI {
         public void showEyeButton(boolean on) {
             com.foobnix.eye.EyeUi.showButton(eyeButton, on);
         }
+
+        @Override
+        public void nextPageByEye() {
+            dc.onNextScreen(true);
+        }
     };
     View  titleBar, overlay, menuLayout, moveLeft, moveRight, bottomBar, seekLine, onCloseBook, seekSpeedLayot, zoomPlus,
             zoomMinus;

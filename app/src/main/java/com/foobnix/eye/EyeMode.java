@@ -72,6 +72,9 @@ public final class EyeMode implements EyeCamera.Listener {
 
         /** The footer button's look. */
         void showEyeButton(boolean on);
+
+        /** A long blink turns the page: book mode one page, scroll mode one screen. */
+        void nextPageByEye();
     }
 
     public static final int REQ_CAMERA = 0xE7E;
@@ -85,6 +88,9 @@ public final class EyeMode implements EyeCamera.Listener {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private EyeCamera camera;
     private PresenceDetector presence = new PresenceDetector();
+    private LongBlink blink = new LongBlink();
+    /** The presence state when the current closure began. */
+    private State stateAtClosure = State.CANT_SEE;
     private boolean resumed;
     private boolean pausedAuto;
     private boolean pausedTts;
@@ -350,6 +356,7 @@ public final class EyeMode implements EyeCamera.Listener {
         }
         resumed = true;
         presence = new PresenceDetector();
+        blink = new LongBlink();
         host.showEyeState(State.CANT_SEE);
         camera.start(host.activity());
         if (trace != null) {
@@ -375,6 +382,15 @@ public final class EyeMode implements EyeCamera.Listener {
         final AppSP sp = AppSP.get();
         if (camera != null) {
             camera.setPreview(sp.eyePreview);
+            final int fps = sp.eyeLongBlink ? EyeRules.LONG_BLINK_FPS : EyeRules.PRESENCE_FPS;
+            if (camera.fps() != fps) {
+                camera.setFps(fps);
+                if (camera.isRunning()) {
+                    // the exposure range follows the rate: bind again
+                    camera.stop();
+                    camera.start(host.activity());
+                }
+            }
         }
         if (sp.eyePreview && debug == null) {
             addDebug();
@@ -423,12 +439,20 @@ public final class EyeMode implements EyeCamera.Listener {
         lastFrameAt = f.t;
 
         final State before = presence.state();
-        final State state = presence.update(f);
+        final boolean wasClosing = blink.isClosing();
+        final State state = presence.update(f, blink.isClosed(f));
+        final boolean longBlink = blink.update(f, state == State.SEES);
+        if (!wasClosing && blink.isClosing()) {
+            stateAtClosure = before;
+        }
         if (trace != null) {
             trace.frame(f, state.name());
         }
+        if (wasClosing && !blink.isClosing()) {
+            closureEnded(longBlink);
+        }
         if (debug != null) {
-            debug.show(f, preview, state, presence, fps, lastAction, lastAction == null ? 0 : f.t - lastActionAt);
+            debug.show(f, preview, state, presence, blink, fps, lastAction, lastAction == null ? 0 : f.t - lastActionAt);
         }
         if (state == State.SEES && AppSP.get().eyeScreen) {
             keepScreenOn();
@@ -498,6 +522,45 @@ public final class EyeMode implements EyeCamera.Listener {
             default:
                 // can't see: nothing new; what was paused while away stays paused until you are seen
                 break;
+        }
+    }
+
+    /** A closure of the eyes ended: a long blink turns the page when nothing speaks against it. */
+    private void closureEnded(boolean longBlink) {
+        if (trace != null) {
+            trace.event(SystemClock.uptimeMillis(), "blink", "ms", blink.lastMs(), "result", blink.last().name());
+        }
+        if (!longBlink) {
+            return;
+        }
+        final AppSP sp = AppSP.get();
+        if (!sp.eyeLongBlink) {
+            act("long blink · turning is off in the settings");
+        } else if (stateAtClosure != State.SEES) {
+            act("long blink · not reading before it");
+        } else if (host.isDialogOpen()) {
+            act("long blink · a dialog is open");
+        } else if (TTSEngine.get().isPlaying()) {
+            act("long blink · read-aloud turns the pages");
+        } else if (!presence.canTell()) {
+            act("long blink · too dark to trust");
+        } else {
+            host.nextPageByEye();
+            tick();
+            act("long blink · next page");
+        }
+    }
+
+    private void tick() {
+        try {
+            final android.view.View v = host.activity().getWindow().getDecorView();
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM);
+            } else {
+                v.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+            }
+        } catch (Exception e) {
+            LOG.e(e);
         }
     }
 
