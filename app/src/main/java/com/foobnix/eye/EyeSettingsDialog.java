@@ -88,7 +88,7 @@ final class EyeSettingsDialog {
         final Button share = new Button(a);
         share.setText(R.string.eye_share_trace);
         share.setAllCaps(false);
-        share.setOnClickListener(v -> TraceRecorder.share(a));
+        share.setOnClickListener(v -> EyeMode.shareTrace(a));
         box.addView(share, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         final ScrollView scroll = new ScrollView(a);

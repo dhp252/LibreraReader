@@ -280,6 +280,15 @@ public final class EyeMode implements EyeCamera.Listener {
         }
     }
 
+    /** Shares the newest trace; one still being recorded is written out first, or it ends mid-line. */
+    static void shareTrace(Activity a) {
+        if (current != null && current.trace != null) {
+            current.trace.flush(() -> TraceRecorder.share(a));
+        } else {
+            TraceRecorder.share(a);
+        }
+    }
+
     /** Opens the settings from a reader (long press on the eye button, tap on the status icon). */
     public static void showSettings(Activity a) {
         EyeSettingsDialog.show(a);

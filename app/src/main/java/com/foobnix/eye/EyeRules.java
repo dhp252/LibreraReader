@@ -29,14 +29,18 @@ public final class EyeRules {
     /** Below this the frame is black (camera covered or blocked): always "can't see". */
     public static final float BLACK_LUMA = 0.015f;
     /**
-     * Looking away = moving this far from the reader's own reading pose ({@link ReadingPose},
-     * D-101): head degrees, and eye direction in blendshape units (about 1 = the eyes turned as far
-     * as they go).
+     * Degrees of gaze per unit of eye direction (eyeLook blendshapes), across and up/down
+     * ({@link ReadingPose}, D-102): fitted on the owner's trace, where the eyes turned back as
+     * the head turned while reading.
      */
-    public static final float DEV_YAW = 20f;
-    public static final float DEV_PITCH = 15f;
-    public static final float DEV_EYES_H = 0.3f;
-    public static final float DEV_EYES_V = 0.3f;
+    public static final float EYE_DEG_H = 27f;
+    public static final float EYE_DEG_V = 40f;
+    /**
+     * Looking away = the gaze this many degrees off the reading one, across and up/down. In the
+     * owner's trace reading stayed within 3.4° / 6.4° and look-aways were 8–31° off.
+     */
+    public static final float DEV_GAZE_H = 8f;
+    public static final float DEV_GAZE_V = 12f;
     /** Face frames taken as reading when Eye mode starts or comes back. */
     public static final long POSE_LEARN_MS = 3_000L;
     /** How fast the pose follows the reader while they look (per frame). */

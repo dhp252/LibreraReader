@@ -93,6 +93,24 @@ final class TraceRecorder {
         write(o.toString());
     }
 
+    /** Writes out what is buffered, then runs {@code then} on the main thread. */
+    void flush(Runnable then) {
+        if (writer.isShutdown()) {
+            then.run();
+            return;
+        }
+        writer.execute(() -> {
+            try {
+                if (out != null) {
+                    out.flush();
+                }
+            } catch (IOException e) {
+                LOG.e(e);
+            }
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(then);
+        });
+    }
+
     void close() {
         writer.execute(() -> {
             try {

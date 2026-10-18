@@ -1,49 +1,56 @@
 package com.foobnix.eye;
 
 /**
- * The reader's own reading pose: head yaw / pitch and eye direction while they read (D-101).
- * Looking away is a clear move away from it, whatever the pose is (a phone held low has the eyes
- * looking down; a tablet on a stand does not), so no fixed angle has to fit everybody.
+ * Where the reader looks while reading: one gaze direction made of the head pose and the eyes,
+ * learned per session (D-101, D-102). Looking away is a clear move of that gaze away from it.
+ * <p>
+ * Head and eyes are combined because people turn the head while reading and the eyes turn back
+ * to stay on the page: in the owner's trace a 9° head turn came with the eyes moving the other
+ * way by 0.33, and the gaze did not move. So gaze across = yaw + {@link EyeRules#EYE_DEG_H} ×
+ * eyesH and up/down = pitch − {@link EyeRules#EYE_DEG_V} × eyesV (degrees; the factors came out
+ * of that trace and fit how far eyes turn).
  * <ul>
  *     <li>The first {@link EyeRules#POSE_LEARN_MS} of face frames are taken as reading and set it.</li>
- *     <li>While the reader looks, it follows slowly ({@link EyeRules#POSE_FOLLOW}): posture drifts.</li>
- *     <li>A touch on the reader ({@link #reading}) sets it to the pose of that moment: whoever
- *     touches the page is reading it, also after turning over in bed.</li>
+ *     <li>While the gaze stays well inside the limits it follows slowly ({@link EyeRules#POSE_FOLLOW}):
+ *     posture drifts. Between half the limit and the limit it does not follow, so a slow look away
+ *     is not taken in.</li>
+ *     <li>A touch on the reader ({@link #reading}) sets it to the gaze of that moment.</li>
  * </ul>
- * Each frame's numbers are smoothed first, so one jittery frame does not count. Pure.
+ * Each frame is smoothed first, so one jittery frame does not count. Pure.
  */
 public final class ReadingPose {
 
     private boolean learned;
     private long learnFrom = -1;
     private int learnCount;
-    // the pose
-    private float yaw;
-    private float pitch;
-    private float eyesH;
-    private float eyesV;
-    // the smoothed frame
+    /** The reading gaze, degrees. */
+    private float gazeH;
+    private float gazeV;
+    // the smoothed gaze of the last frames
     private boolean hasFrame;
     private long frameAt = -1;
-    private float sYaw;
-    private float sPitch;
-    private float sEyesH;
-    private float sEyesV;
+    private float sH;
+    private float sV;
 
-    /** Takes a frame with a face; @return whether it is close to the reading pose. */
+    public static float gazeH(FaceFrame f) {
+        return f.yaw + EyeRules.EYE_DEG_H * f.eyesH;
+    }
+
+    public static float gazeV(FaceFrame f) {
+        return f.pitch - EyeRules.EYE_DEG_V * f.eyesV;
+    }
+
+    /** Takes a frame with a face; @return whether its gaze is on the reading one. */
     public boolean observe(FaceFrame f) {
+        final float h = gazeH(f);
+        final float v = gazeV(f);
         if (!hasFrame) {
-            sYaw = f.yaw;
-            sPitch = f.pitch;
-            sEyesH = f.eyesH;
-            sEyesV = f.eyesV;
+            sH = h;
+            sV = v;
             hasFrame = true;
         } else {
-            final float a = EyeRules.POSE_SMOOTH;
-            sYaw += a * (f.yaw - sYaw);
-            sPitch += a * (f.pitch - sPitch);
-            sEyesH += a * (f.eyesH - sEyesH);
-            sEyesV += a * (f.eyesV - sEyesV);
+            sH += EyeRules.POSE_SMOOTH * (h - sH);
+            sV += EyeRules.POSE_SMOOTH * (v - sV);
         }
         frameAt = f.t;
 
@@ -53,34 +60,27 @@ public final class ReadingPose {
             }
             learnCount++;
             // the running mean of the frames so far
-            yaw += (sYaw - yaw) / learnCount;
-            pitch += (sPitch - pitch) / learnCount;
-            eyesH += (sEyesH - eyesH) / learnCount;
-            eyesV += (sEyesV - eyesV) / learnCount;
+            gazeH += (sH - gazeH) / learnCount;
+            gazeV += (sV - gazeV) / learnCount;
             if (f.t - learnFrom >= EyeRules.POSE_LEARN_MS) {
                 learned = true;
             }
             return true;
         }
-        final boolean close = Math.abs(dYaw()) <= EyeRules.DEV_YAW && Math.abs(dPitch()) <= EyeRules.DEV_PITCH
-                && Math.abs(dEyesH()) <= EyeRules.DEV_EYES_H && Math.abs(dEyesV()) <= EyeRules.DEV_EYES_V;
-        if (close) {
-            final float a = EyeRules.POSE_FOLLOW;
-            yaw += a * (sYaw - yaw);
-            pitch += a * (sPitch - pitch);
-            eyesH += a * (sEyesH - eyesH);
-            eyesV += a * (sEyesV - eyesV);
+        final float dh = Math.abs(dH());
+        final float dv = Math.abs(dV());
+        if (dh <= EyeRules.DEV_GAZE_H / 2 && dv <= EyeRules.DEV_GAZE_V / 2) {
+            gazeH += EyeRules.POSE_FOLLOW * (sH - gazeH);
+            gazeV += EyeRules.POSE_FOLLOW * (sV - gazeV);
         }
-        return close;
+        return dh <= EyeRules.DEV_GAZE_H && dv <= EyeRules.DEV_GAZE_V;
     }
 
-    /** The reader touched the page at {@code t}: the pose of the last frame, if it is that recent, is reading. */
+    /** The reader touched the page at {@code t}: the gaze of the last frame, if it is that recent, is reading. */
     public void reading(long t) {
         if (hasFrame && frameAt >= 0 && Math.abs(t - frameAt) <= EyeRules.TOUCH_FRAME_MS) {
-            yaw = sYaw;
-            pitch = sPitch;
-            eyesH = sEyesH;
-            eyesV = sEyesV;
+            gazeH = sH;
+            gazeV = sV;
             learned = true;
         }
     }
@@ -89,19 +89,12 @@ public final class ReadingPose {
         return learned;
     }
 
-    public float dYaw() {
-        return sYaw - yaw;
+    /** How far the gaze is from the reading one, degrees: across, and up (+) / down. */
+    public float dH() {
+        return sH - gazeH;
     }
 
-    public float dPitch() {
-        return sPitch - pitch;
-    }
-
-    public float dEyesH() {
-        return sEyesH - eyesH;
-    }
-
-    public float dEyesV() {
-        return sEyesV - eyesV;
+    public float dV() {
+        return sV - gazeV;
     }
 }

@@ -61,8 +61,8 @@ final class EyeDebugView extends View {
                 String.format(Locale.US, "luma %.3f (%.3f) · %.1f fps", f.luma, presence.luma(), fps),
                 f.face ? String.format(Locale.US, "yaw %.0f pitch %.0f · blink %.2f %.2f", f.yaw, f.pitch, f.blinkL, f.blinkR) : "no face",
                 !pose.isLearned() ? "learning your reading pose…"
-                        : String.format(Locale.US, "off pose: head %+.0f° %+.0f° · eyes %+.2f %+.2f",
-                        pose.dYaw(), pose.dPitch(), pose.dEyesH(), pose.dEyesV()),
+                        : String.format(Locale.US, "off gaze: across %+.0f° · up %+.0f° (limits %.0f, %.0f)",
+                        pose.dH(), pose.dV(), EyeRules.DEV_GAZE_H, EyeRules.DEV_GAZE_V),
                 lastAction == null ? "no action yet" : String.format(Locale.US, "%s · %ds ago", lastAction, actionAgeMs / 1000),
         };
         invalidate();

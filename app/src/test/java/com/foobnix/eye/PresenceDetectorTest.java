@@ -108,7 +108,8 @@ public class PresenceDetectorTest {
         looking(4_000, LIT);
         // 25° is inside the camera limit but well off the reading pose
         assertEquals(State.AWAY, run(3_000, true, 25, -0.5f, false, LIT));
-        assertEquals(State.SEES, looking(800, LIT));
+        // back: the smoothed gaze needs a frame to come inside the limit, then 0.5 s
+        assertEquals(State.SEES, looking(1_000, LIT));
     }
 
     @Test
@@ -122,7 +123,30 @@ public class PresenceDetectorTest {
     @Test
     public void smallMovesStayOnThePage() {
         looking(4_000, LIT);
-        assertEquals(State.SEES, run(5_000, true, 8, -0.35f, false, LIT));
+        assertEquals(State.SEES, run(5_000, true, 5, -0.4f, false, LIT));
+    }
+
+    @Test
+    public void headTurnWithTheEyesTurningBackStaysOnThePage() {
+        looking(4_000, LIT);
+        State s = d.state();
+        for (long end = t + 5_000; t < end; t += STEP) {
+            final FaceFrame f = frame(t, true, 9, -0.5f, false, LIT);
+            f.eyesH = -9 / EyeRules.EYE_DEG_H;
+            s = d.update(f);
+        }
+        assertEquals(State.SEES, s);
+    }
+
+    @Test
+    public void oneFrameBackDoesNotRestartTheAwayTimer() {
+        looking(4_000, LIT);
+        final long gone = t;
+        nobody(1_000, LIT);
+        looking(200, LIT);
+        assertEquals(State.SEES, nobody(600, LIT));
+        assertEquals(State.AWAY, nobody(400, LIT));
+        assertTrue(t - gone <= 2_200);
     }
 
     @Test

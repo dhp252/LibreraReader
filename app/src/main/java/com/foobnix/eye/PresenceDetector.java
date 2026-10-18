@@ -10,8 +10,8 @@ package com.foobnix.eye;
  *     face in this light), a black frame, the camera busy, or no decision yet. The features then
  *     leave the reader as it is without Eye mode.</li>
  * </ul>
- * Looking means a face close to the reader's own reading pose ({@link ReadingPose}: head and eye
- * direction, learned at the start, followed slowly, re-learned on a touch), never turned more than
+ * Looking means a face whose gaze (head and eyes together) is close to the reader's own reading
+ * gaze ({@link ReadingPose}: learned at the start, followed slowly, re-learned on a touch), never turned more than
  * {@link EyeRules#LOOK_YAW} / {@link EyeRules#LOOK_PITCH} from the camera, eyes open. Closed eyes
  * only count in a lit room: in the dark the eye scores are guesses. Pure: times are the frames'
  * own.
@@ -27,7 +27,11 @@ public final class PresenceDetector {
     private float seenLuma = -1;
     /** Start of the current run of looking frames, -1 when the last frame was not looking. */
     private long lookingSince = -1;
-    /** Start of the current run of frames without anyone looking, -1 while someone looks. */
+    /**
+     * Since when nobody has looked, -1 while someone does. A look of less than
+     * {@link EyeRules#BACK_MS} does not reset it: a look away is not cut short by one frame that
+     * happens to point at the page.
+     */
     private long goneSince = -1;
     private final ReadingPose pose = new ReadingPose();
 
@@ -78,12 +82,12 @@ public final class PresenceDetector {
         }
         if (looking) {
             seenLuma = luma;
-            goneSince = -1;
             if (lookingSince < 0) {
                 lookingSince = t;
             }
             if (t - lookingSince >= EyeRules.BACK_MS) {
                 state = State.SEES;
+                goneSince = -1;
             }
         } else {
             lookingSince = -1;
