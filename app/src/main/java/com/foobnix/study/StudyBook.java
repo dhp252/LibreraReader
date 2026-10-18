@@ -143,6 +143,8 @@ public class StudyBook {
     /** What the AI said about the reader's answers. */
     public static class Feedback {
         public final List<Item> items = new ArrayList<>();
+        /** The feedback as the model wrote it (shown when its lines could not be read one by one). */
+        public String text = "";
         /** About the free recall: what was left out. */
         public String recall = "";
         public String model = "";
@@ -152,9 +154,10 @@ public class StudyBook {
             final JSONArray list = new JSONArray();
             for (Item item : items) {
                 list.put(new JSONObject().put("q", item.question).put("v", item.verdict)
-                        .put("note", item.note).put("quote", item.quote));
+                        .put("note", item.note).put("quote", item.quote).put("p", item.page));
             }
-            return new JSONObject().put("items", list).put("recall", recall).put("model", model).put("time", time);
+            return new JSONObject().put("items", list).put("text", text).put("recall", recall).put("model", model)
+                    .put("time", time);
         }
 
         static Feedback fromJson(JSONObject o) {
@@ -163,10 +166,13 @@ public class StudyBook {
             for (int i = 0; list != null && i < list.length(); i++) {
                 final JSONObject item = list.optJSONObject(i);
                 if (item != null) {
-                    f.items.add(new Item(item.optInt("q", i), item.optString("v", Item.PARTLY),
-                            item.optString("note", ""), item.optString("quote", "")));
+                    final Item it = new Item(item.optInt("q", i), item.optString("v", Item.PARTLY),
+                            item.optString("note", ""), item.optString("quote", ""));
+                    it.page = item.optInt("p", -1);
+                    f.items.add(it);
                 }
             }
+            f.text = o.optString("text", "");
             f.recall = o.optString("recall", "");
             f.model = o.optString("model", "");
             f.time = o.optLong("time", 0);
@@ -185,7 +191,9 @@ public class StudyBook {
         public final String verdict;
         public final String note;
         /** Words of the book the note points to (a page link), or empty. */
-        public final String quote;
+        public String quote;
+        /** 0-based page where the quote was found (in the layout of the check), -1 when not found. */
+        public int page = -1;
 
         public Item(int question, String verdict, String note, String quote) {
             this.question = question;
@@ -201,7 +209,9 @@ public class StudyBook {
         /** An AI category code (main, evidence, concept, caveat, apply, example) or "note". */
         public final String category;
         /** Words of the book it comes from (its page link), or empty. */
-        public final String quote;
+        public String quote;
+        /** 0-based page where the quote was found (in the layout of the check), -1 when not found. */
+        public int page = -1;
         public final List<Node> kids = new ArrayList<>();
 
         public Node(String text, String category, String quote) {
@@ -221,7 +231,8 @@ public class StudyBook {
         static JSONArray toJson(List<Node> nodes) throws JSONException {
             final JSONArray out = new JSONArray();
             for (Node n : nodes) {
-                final JSONObject o = new JSONObject().put("text", n.text).put("cat", n.category).put("quote", n.quote);
+                final JSONObject o = new JSONObject().put("text", n.text).put("cat", n.category).put("quote", n.quote)
+                        .put("p", n.page);
                 if (!n.kids.isEmpty()) {
                     o.put("kids", toJson(n.kids));
                 }
@@ -237,6 +248,7 @@ public class StudyBook {
                     continue;
                 }
                 final Node node = new Node(o.optString("text", "").trim(), o.optString("cat", ""), o.optString("quote", ""));
+                node.page = o.optInt("p", -1);
                 fromJson(o.optJSONArray("kids"), node.kids);
                 into.add(node);
             }
@@ -260,6 +272,22 @@ public class StudyBook {
 
     public boolean hasPreview() {
         return previewed > 0 && !chapters.isEmpty();
+    }
+
+    /** ● read closely, ◐ skim, ○ skip. */
+    public static String labelMark(String label) {
+        if (SKIP.equals(label)) {
+            return "○";
+        }
+        return SKIM.equals(label) ? "◐" : "●";
+    }
+
+    /** Green read, amber skim, grey skip. */
+    public static int labelColor(String label) {
+        if (SKIP.equals(label)) {
+            return 0xff9e9e9e;
+        }
+        return SKIM.equals(label) ? 0xfff4a300 : 0xff5fb236;
     }
 
     /** A known label, else {@link #READ}. */

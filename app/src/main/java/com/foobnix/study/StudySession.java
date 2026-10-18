@@ -220,15 +220,142 @@ public final class StudySession {
         }
     }
 
-    /** "Done with chapter": its after card now (and it does not come again). */
-    public void doneWith(String key) {
-        final StudyBook.Chapter c = book.chapter(key);
+    /** The questions of a chapter to answer (its after card does not come again). */
+    public void answer(BookChapters.Range range) {
+        final StudyBook.Chapter c = book.chapter(range.key);
         if (c == null) {
             return;
         }
-        if (!showCards(Collections.singletonList(new StudyCards.Card(StudyCards.AFTER, key)))) {
-            Toast.makeText(owner, R.string.study_no_questions, Toast.LENGTH_SHORT).show();
+        if (c.afterShown == 0) {
+            final long now = System.currentTimeMillis();
+            change(b -> {
+                final StudyBook.Chapter x = b.chapter(range.key);
+                if (x != null && x.afterShown == 0) {
+                    x.afterShown = now;
+                }
+            });
         }
+        StudyAnswerDialog.show(owner, this, range);
+    }
+
+    /** The chapter's branch of the map built again (answers and feedback stay), or for the first time. */
+    public void rebuild(BookChapters.Range range) {
+        final StudyBook.Chapter c = book.chapter(range.key);
+        if (c == null) {
+            return;
+        }
+        Toast.makeText(owner, R.string.study_building_map, Toast.LENGTH_SHORT).show();
+        final List<String> none = new ArrayList<>();
+        for (int i = 0; i < c.questions.size(); i++) {
+            none.add("");
+        }
+        new StudyJobs.CheckJob(owner, AiJobs.Target.of(dc), range, c.questions, none, "", new StudyJobs.CheckScreen() {
+            @Override
+            public void onStatus(String status) {
+            }
+
+            @Override
+            public void onText(String visible) {
+            }
+
+            @Override
+            public void onDone(StudyBook.Chapter chapter) {
+                Toast.makeText(owner, owner.getString(R.string.study_added_to_map, StudyBook.Node.count(chapter.branch)),
+                        Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(String message) {
+                Toast.makeText(owner, message, Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onNeedSettings() {
+                com.foobnix.ai.AiSettingsDialog.show(owner, null);
+            }
+        }).start();
+    }
+
+    /** The chapter with this key in the reader's layout, or null. */
+    public BookChapters.Range rangeOf(String key) {
+        return range(chapters, key);
+    }
+
+    /**
+     * To the words of a quote: on a fixed layout its page; in a reflowing book it is looked for
+     * around the page it was found on (the layout may have changed since). Without words, the page
+     * or the chapter's start.
+     */
+    public void jumpTo(String quote, int page, BookChapters.Range range) {
+        final String key = quote == null ? null : com.foobnix.ai.QuoteMatcher.key(quote);
+        if (key == null || !dc.isTextFormat()) {
+            goToPage(page >= 0 ? page : range.from);
+            return;
+        }
+        final AiJobs.Target t = AiJobs.Target.of(dc);
+        new Thread(() -> {
+            int found = -1;
+            try (BookText text = BookText.open(t.path, t.width, t.height, t.fontSize)) {
+                if (text != null) {
+                    final int pages = text.pageCount();
+                    final int hint = Math.max(range.from, Math.min(range.to - 1, page >= 0 ? page : range.from));
+                    final int lo = Math.max(0, range.from - 2);
+                    final int hi = Math.min(pages - 1, range.to + 1);
+                    // nearest to the hint first, then outwards
+                    for (int d = 0; found < 0 && d <= hi - lo; d++) {
+                        for (int p : d == 0 ? new int[]{hint} : new int[]{hint + d, hint - d}) {
+                            if (found < 0 && p >= lo && p <= hi) {
+                                final com.foobnix.ai.QuoteMatcher.Words words =
+                                        new com.foobnix.ai.QuoteMatcher.Words(BookText.words(text.text(p)));
+                                if (!com.foobnix.ai.QuoteMatcher.onPage(words, Collections.singletonList(key)).isEmpty()) {
+                                    found = p;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+            final int go = found >= 0 ? found : page >= 0 ? page : range.from;
+            post(() -> goToPage(go));
+        }, "@T Study quote").start();
+    }
+
+    private void goToPage(int bookPage) {
+        if (dc != null) {
+            dc.onGoToPage(ReadingTracker.viewPage(dc, bookPage + 1));
+        }
+    }
+
+    /** The reader's notes (marks with a note) by the chapter they are in, for the outline. Off the main thread. */
+    public java.util.Map<String, List<StudyBook.Node>> notes() {
+        final java.util.Map<String, List<StudyBook.Node>> out = new java.util.HashMap<>();
+        final List<BookChapters.Range> all = chapters;
+        if (all == null) {
+            return out;
+        }
+        final List<com.foobnix.annotation.Mark> marks = new ArrayList<>(com.foobnix.annotation.MarksStore.get().load(name).values());
+        Collections.sort(marks, (x, y) -> Integer.compare(x.firstPage(), y.firstPage()));
+        for (com.foobnix.annotation.Mark m : marks) {
+            if (!m.hasNote()) {
+                continue;
+            }
+            final BookChapters.Range r = StudyChapters.at(all, m.firstPage());
+            if (r == null || StudyChapters.isFront(r)) {
+                continue;
+            }
+            final StudyBook.Node note = new StudyBook.Node(m.note.replace("\r", "").replace("\n", " ").trim(),
+                    Outline.NOTE, m.quote);
+            note.page = m.firstPage();
+            List<StudyBook.Node> list = out.get(r.key);
+            if (list == null) {
+                list = new ArrayList<>();
+                out.put(r.key, list);
+            }
+            list.add(note);
+        }
+        return out;
     }
 
     public void summary(BookChapters.Range range) {
@@ -265,11 +392,14 @@ public final class StudySession {
         final boolean fixed = !dc.isTextFormat();
         final int docPages = ReadingTracker.realPageCount(dc);
         final AiJobs.Target target = AiJobs.Target.of(dc);
+        // a reload keeps the chapters found already while the parts studied by chapter are the same
+        final List<BookChapters.Range> known = opening ? null : chapters;
+        final java.util.Set<String> knownSplit = new java.util.HashSet<>(book.split);
         new Thread(() -> {
             final StudyBook b = StudyStore.get().load(name);
             List<BookChapters.Range> ch = null;
             if (b.on && b.hasPreview()) {
-                ch = fixed ? stored(b, docPages) : null;
+                ch = known != null && !fixed && b.split.equals(knownSplit) ? known : fixed ? stored(b, docPages) : null;
                 if (ch == null) {
                     ch = fromToc(target, b);
                 }
@@ -372,7 +502,7 @@ public final class StudySession {
         waiting = after;
         v.button(owner.getString(R.string.study_look_back), true, () -> {
             waiting = Collections.emptyList();
-            StudyPanel.show(owner, dc);
+            StudyMap.show(owner, this, true);
         });
         v.button(owner.getString(R.string.study_continue), true, this::showWaiting);
         v.onClose(this::showWaiting);
@@ -463,6 +593,8 @@ public final class StudySession {
         v.title(owner.getString(R.string.study_done_with, title(range)), null);
         v.line(ch.questions.isEmpty() ? owner.getString(R.string.study_after_no_questions)
                 : owner.getString(R.string.study_after_questions, ch.questions.size()));
+        v.button(owner.getString(ch.questions.isEmpty() ? R.string.study_add_to_map : R.string.study_answer), true,
+                () -> answer(range));
         v.button(owner.getString(R.string.study_later), true, () -> {
         });
     }

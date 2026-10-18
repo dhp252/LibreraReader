@@ -46,6 +46,24 @@ public class StudyJobsTest {
     }
 
     @Test
+    public void quotesOfACheckAreFoundInTheChapterWithTheirPage() {
+        final List<String> words = Arrays.asList("The", "price", "is", "set", "by", "value.", "Buyers", "compare,",
+                "always.", "Anchors", "fail", "often.");
+        final List<Integer> pages = Arrays.asList(4, 4, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6);
+        final StudyPrompts.Check check = StudyPrompts.parseCheck("## Feedback\n1. right - yes\n> \"Buyers compare, always.\"\n"
+                + "2. missed - no\n> \"Something never said.\"\n## Map\n```json\n"
+                + "[{\"text\": \"Value\", \"cat\": \"main\", \"quote\": \"the price is set by value\","
+                + " \"kids\": [{\"text\": \"Anchors\", \"cat\": \"caveat\", \"quote\": \"Anchors fail often.\"}]}]\n```");
+        StudyJobs.place(check, words, pages);
+        assertEquals(5, check.items.get(0).page);
+        assertEquals("Buyers compare, always.", check.items.get(0).quote);
+        assertEquals("not in the chapter: no page", -1, check.items.get(1).page);
+        assertEquals(4, check.branch.get(0).page);
+        assertEquals("the book's own words", "The price is set by value.", check.branch.get(0).quote);
+        assertEquals(6, check.branch.get(0).kids.get(0).page);
+    }
+
+    @Test
     public void aNewPreviewKeepsTheReadersLabelsAndAnsweredQuestions() {
         final StudyBook b = new StudyBook();
         StudyJobs.apply(b, preview("read", "read", "q"), chapters, lengths, Collections.<String>emptySet(), "", "m");

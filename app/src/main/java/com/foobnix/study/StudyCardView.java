@@ -22,9 +22,6 @@ import com.foobnix.android.utils.Dips;
  */
 final class StudyCardView {
 
-    static final int READ_COLOR = 0xff5fb236;
-    static final int SKIM_COLOR = 0xfff4a300;
-    static final int SKIP_COLOR = 0xff9e9e9e;
     private static final int TEXT = Color.WHITE;
     private static final int DIM = 0xffcfcfcf;
     private static final int ACTION = 0xff8ab4f8;
@@ -189,17 +186,11 @@ final class StudyCardView {
     }
 
     static String mark(String label) {
-        if (StudyBook.SKIP.equals(label)) {
-            return "○";
-        }
-        return StudyBook.SKIM.equals(label) ? "◐" : "●";
+        return StudyBook.labelMark(label);
     }
 
     static int color(String label) {
-        if (StudyBook.SKIP.equals(label)) {
-            return SKIP_COLOR;
-        }
-        return StudyBook.SKIM.equals(label) ? SKIM_COLOR : READ_COLOR;
+        return StudyBook.labelColor(label);
     }
 
     private TextView text(String s, int sp, int color, boolean bold) {

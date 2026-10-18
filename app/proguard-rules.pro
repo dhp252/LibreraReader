@@ -93,3 +93,8 @@
 # resolve on older systems: NoClassDefFoundError at register() and a crash on launch.
 -keepnames class androidx.** extends android.app.Activity
 -keepnames class androidx.fragment.app.Fragment
+
+# The study mind map (F-009) calls its bridge by name from JavaScript.
+-keepclassmembers class com.foobnix.study.StudyMap$Bridge {
+    @android.webkit.JavascriptInterface <methods>;
+}

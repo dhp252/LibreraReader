@@ -101,6 +101,17 @@ public class MarkdownExportTest {
     }
 
     @Test
+    public void aStudiedBookHasItsOutlineFirst() {
+        MarkdownExport.Book book = new MarkdownExport.Book("T", "", "t.epub", "2026-10-18",
+                Arrays.asList(new MarkdownExport.Chapter("One", 1)));
+        String md = MarkdownExport.build(book, Arrays.asList(new MarkdownExport.Item(2, 0, "q", "", "#ffd400", "highlight")),
+                null, null, "**Thesis:** x\n\n- **1. One**\n");
+        assertTrue(md.contains("# T\n\n## Outline\n\n**Thesis:** x\n\n- **1. One**\n\n## One\n"));
+        // no outline: no section
+        assertFalse(MarkdownExport.build(book, null, null, null, " ").contains("## Outline"));
+    }
+
+    @Test
     public void nothingToExport() {
         assertTrue(MarkdownExport.isEmpty(null, Collections.<MarkdownExport.Bookmark>emptyList(), null));
         assertFalse(MarkdownExport.isEmpty(null, Collections.singletonList(new MarkdownExport.Bookmark(1, "")), null));

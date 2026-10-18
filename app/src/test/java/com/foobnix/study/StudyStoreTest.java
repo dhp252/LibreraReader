@@ -38,8 +38,12 @@ public class StudyStoreTest {
             two.title = "Two";
             two.answers.addAll(Arrays.asList("because", ""));
             two.feedback = new StudyBook.Feedback();
-            two.feedback.items.add(new StudyBook.Item(0, StudyBook.Item.RIGHT, "yes", "the words"));
+            final StudyBook.Item item = new StudyBook.Item(0, StudyBook.Item.RIGHT, "yes", "the words");
+            item.page = 7;
+            two.feedback.items.add(item);
+            two.feedback.text = "1. right - yes";
             final StudyBook.Node claim = new StudyBook.Node("A claim", "main", "a quote");
+            claim.page = 8;
             claim.kids.add(new StudyBook.Node("Evidence", "evidence", ""));
             two.branch.add(claim);
             two.checked = 2000;
@@ -58,7 +62,11 @@ public class StudyStoreTest {
         assertTrue(two.hasAnswers());
         assertEquals("right", two.feedback.items.get(0).verdict);
         assertEquals("the words", two.feedback.items.get(0).quote);
+        assertEquals(7, two.feedback.items.get(0).page);
+        assertEquals("1. right - yes", two.feedback.text);
         assertEquals(2, StudyBook.Node.count(two.branch));
+        assertEquals(8, two.branch.get(0).page);
+        assertEquals(-1, two.branch.get(0).kids.get(0).page);
         assertEquals("Evidence", two.branch.get(0).kids.get(0).text);
     }
 

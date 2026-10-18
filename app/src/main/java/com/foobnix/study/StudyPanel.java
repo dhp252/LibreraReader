@@ -115,6 +115,10 @@ public final class StudyPanel {
         list.addView(text(a.getString(R.string.study_time_saved, s.duration(plan.minutes), s.duration(plan.fullMinutes)), 14, false));
 
         final LinearLayout actions = row();
+        actions.addView(action(a.getString(R.string.study_map), () -> {
+            popup.closeDialog();
+            StudyMap.show(a, s, false);
+        }));
         actions.addView(action(a.getString(R.string.study_more), this::more));
         list.addView(actions);
 
@@ -165,6 +169,7 @@ public final class StudyPanel {
         time.setPadding(Dips.dpToPx(8), 0, Dips.dpToPx(8), 0);
         row.addView(time);
 
+        // ✓ checked, ▸ being read, ? done but not answered yet
         final String state = c.checked > 0 ? "✓" : here ? "▸" : c.afterShown > 0 && !StudyBook.SKIP.equals(c.label) ? "?" : "";
         final TextView st = text(state, 14, true);
         st.setMinWidth(Dips.dpToPx(16));
@@ -194,8 +199,14 @@ public final class StudyPanel {
         if (!here) {
             buttons.addView(action(a.getString(R.string.study_go_to_chapter), () -> s.goTo(range)));
         }
-        if (c.checked == 0 && !StudyBook.SKIP.equals(c.label)) {
-            buttons.addView(action(a.getString(R.string.study_done_with_chapter), () -> s.doneWith(range.key)));
+        if (c.feedback != null || !StudyBook.SKIP.equals(c.label) && !c.questions.isEmpty()) {
+            buttons.addView(action(a.getString(c.feedback != null ? R.string.study_answers : R.string.study_answer),
+                    () -> s.answer(range)));
+        }
+        if (c.checked > 0) {
+            buttons.addView(action(a.getString(R.string.study_rebuild_branch), () -> s.rebuild(range)));
+        } else if (StudyBook.SKIP.equals(c.label) || c.questions.isEmpty()) {
+            buttons.addView(action(a.getString(R.string.study_add_to_map), () -> s.rebuild(range)));
         }
         buttons.addView(action(a.getString(R.string.study_summary), () -> s.summary(range)));
         buttons.addView(action(a.getString(R.string.ai_key_passages), () -> s.keyPassages(range)));

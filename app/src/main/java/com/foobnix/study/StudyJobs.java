@@ -144,6 +144,345 @@ public final class StudyJobs {
         }
     }
 
+    /** What a check shows; called on the main thread. */
+    public interface CheckScreen {
+        void onStatus(String status);
+
+        /** The feedback written so far (without the map's JSON). */
+        void onText(String visible);
+
+        void onDone(StudyBook.Chapter chapter);
+
+        void onError(String message);
+
+        void onNeedSettings();
+    }
+
+    /**
+     * Check / Add to map: the chapter (read here, summarized by parts when it is too long), the
+     * reader's answers, marks, notes and the AI passages go to the model; its feedback streams in;
+     * the quotes it gives are found in the chapter (their page); feedback and branch are kept.
+     */
+    public static class CheckJob extends AiJobs.Job {
+        private final BookChapters.Range range;
+        private final List<String> questions;
+        private final List<String> answers;
+        private final String recall;
+        private volatile CheckScreen screen;
+
+        public CheckJob(Activity activity, AiJobs.Target target, BookChapters.Range range, List<String> questions,
+                        List<String> answers, String recall, CheckScreen screen) {
+            super(activity, target);
+            this.range = range;
+            this.questions = new ArrayList<>(questions);
+            this.answers = new ArrayList<>(answers);
+            this.recall = recall == null ? "" : recall;
+            this.screen = screen;
+        }
+
+        public void setScreen(CheckScreen screen) {
+            this.screen = screen;
+        }
+
+        private void status(String text) {
+            ui(() -> {
+                final CheckScreen s = screen;
+                if (s != null) {
+                    s.onStatus(text);
+                }
+            });
+        }
+
+        @Override
+        protected void failed(String message) {
+            ui(() -> {
+                final CheckScreen s = screen;
+                if (s != null) {
+                    s.onError(message);
+                } else {
+                    android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+        @Override
+        protected void work() throws Exception {
+            if (!settings.isReady()) {
+                ui(() -> {
+                    final CheckScreen s = screen;
+                    if (s != null) {
+                        s.onNeedSettings();
+                    }
+                });
+                return;
+            }
+            status(string(R.string.ai_reading_book));
+            try (BookText text = open()) {
+                final int pages = text.pageCount();
+                final int from = Math.max(0, range.from);
+                final int to = Math.min(pages, range.to);
+                final String[] plain = new String[pages];
+                final int[] lengths = new int[pages];
+                final List<String> words = new ArrayList<>();
+                final List<Integer> wordPage = new ArrayList<>();
+                for (int p = from; p < to; p++) {
+                    checkCancelled();
+                    final org.ebookdroid.droids.mupdf.codec.TextWord[][] page = text.text(p);
+                    for (String w : BookText.words(page)) {
+                        words.add(w);
+                        wordPage.add(p);
+                    }
+                    plain[p] = BookText.plain(page);
+                    lengths[p] = plain[p].length();
+                }
+                if (BookChapters.length(lengths, from, to) == 0) {
+                    failed(string(R.string.ai_no_text));
+                    return;
+                }
+
+                final AiStore.Book ai = AiStore.get().load(target.name);
+                final String goal = ai.goal == null ? "" : ai.goal;
+                final List<String> marks = marks(target.name, from, to);
+                final List<String> passages = new ArrayList<>();
+                for (AiStore.Chapter chapter : ai.highlights) {
+                    for (AiStore.Quote q : chapter.quotes) {
+                        if (q.page >= from && q.page < to && passages.size() < 30) {
+                            passages.add("[" + q.category.code + "] " + q.text);
+                        }
+                    }
+                }
+
+                // the chapter whole when it fits, else its parts summarized
+                final int room = Math.max(8000, settings.maxChars - 8000);
+                final String chapterText;
+                final boolean summarized = BookChapters.length(lengths, from, to) > room;
+                if (!summarized) {
+                    chapterText = join(plain, from, to);
+                } else {
+                    final List<BookChapters.Range> parts = BookChapters.parts(
+                            java.util.Collections.singletonList(new BookChapters.Range(from, to, range.title)), lengths, room);
+                    final StringBuilder all = new StringBuilder();
+                    final String system = AiPrompts.withMaster(settings.masterPrompt, AiPrompts.summarySystem(settings.answerLanguage));
+                    for (int i = 0; i < parts.size(); i++) {
+                        status(string(R.string.ai_summarizing_part, i + 1, parts.size()));
+                        final BookChapters.Range part = parts.get(i);
+                        all.append("<part n=\"").append(i + 1).append("\">\n")
+                                .append(ask(system, AiPrompts.partSummary(target.title, part.title, join(plain, part.from, part.to)), null))
+                                .append("\n</part>\n");
+                    }
+                    chapterText = all.toString();
+                }
+
+                status(string(R.string.study_checking));
+                final StringBuilder streamed = new StringBuilder();
+                final String answer = ask(
+                        AiPrompts.withMaster(settings.masterPrompt, StudyPrompts.checkSystem(settings.answerLanguage, !goal.trim().isEmpty())),
+                        StudyPrompts.check(target.title, chapterTitle(range), goal, chapterText, summarized, questions, answers,
+                                recall, marks, passages),
+                        delta -> {
+                            streamed.append(delta);
+                            final String shown = StudyPrompts.visible(streamed.toString());
+                            ui(() -> {
+                                final CheckScreen s = screen;
+                                if (s != null) {
+                                    s.onText(shown);
+                                }
+                            });
+                        });
+                final StudyPrompts.Check check = StudyPrompts.parseCheck(answer);
+                if (check.items.isEmpty() && check.branch.isEmpty() && check.feedback.isEmpty()) {
+                    failed(string(wasCutOff() ? R.string.ai_cut_off : R.string.study_check_unreadable));
+                    return;
+                }
+                place(check, words, wordPage);
+
+                checkCancelled();
+                final boolean answered = hasAnswers();
+                final long now = System.currentTimeMillis();
+                final String model = settings.model;
+                final StudyBook book = StudyStore.get().update(target.name, b -> {
+                    final StudyBook.Chapter c = b.chapter(range.key);
+                    if (c == null) {
+                        return;
+                    }
+                    c.answers.clear();
+                    c.answers.addAll(answers);
+                    c.recall = recall;
+                    if (answered) {
+                        final StudyBook.Feedback f = new StudyBook.Feedback();
+                        f.items.addAll(check.items);
+                        f.text = check.feedback;
+                        f.recall = check.recall;
+                        f.model = model;
+                        f.time = now;
+                        c.feedback = f;
+                    }
+                    if (!check.branch.isEmpty()) {
+                        c.branch.clear();
+                        c.branch.addAll(check.branch);
+                    }
+                    c.checked = now;
+                    if (c.afterShown == 0) {
+                        c.afterShown = now;
+                    }
+                });
+                StudySession.reloadIfOpen(target.name);
+                final StudyBook.Chapter done = book.chapter(range.key);
+                if (done == null) {
+                    // the chapter left the study data meanwhile (a new preview on another device)
+                    failed(string(R.string.study_check_unreadable));
+                    return;
+                }
+                ui(() -> {
+                    final CheckScreen s = screen;
+                    if (s != null && done != null) {
+                        s.onDone(done);
+                    }
+                });
+            }
+        }
+
+        private boolean hasAnswers() {
+            if (!recall.trim().isEmpty()) {
+                return true;
+            }
+            for (String a : answers) {
+                if (a != null && !a.trim().isEmpty()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /** The reader's marks in the chapter for the request: "quote" and its note. */
+        private static List<String> marks(String bookName, int from, int to) {
+            final List<String> out = new ArrayList<>();
+            for (com.foobnix.annotation.Mark m : com.foobnix.annotation.MarksStore.get().load(bookName).values()) {
+                if (m.isInk() || out.size() >= 30) {
+                    continue;
+                }
+                final int page = m.firstPage();
+                if (page < from || page >= to) {
+                    continue;
+                }
+                final String quote = m.quote == null ? "" : m.quote.trim();
+                final String note = m.note == null ? "" : m.note.trim();
+                if (quote.isEmpty() && note.isEmpty()) {
+                    continue;
+                }
+                out.add((quote.isEmpty() ? "" : "\"" + quote + "\"") + (note.isEmpty() ? "" : " (note: " + note + ")"));
+            }
+            return out;
+        }
+    }
+
+    /** The quotes of a check found in the chapter: the book's own words and their page; unmatched ones lose the link. */
+    static void place(StudyPrompts.Check check, List<String> words, List<Integer> wordPage) {
+        final List<Object> owners = new ArrayList<>();
+        final List<String> quotes = new ArrayList<>();
+        for (StudyBook.Item item : check.items) {
+            if (item.quote != null && !item.quote.isEmpty()) {
+                owners.add(item);
+                quotes.add(item.quote);
+            }
+        }
+        collect(check.branch, owners, quotes);
+        if (quotes.isEmpty()) {
+            return;
+        }
+        for (com.foobnix.ai.QuoteMatcher.Found f : com.foobnix.ai.QuoteMatcher.locateAll(words, quotes)) {
+            final Object owner = owners.get(f.quote);
+            final int page = wordPage.get(f.firstWord);
+            if (owner instanceof StudyBook.Item) {
+                ((StudyBook.Item) owner).quote = f.text;
+                ((StudyBook.Item) owner).page = page;
+            } else {
+                ((StudyBook.Node) owner).quote = f.text;
+                ((StudyBook.Node) owner).page = page;
+            }
+        }
+    }
+
+    private static void collect(List<StudyBook.Node> nodes, List<Object> owners, List<String> quotes) {
+        for (StudyBook.Node n : nodes) {
+            if (n.quote != null && !n.quote.isEmpty()) {
+                owners.add(n);
+                quotes.add(n.quote);
+            }
+            collect(n.kids, owners, quotes);
+        }
+    }
+
+    /** What a streamed text answer shows; called on the main thread. */
+    public interface TextScreen {
+        void onText(String all);
+
+        void onDone(String all);
+
+        void onError(String message);
+
+        void onNeedSettings();
+    }
+
+    /** "What do I still recall?": the outline and the reader's words, never the book's text. */
+    public static class RecallJob extends AiJobs.Job {
+        private final String outline;
+        private final String remembered;
+        private volatile TextScreen screen;
+
+        public RecallJob(Activity activity, AiJobs.Target target, String outline, String remembered, TextScreen screen) {
+            super(activity, target);
+            this.outline = outline;
+            this.remembered = remembered;
+            this.screen = screen;
+        }
+
+        public void setScreen(TextScreen screen) {
+            this.screen = screen;
+        }
+
+        @Override
+        protected void failed(String message) {
+            ui(() -> {
+                final TextScreen s = screen;
+                if (s != null) {
+                    s.onError(message);
+                }
+            });
+        }
+
+        @Override
+        protected void work() throws Exception {
+            if (!settings.isReady()) {
+                ui(() -> {
+                    final TextScreen s = screen;
+                    if (s != null) {
+                        s.onNeedSettings();
+                    }
+                });
+                return;
+            }
+            final StringBuilder all = new StringBuilder();
+            final String answer = ask(AiPrompts.withMaster(settings.masterPrompt, StudyPrompts.recallSystem(settings.answerLanguage)),
+                    StudyPrompts.recall(target.title, outline, remembered), delta -> {
+                        all.append(delta);
+                        final String now = all.toString();
+                        ui(() -> {
+                            final TextScreen s = screen;
+                            if (s != null) {
+                                s.onText(now);
+                            }
+                        });
+                    });
+            ui(() -> {
+                final TextScreen s = screen;
+                if (s != null) {
+                    s.onDone(answer.trim());
+                }
+            });
+        }
+    }
+
     /** The preview into the book's study data (kept apart for the reader's own labels and answers). */
     static void apply(StudyBook b, StudyPrompts.Preview preview, List<BookChapters.Range> chapters, int[] lengths,
                       Set<String> split, String goal, String model) {

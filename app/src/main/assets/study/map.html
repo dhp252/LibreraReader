@@ -1,0 +1,52 @@
+<!doctype html>
+<!-- The study mind map (F-009): markmap-view 0.18.12 (MIT) over D3 7.9.0 (ISC), both bundled here.
+     Java calls render(data, dark, expandLevel); a tap on a node's text calls Study.jump(id). -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  html, body { margin: 0; height: 100%; background: #ffffff; overflow: hidden; }
+  body.markmap-dark { background: #1e1e1e; }
+  #mm { width: 100%; height: 100%; }
+  .markmap-foreign { cursor: pointer; }
+</style>
+<script src="d3.min.js"></script>
+<script src="markmap-view.js"></script>
+</head>
+<body>
+<svg id="mm"></svg>
+<script>
+  var mm = null;
+
+  function render(data, dark, expandLevel) {
+    document.body.className = dark ? 'markmap-dark' : '';
+    var svg = document.getElementById('mm');
+    if (mm) {
+      mm.destroy();
+    }
+    mm = markmap.Markmap.create(svg, {
+      color: function (node) {
+        return (node.payload && node.payload.color) || '#888888';
+      },
+      initialExpandLevel: expandLevel,
+      duration: 300,
+      maxWidth: 260,
+      spacingHorizontal: 60
+    }, data);
+  }
+
+  // a tap on a node's text: its page (the circle folds and unfolds, as markmap does)
+  document.getElementById('mm').addEventListener('click', function (e) {
+    var fo = e.target && e.target.closest ? e.target.closest('foreignObject') : null;
+    if (!fo) {
+      return;
+    }
+    var d = d3.select(fo).datum();
+    if (d && d.payload && d.payload.id && window.Study) {
+      window.Study.jump(d.payload.id);
+    }
+  });
+</script>
+</body>
+</html>

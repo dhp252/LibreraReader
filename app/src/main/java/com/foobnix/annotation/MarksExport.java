@@ -206,10 +206,44 @@ public final class MarksExport {
             }
         }
 
-        result.empty = MarkdownExport.isEmpty(items, bookmarks, passages);
+        final String outline = studyOutline(bookName, title, items);
+        result.empty = MarkdownExport.isEmpty(items, bookmarks, passages) && outline.isEmpty();
         final String date = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
-        result.markdown = MarkdownExport.build(new MarkdownExport.Book(title, author, file, date, chapters), items, bookmarks, passages);
+        result.markdown = MarkdownExport.build(new MarkdownExport.Book(title, author, file, date, chapters), items, bookmarks,
+                passages, outline);
         return result;
+    }
+
+    /**
+     * The outline of a studied book (F-009) as Markdown, with the reader's notes under the chapters
+     * they are in; empty for a book not studied.
+     */
+    private static String studyOutline(String bookName, String title, List<MarkdownExport.Item> items) {
+        final com.foobnix.study.StudyBook study = com.foobnix.study.StudyStore.get().load(bookName);
+        if (!study.hasPreview()) {
+            return "";
+        }
+        final Map<String, List<com.foobnix.study.StudyBook.Node>> notes = new HashMap<>();
+        for (MarkdownExport.Item item : items) {
+            if (item.note == null || item.note.trim().isEmpty()) {
+                continue;
+            }
+            for (com.foobnix.study.StudyBook.Chapter c : study.chapters.values()) {
+                if (item.page - 1 >= c.from && item.page - 1 < c.to) {
+                    final com.foobnix.study.StudyBook.Node note = new com.foobnix.study.StudyBook.Node(
+                            item.note.replace("\r", "").replace("\n", " ").trim(), com.foobnix.study.Outline.NOTE, item.quote);
+                    note.page = item.page - 1;
+                    List<com.foobnix.study.StudyBook.Node> list = notes.get(c.key);
+                    if (list == null) {
+                        list = new ArrayList<>();
+                        notes.put(c.key, list);
+                    }
+                    list.add(note);
+                    break;
+                }
+            }
+        }
+        return com.foobnix.study.Outline.toMarkdown(com.foobnix.study.Outline.build(title, study, notes));
     }
 
     /** An annotation inside the PDF as an export item: its words, comment and color; null for drawings, links... */

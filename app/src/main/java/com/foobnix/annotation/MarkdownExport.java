@@ -99,6 +99,12 @@ public final class MarkdownExport {
     }
 
     public static String build(Book book, List<Item> items, List<Bookmark> bookmarks, List<Passage> passages) {
+        return build(book, items, bookmarks, passages, "");
+    }
+
+    /** @param outline the study outline (F-009) as Markdown, or empty */
+    public static String build(Book book, List<Item> items, List<Bookmark> bookmarks, List<Passage> passages,
+                               String outline) {
         final StringBuilder md = new StringBuilder();
         md.append("---\n");
         md.append("title: ").append(yaml(book.title)).append('\n');
@@ -112,6 +118,9 @@ public final class MarkdownExport {
         md.append("# ").append(oneLine(book.title)).append('\n');
         if (!book.author.isEmpty()) {
             md.append(oneLine(book.author)).append('\n');
+        }
+        if (outline != null && !outline.trim().isEmpty()) {
+            md.append("\n## Outline\n\n").append(outline.trim()).append('\n');
         }
 
         final List<Item> sorted = new ArrayList<>(items == null ? Collections.<Item>emptyList() : items);

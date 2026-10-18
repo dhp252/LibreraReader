@@ -175,7 +175,7 @@ The fork's tests all pass.
 | `com.foobnix.ai` | quote matching, per-book AI store, TOC chapters, prompts, Claude/OpenAI request and stream parsing |
 | `com.foobnix.sys` | the crash marks that keep a book which crashed a codec from crashing the app again |
 | `com.foobnix.annotation` | stylus rules; marks found again after an EPUB re-layout; the marks file; Markdown export; color names |
-| `com.foobnix.study` | study chapters (long parts split), the skim sent at opt-in, preview answers, chapter cards, time per chapter, the study file |
+| `com.foobnix.study` | study chapters (long parts split), the skim sent at opt-in, preview and check answers, chapter cards, time per chapter, the study file, quotes found in the chapter, the outline (Markdown and mind map) |
 
 `WebDavServerTest` runs against a real WebDAV server and is skipped when there is none. To run
 it, start a local one ([wsgidav](https://github.com/mar10/wsgidav)) and advertise it in
@@ -238,10 +238,20 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   its questions and actions. Page into a new chapter: a card at the bottom shows its label, time,
   reason and questions (Skim: Summary, Key passages; Skip: Summary, Next chapter); the next page
   turn takes it away, and it never comes again for that chapter. Page out of a Read or Skim
-  chapter: "Done: <chapter>" comes first. A jump (TOC, search) shows only the card of where you
-  land. A book split in Parts gets a card per chapter inside them. Close the book, set the phone
-  date 3 days ahead (or wait), open it: "Welcome back". ⋮ > Stop studying hides everything;
-  ✦ > Study this book brings it back without a new skim. A second device shows the same panel
+  chapter: "Done: <chapter>" comes first, with Answer and Later. A jump (TOC, search) shows only
+  the card of where you land. A book split in Parts gets a card per chapter inside them.
+  Answer: type (or dictate with the keyboard's mic) an answer per question and, if you like,
+  "Anything else you remember?"; close and reopen: what you typed is still there. Check: the
+  feedback comes in as it is written, then ✓ / ◐ / ✗ per answer with the sentence of the book and
+  "p. N": a tap goes there (in an EPUB also after a font change). "Added to the map: N ideas".
+  With no answers the button is "Add to map". In the panel, a checked chapter has Answers and
+  Rebuild branch; a skipped one Add to map. Panel > Map: the outline as a mind map (zoom, pan,
+  tap a circle to fold, tap a text to go to its page) or as Outline; in night mode it is dark.
+  Type what you still remember at the bottom, Check: it names what you left out (only the
+  outline is sent, not the book). Export notes (Markdown) starts with "## Outline".
+  Close the book, set the phone date 3 days ahead (or wait), open it: "Welcome back" > Look back
+  first opens the map with the recall box. ⋮ > Stop studying hides everything; ✦ > Study this
+  book brings it back without a new skim. A second device shows the same panel, answers and map
   after a sync, and a card seen on one is not shown on the other.
 - **Stylus** (a phone or tablet with an active pen): open a PDF without opening the toolbar and
   write with the pen: it draws at once, thinner or bolder with pressure, while a finger still turns
