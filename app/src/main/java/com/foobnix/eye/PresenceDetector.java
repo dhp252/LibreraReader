@@ -10,9 +10,11 @@ package com.foobnix.eye;
  *     face in this light), a black frame, the camera busy, or no decision yet. The features then
  *     leave the reader as it is without Eye mode.</li>
  * </ul>
- * Looking means a face turned at most {@link EyeRules#LOOK_YAW} / {@link EyeRules#LOOK_PITCH}
- * from the camera, eyes not turned far to a side or up, eyes open. Closed eyes only count in a
- * lit room: in the dark the eye scores are guesses. Pure: times are the frames' own.
+ * Looking means a face close to the reader's own reading pose ({@link ReadingPose}: head and eye
+ * direction, learned at the start, followed slowly, re-learned on a touch), never turned more than
+ * {@link EyeRules#LOOK_YAW} / {@link EyeRules#LOOK_PITCH} from the camera, eyes open. Closed eyes
+ * only count in a lit room: in the dark the eye scores are guesses. Pure: times are the frames'
+ * own.
  */
 public final class PresenceDetector {
 
@@ -27,6 +29,7 @@ public final class PresenceDetector {
     private long lookingSince = -1;
     /** Start of the current run of frames without anyone looking, -1 while someone looks. */
     private long goneSince = -1;
+    private final ReadingPose pose = new ReadingPose();
 
     public State state() {
         return state;
@@ -49,11 +52,18 @@ public final class PresenceDetector {
         return !dark || (seenLuma > 0 && luma >= seenLuma * EyeRules.SEEN_LUMA_RATIO);
     }
 
-    public State update(FaceFrame f) {
-        return update(f.t, f.face, f.yaw, f.pitch, f.eyesClosed(), f.eyesOff(), f.luma);
+    public ReadingPose pose() {
+        return pose;
     }
 
-    public State update(long t, boolean face, float yaw, float pitch, boolean eyesClosed, boolean eyesOff, float frameLuma) {
+    /** The reader touched the page at {@code t} (uptime, as the frames): they are reading. */
+    public void reading(long t) {
+        pose.reading(t);
+    }
+
+    public State update(FaceFrame f) {
+        final long t = f.t;
+        final float frameLuma = f.luma;
         luma = luma < 0 ? frameLuma : luma + EyeRules.LUMA_SMOOTH * (frameLuma - luma);
         if (dark && luma > EyeRules.BRIGHT_LUMA) {
             dark = false;
@@ -61,8 +71,11 @@ public final class PresenceDetector {
             dark = true;
         }
 
-        final boolean looking = face && Math.abs(yaw) <= EyeRules.LOOK_YAW && Math.abs(pitch) <= EyeRules.LOOK_PITCH
-                && !eyesOff && !(eyesClosed && !dark);
+        final boolean closed = f.eyesClosed() && !dark;
+        boolean looking = false;
+        if (f.face && !closed && Math.abs(f.yaw) <= EyeRules.LOOK_YAW && Math.abs(f.pitch) <= EyeRules.LOOK_PITCH) {
+            looking = pose.observe(f);
+        }
         if (looking) {
             seenLuma = luma;
             goneSince = -1;

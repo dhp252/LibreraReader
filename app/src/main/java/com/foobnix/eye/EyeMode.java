@@ -227,7 +227,12 @@ public final class EyeMode implements EyeCamera.Listener {
 
     /** Any touch on the reader: the reader is there, so the screen comes back from dimmed. */
     public static void onTouch(Activity owner) {
-        if (current != null && current.host.activity() == owner && current.dimmed) {
+        if (current == null || current.host.activity() != owner) {
+            return;
+        }
+        // whoever touches the page is reading it: that is the reading pose now
+        current.presence.reading(SystemClock.uptimeMillis());
+        if (current.dimmed) {
             current.undim();
             if (current.presence.state() == State.AWAY) {
                 current.scheduleDim();
@@ -414,8 +419,7 @@ public final class EyeMode implements EyeCamera.Listener {
             trace.frame(f, state.name());
         }
         if (debug != null) {
-            debug.show(f, preview, state, presence.luma(), presence.isDark(), presence.canTell(), fps,
-                    lastAction, lastAction == null ? 0 : f.t - lastActionAt);
+            debug.show(f, preview, state, presence, fps, lastAction, lastAction == null ? 0 : f.t - lastActionAt);
         }
         if (state == State.SEES && AppSP.get().eyeScreen) {
             keepScreenOn();

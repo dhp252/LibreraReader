@@ -28,9 +28,23 @@ public final class EyeRules {
     public static final float SEEN_LUMA_RATIO = 0.6f;
     /** Below this the frame is black (camera covered or blocked): always "can't see". */
     public static final float BLACK_LUMA = 0.015f;
-    /** Blendshape score from which both eyes looking to one side, or up, are off the screen. */
-    public static final float EYES_SIDE = 0.55f;
-    public static final float EYES_UP = 0.6f;
+    /**
+     * Looking away = moving this far from the reader's own reading pose ({@link ReadingPose},
+     * D-101): head degrees, and eye direction in blendshape units (about 1 = the eyes turned as far
+     * as they go).
+     */
+    public static final float DEV_YAW = 20f;
+    public static final float DEV_PITCH = 15f;
+    public static final float DEV_EYES_H = 0.3f;
+    public static final float DEV_EYES_V = 0.3f;
+    /** Face frames taken as reading when Eye mode starts or comes back. */
+    public static final long POSE_LEARN_MS = 3_000L;
+    /** How fast the pose follows the reader while they look (per frame). */
+    public static final float POSE_FOLLOW = 0.03f;
+    /** Weight of a new frame in the smoothed pose numbers. */
+    public static final float POSE_SMOOTH = 0.5f;
+    /** A touch re-learns the pose from a frame at most this old. */
+    public static final long TOUCH_FRAME_MS = 600L;
 
     /** A face turned further than this from the camera is not looking at the screen. */
     public static final float LOOK_YAW = 40f;

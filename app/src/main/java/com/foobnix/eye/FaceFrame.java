@@ -27,9 +27,12 @@ public final class FaceFrame {
     public float blinkR;
     public float downL;
     public float downR;
-    /** Both eyes turned to one side (the stronger side), and up: 0..1 from the eyeLook blendshapes. */
-    public float eyesSide;
-    public float eyesUp;
+    /**
+     * Eye direction from the eyeLook blendshapes, -1..1: across (+ = MediaPipe's left eye out and
+     * right eye in) and up (+) / down (-).
+     */
+    public float eyesH;
+    public float eyesV;
     /** Head pose in degrees ({@link HeadPose}). */
     public float yaw;
     public float pitch;
@@ -52,11 +55,6 @@ public final class FaceFrame {
         return face && blinkL >= EyeRules.CLOSED && blinkR >= EyeRules.CLOSED;
     }
 
-    /** The eyes look well to one side or up: off a screen held in front of the face. */
-    public boolean eyesOff() {
-        return face && (eyesSide >= EyeRules.EYES_SIDE || eyesUp >= EyeRules.EYES_UP);
-    }
-
     /** @param state the presence state to record with the frame, or null */
     public String toJson(String state) {
         try {
@@ -72,8 +70,8 @@ public final class FaceFrame {
                 o.put("br", round(blinkR));
                 o.put("dl", round(downL));
                 o.put("dr", round(downR));
-                o.put("es", round(eyesSide));
-                o.put("eu", round(eyesUp));
+                o.put("eh", round(eyesH));
+                o.put("ev", round(eyesV));
                 o.put("y", round(yaw));
                 o.put("p", round(pitch));
                 o.put("ro", round(roll));
@@ -116,8 +114,8 @@ public final class FaceFrame {
                 f.blinkR = (float) o.optDouble("br", 0);
                 f.downL = (float) o.optDouble("dl", 0);
                 f.downR = (float) o.optDouble("dr", 0);
-                f.eyesSide = (float) o.optDouble("es", 0);
-                f.eyesUp = (float) o.optDouble("eu", 0);
+                f.eyesH = (float) o.optDouble("eh", 0);
+                f.eyesV = (float) o.optDouble("ev", 0);
                 f.yaw = (float) o.optDouble("y", 0);
                 f.pitch = (float) o.optDouble("p", 0);
                 f.roll = (float) o.optDouble("ro", 0);

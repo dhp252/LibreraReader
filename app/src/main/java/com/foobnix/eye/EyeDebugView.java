@@ -44,8 +44,10 @@ final class EyeDebugView extends View {
     }
 
     /** Main thread. */
-    void show(FaceFrame f, Bitmap preview, PresenceDetector.State state, float luma, boolean dark, boolean canTell,
-              float fps, String lastAction, long actionAgeMs) {
+    void show(FaceFrame f, Bitmap preview, PresenceDetector.State state, PresenceDetector presence, float fps,
+              String lastAction, long actionAgeMs) {
+        final boolean dark = presence.isDark();
+        final ReadingPose pose = presence.pose();
         if (preview != null) {
             frame = preview;
         }
@@ -55,10 +57,12 @@ final class EyeDebugView extends View {
             history.removeFirst();
         }
         lines = new String[]{
-                state.name() + (dark ? (canTell ? " · dim, can tell" : " · too dark") : " · lit"),
-                String.format(Locale.US, "luma %.3f (%.3f) · %.1f fps", f.luma, luma, fps),
-                f.face ? String.format(Locale.US, "yaw %.0f pitch %.0f roll %.0f", f.yaw, f.pitch, f.roll) : "no face",
-                f.face ? String.format(Locale.US, "blink %.2f %.2f · side %.2f up %.2f", f.blinkL, f.blinkR, f.eyesSide, f.eyesUp) : "",
+                state.name() + (dark ? (presence.canTell() ? " · dim, can tell" : " · too dark") : " · lit"),
+                String.format(Locale.US, "luma %.3f (%.3f) · %.1f fps", f.luma, presence.luma(), fps),
+                f.face ? String.format(Locale.US, "yaw %.0f pitch %.0f · blink %.2f %.2f", f.yaw, f.pitch, f.blinkL, f.blinkR) : "no face",
+                !pose.isLearned() ? "learning your reading pose…"
+                        : String.format(Locale.US, "off pose: head %+.0f° %+.0f° · eyes %+.2f %+.2f",
+                        pose.dYaw(), pose.dPitch(), pose.dEyesH(), pose.dEyesV()),
                 lastAction == null ? "no action yet" : String.format(Locale.US, "%s · %ds ago", lastAction, actionAgeMs / 1000),
         };
         invalidate();

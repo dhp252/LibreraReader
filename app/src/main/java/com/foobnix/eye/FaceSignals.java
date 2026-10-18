@@ -95,7 +95,8 @@ public final class FaceSignals {
         // looking to one side turns one eye out and the other in
         final float one = (score(names, scores, "eyeLookOutLeft") + score(names, scores, "eyeLookInRight")) / 2;
         final float other = (score(names, scores, "eyeLookOutRight") + score(names, scores, "eyeLookInLeft")) / 2;
-        f.eyesSide = Math.max(one, other);
-        f.eyesUp = (score(names, scores, "eyeLookUpLeft") + score(names, scores, "eyeLookUpRight")) / 2;
+        f.eyesH = one - other;
+        f.eyesV = (score(names, scores, "eyeLookUpLeft") + score(names, scores, "eyeLookUpRight")) / 2
+                - (f.downL + f.downR) / 2;
     }
 }

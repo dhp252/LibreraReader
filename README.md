@@ -311,8 +311,11 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   dot appears. Long-press the eye button: its settings. Turn on "Show what the camera sees": a
   corner panel shows the camera picture (mirrored), dots on your face, the state and the numbers,
   a strip of the last 30 s (green sees you, orange away, grey can't see) and Eye mode's last
-  action ("paused auto-scroll / flipping · 3s ago", or why it did nothing). Looking away counts
-  as turning the head, leaving the picture, or turning the eyes well to a side or up.
+  action ("paused auto-scroll / flipping · 3s ago", or why it did nothing). Eye mode learns your
+  reading pose in its first 3 s ("learning your reading pose…"), then shows how far you are off
+  it ("off pose: head … eyes …"). Looking away = clearly off that pose (head about 20°, or the
+  eyes up from the page or to a side), or out of the picture. Change position in bed, then touch
+  the page: that is your reading pose now.
   - Lit room: look at the page: open eye. Look away or close your eyes for 2 s: closed eye. Start
     auto-scroll (scroll mode) or page flipping (book mode), look away: it stops; look back: it
     goes on. Stay away 30 s: the screen dims; look back or touch: it comes back.
