@@ -30,8 +30,10 @@ final class EyeCalibrationView extends View {
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float density;
     private final String hint;
+    private final String closePrompt;
     private final String cancel;
     private boolean finished;
+    private Calibration.Phase shown = Calibration.Phase.DOT;
 
     EyeCalibrationView(Context c, Calibration calibration, Done done) {
         super(c);
@@ -43,6 +45,7 @@ final class EyeCalibrationView extends View {
         text.setTextAlign(Paint.Align.CENTER);
         text.setTextSize(16 * density);
         hint = c.getString(calibration.isRezero() ? R.string.eye_look_dot : R.string.eye_follow_dot);
+        closePrompt = c.getString(R.string.eye_close_prompt);
         cancel = c.getString(android.R.string.cancel);
         setClickable(true);
         setFocusable(true);
@@ -74,12 +77,25 @@ final class EyeCalibrationView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         final long now = SystemClock.uptimeMillis();
+        final Calibration.Phase before = shown;
         if (calibration.tick(now) != Calibration.Result.RUNNING) {
+            if (before == Calibration.Phase.CLOSE) {
+                // the eyes are shut: the tick tells them to open
+                performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS,
+                        android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
+            }
             finish();
             return;
         }
         final int w = getWidth();
         final int h = getHeight();
+        shown = calibration.phase(now);
+        if (shown == Calibration.Phase.PROMPT || shown == Calibration.Phase.CLOSE) {
+            canvas.drawText(closePrompt, w / 2f, h * 0.5f, text);
+            canvas.drawText(cancel, w / 2f, h - 32 * density, text);
+            postInvalidateOnAnimation();
+            return;
+        }
         final float[] spot = calibration.spotAt(now);
         if (spot != null) {
             final float r = density * (14 - 8 * calibration.progress(now));

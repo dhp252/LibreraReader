@@ -91,6 +91,16 @@ public final class EyeRules {
     public static final long CAL_SETTLE_MS = 700L;
     /** The first dot shows this much longer: the eyes take up to 0.8 s to find it. */
     public static final long CAL_LEAD_MS = 600L;
+    /** The closing step (D-106): read "close your eyes", close them, frames, then a tick. */
+    public static final long CAL_CLOSE_PROMPT_MS = 1_800L;
+    public static final long CAL_CLOSE_SETTLE_MS = 600L;
+    public static final long CAL_CLOSE_COLLECT_MS = 1_500L;
+    /** Closed eyes and the bottom gaze must differ this much (aspect ratio, and share of the bottom's). */
+    public static final float EYE_SEPARATION_MIN = 0.012f;
+    public static final float EYE_SEPARATION_SHARE = 0.25f;
+    /** With the reader's profile: a closure starts this far from closed toward the bottom gaze, goes on to this. */
+    public static final float EYE_START_AT = 0.4f;
+    public static final float EYE_KEEP_AT = 0.7f;
     public static final long CAL_COLLECT_MS = 900L;
     public static final long REZERO_SETTLE_MS = 400L;
     public static final long REZERO_COLLECT_MS = 800L;

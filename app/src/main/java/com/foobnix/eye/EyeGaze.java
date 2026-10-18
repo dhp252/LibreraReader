@@ -28,10 +28,10 @@ final class EyeGaze {
     private final List<float[]> pageStart = new ArrayList<>();
     private boolean nudged = true;
 
-    /** The display rotation now (0..3); a change loads that rotation's calibration. */
-    void rotation(int r) {
+    /** The display rotation now (0..3); a change loads that rotation's calibration. @return whether it changed */
+    boolean rotation(int r) {
         if (r == rotation) {
-            return;
+            return false;
         }
         rotation = r;
         model = load(r);
@@ -39,6 +39,12 @@ final class EyeGaze {
         sy = Float.NaN;
         turn.pageShown(-1, -1);
         zones.update(Float.NaN, 0);
+        return true;
+    }
+
+    /** The reader's eyes from this rotation's calibration, null without. */
+    EyeProfile profile() {
+        return model == null ? null : model.eyes;
     }
 
     int rotation() {

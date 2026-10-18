@@ -97,7 +97,7 @@ public class GazeTest {
             final float[] spot = c.spotAt(t);
             final FaceFrame f = spot == null ? looking(t, 0.5f, 0.5f, 0) : looking(t, spot[0], spot[1], noise * (float) Math.sin(t));
             f.face = face;
-            r = c.frame(f, false, false);
+            r = c.frame(f, false);
         }
         return r;
     }
@@ -108,6 +108,38 @@ public class GazeTest {
         assertEquals(Calibration.Result.OK, runCalibration(c, 0, 1.5f, true));
         assertEquals(7, c.goodDots());
         assertEquals(0.71f, c.model().y(gazeVAt(0.71f)), 0.03);
+    }
+
+    @Test
+    public void closingStepLearnsTheReadersEyes() {
+        final Calibration c = Calibration.full(0);
+        Calibration.Result r = Calibration.Result.RUNNING;
+        for (long t = 0; r == Calibration.Result.RUNNING && t < 30_000; t += 100) {
+            final float[] spot = c.spotAt(t);
+            final FaceFrame f = spot == null ? looking(t, 0.5f, 0.5f, 0) : looking(t, spot[0], spot[1], 0);
+            // small eyes: open 0.22, at the bottom dot 0.09, shut 0.04
+            final float ear = c.phase(t) == Calibration.Phase.CLOSE ? 0.04f : spot != null && spot[1] > 0.9f ? 0.09f : 0.22f;
+            f.earL = ear;
+            f.earR = ear * 0.7f;
+            r = c.frame(f, false);
+        }
+        assertEquals(Calibration.Result.OK, r);
+        final EyeProfile p = c.profile();
+        assertNotNull(p);
+        assertEquals(0.09f, p.lowL, E);
+        assertEquals(0.04f, p.closedL, E);
+        assertTrue(p.separable());
+        // the limit sits between the reader's closed eyes and their bottom gaze
+        final float closed = (0.04f + 0.04f * 0.7f) / 2;
+        final float low = (0.09f + 0.09f * 0.7f) / 2;
+        assertTrue(p.limit(false) > closed && p.limit(true) < low);
+        assertNotNull(GazeModel.fromJson(c.model().toJson()).eyes);
+    }
+
+    @Test
+    public void eyesTooAlikeAreNotSeparable() {
+        assertFalse(new EyeProfile(0.22f, 0.2f, 0.06f, 0.05f, 0.055f, 0.048f).separable());
+        assertTrue(new EyeProfile(0.22f, 0.2f, 0.10f, 0.07f, 0.05f, 0.03f).separable());
     }
 
     @Test

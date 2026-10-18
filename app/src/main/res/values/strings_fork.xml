@@ -328,6 +328,10 @@
     <string name="eye_cal_no_face">Eye mode could not see your eyes well enough. Try again in better light.</string>
     <string name="eye_cal_dark">Too dark to calibrate.</string>
     <string name="eye_rezeroed">Gaze re-centred</string>
+    <string name="eye_close_prompt">Now close your eyes until you feel a tick</string>
+    <string name="eye_cal_eyes_ok">Your closed eyes are learned too: long blink uses your own limit.</string>
+    <string name="eye_cal_eyes_failed">Eye mode did not see your eyes close, so long blink keeps the general limit.</string>
+    <string name="eye_cal_eyes_too_close">Here your closed eyes look almost like looking at the bottom, so long blink is off in this orientation.</string>
     <string name="eye_turn_on_first">Turn Eye mode on first.</string>
     <string name="eye_screen">Keep the screen on while I look, dim it when I\'m away</string>
     <string name="eye_preview">Show what the camera sees</string>

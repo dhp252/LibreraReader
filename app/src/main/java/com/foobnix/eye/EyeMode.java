@@ -310,7 +310,9 @@ public final class EyeMode implements EyeCamera.Listener {
     /** For the settings: whether the current orientation has a good calibration. */
     static boolean isCalibratedNow(Activity a) {
         if (current != null && current.host.activity() == a) {
-            current.gaze.rotation(current.rotationNow());
+            if (current.gaze.rotation(current.rotationNow())) {
+                current.blink.setProfile(current.gaze.profile());
+            }
             return current.gaze.hasModel();
         }
         return false;
@@ -421,6 +423,7 @@ public final class EyeMode implements EyeCamera.Listener {
         resumed = true;
         presence = new PresenceDetector();
         blink = new LongBlink();
+        blink.setProfile(gaze.profile());
         host.showEyeState(State.CANT_SEE);
         camera.start(host.activity());
         if (trace != null) {
@@ -529,6 +532,9 @@ public final class EyeMode implements EyeCamera.Listener {
         }
         lastFrameAt = f.t;
 
+        if (gaze.rotation(rotationNow())) {
+            blink.setProfile(gaze.profile());
+        }
         final State before = presence.state();
         final boolean wasClosing = blink.isClosing();
         final State state = presence.update(f, blink.isClosed(f));
@@ -537,9 +543,8 @@ public final class EyeMode implements EyeCamera.Listener {
             stateAtClosure = before;
         }
         final boolean closed = blink.isClosed(f);
-        gaze.rotation(rotationNow());
         if (calibrating != null) {
-            calibrating.frame(f, closed, presence.isDark() && !presence.canTell());
+            calibrating.frame(f, presence.isDark() && !presence.canTell());
         }
         final float[] g = gaze.predict(f, f.face && !closed && state == State.SEES && calibrating == null);
         f.gx = g[0];
@@ -778,11 +783,18 @@ public final class EyeMode implements EyeCamera.Listener {
                     note = R.string.eye_rezeroed;
                 } else {
                     gaze.setModel(c.model());
-                    Toast.makeText(a, a.getString(R.string.eye_cal_ok, Math.round(100 * c.model().rmsY())), Toast.LENGTH_LONG).show();
+                    blink.setProfile(c.profile());
+                    Toast.makeText(a, a.getString(R.string.eye_cal_ok, Math.round(100 * c.model().rmsY())) + "\n"
+                            + a.getString(eyesNote(c.profile())), Toast.LENGTH_LONG).show();
                     note = 0;
                 }
                 break;
             case POOR:
+                // the gaze line is not good enough, but the reader's eyes still count for long blink
+                if (c.model() != null) {
+                    gaze.setModel(c.model());
+                    blink.setProfile(c.profile());
+                }
                 note = R.string.eye_cal_poor;
                 break;
             case TOO_DARK:
@@ -798,6 +810,14 @@ public final class EyeMode implements EyeCamera.Listener {
         if (note != 0) {
             Toast.makeText(a, note, Toast.LENGTH_LONG).show();
         }
+    }
+
+    /** What the closing step gave, for the calibration's message. */
+    private static int eyesNote(EyeProfile p) {
+        if (p == null) {
+            return R.string.eye_cal_eyes_failed;
+        }
+        return p.separable() ? R.string.eye_cal_eyes_ok : R.string.eye_cal_eyes_too_close;
     }
 
     /** Takes the calibration layer away and gives back what it paused. */
@@ -829,6 +849,9 @@ public final class EyeMode implements EyeCamera.Listener {
             return;
         }
         final AppSP sp = AppSP.get();
+        if (trace != null && blink.isBlind()) {
+            trace.event(SystemClock.uptimeMillis(), "blink", "blind", true);
+        }
         if (!sp.eyeLongBlink) {
             act("long blink · turning is off in the settings");
         } else if (stateAtClosure != State.SEES) {

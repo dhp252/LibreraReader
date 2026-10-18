@@ -20,6 +20,8 @@ public final class GazeModel {
     final float spreadV;
     float offY;
     float offX;
+    /** The reader's eyes from the same calibration (D-106), null when that step failed. */
+    EyeProfile eyes;
 
     GazeModel(float aY, float bY, float aX, float bX, float rmsY, float spreadV) {
         this.aY = aY;
@@ -121,6 +123,9 @@ public final class GazeModel {
             o.put("spreadV", spreadV);
             o.put("offY", offY);
             o.put("offX", offX);
+            if (eyes != null) {
+                o.put("eyes", eyes.toJson());
+            }
             return o;
         } catch (JSONException e) {
             throw new IllegalStateException(e);
@@ -137,6 +142,7 @@ public final class GazeModel {
                 (float) o.optDouble("rmsY", 1), (float) o.optDouble("spreadV", 0));
         m.offY = (float) o.optDouble("offY", 0);
         m.offX = (float) o.optDouble("offX", 0);
+        m.eyes = EyeProfile.fromJson(o.optJSONObject("eyes"));
         return m;
     }
 }

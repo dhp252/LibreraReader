@@ -19,6 +19,8 @@ public final class LongBlink {
     private float openL;
     private float openR;
     private int openFrames;
+    /** The reader's own eyes from the calibration (D-106); null = the limits for everybody. */
+    private EyeProfile profile;
 
     private long closedFrom = -1;
     private long lastClosed = -1;
@@ -28,10 +30,28 @@ public final class LongBlink {
     private long lastMs;
     private Result last = Result.NONE;
 
-    /** Whether the frame's eyes count as closed (also teaches the open ratios on open frames). */
+    /** The calibration's eyes of the reader; with them their own limits apply. */
+    public void setProfile(EyeProfile p) {
+        profile = p;
+    }
+
+    /** Closed eyes cannot be told from the bottom gaze for this reader here: nothing counts as closed. */
+    public boolean isBlind() {
+        return profile != null && !profile.separable();
+    }
+
+    /** Whether the frame's eyes count as closed. */
     public boolean isClosed(FaceFrame f) {
         if (!f.face) {
             return false;
+        }
+        if (profile != null) {
+            if (!profile.separable()) {
+                return false;
+            }
+            final boolean going = closedFrom >= 0;
+            return f.blinkL >= EyeRules.BLINK_CLOSED && f.blinkR >= EyeRules.BLINK_CLOSED
+                    && (f.earL + f.earR) / 2 <= profile.limit(going);
         }
         final boolean blink = f.blinkL >= EyeRules.BLINK_CLOSED && f.blinkR >= EyeRules.BLINK_CLOSED;
         if (!knowsOpen()) {
@@ -96,16 +116,18 @@ public final class LongBlink {
     }
 
     public boolean knowsOpen() {
-        return openFrames >= EyeRules.EAR_LEARN_FRAMES;
+        return profile != null || openFrames >= EyeRules.EAR_LEARN_FRAMES;
     }
 
     /** The frame's eye aspect ratios as a share of the open ones, -1 while not known. */
     public float openShareL(FaceFrame f) {
-        return knowsOpen() && openL > 0 ? f.earL / openL : -1;
+        final float open = profile != null ? profile.openL : openL;
+        return knowsOpen() && open > 0 ? f.earL / open : -1;
     }
 
     public float openShareR(FaceFrame f) {
-        return knowsOpen() && openR > 0 ? f.earR / openR : -1;
+        final float open = profile != null ? profile.openR : openR;
+        return knowsOpen() && open > 0 ? f.earR / open : -1;
     }
 
     public Result last() {

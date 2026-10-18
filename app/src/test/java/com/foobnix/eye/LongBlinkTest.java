@@ -115,6 +115,45 @@ public class LongBlinkTest {
     }
 
     @Test
+    public void withTheReadersProfileTheirBottomGazeIsOpenAndTheirClosureClosed() {
+        // the owner's tablet trace: bottom gaze 0.10 / 0.065, closed 0.05 / 0.03
+        b.setProfile(new EyeProfile(0.24f, 0.2f, 0.10f, 0.065f, 0.05f, 0.03f));
+        final FaceFrame bottom = eyes(0, 0.63f, 0.10f);
+        bottom.earR = 0.065f;
+        assertFalse(b.isClosed(bottom));
+        final FaceFrame shut = eyes(0, 0.72f, 0.05f);
+        shut.earR = 0.03f;
+        assertTrue(b.isClosed(shut));
+        assertTrue(b.knowsOpen());
+    }
+
+    @Test
+    public void theTabletsRealLongBlinkStaysOneClosure() {
+        // the owner's tablet trace at 87 s: 0.06/0.04, 0.05/0.04, 0.05/0.03, 0.07/0.04, 0.08/0.05, then open
+        b.setProfile(new EyeProfile(0.24f, 0.2f, 0.10f, 0.065f, 0.05f, 0.03f));
+        final float[][] ears = {{0.06f, 0.04f}, {0.05f, 0.04f}, {0.05f, 0.03f}, {0.07f, 0.04f}, {0.08f, 0.05f}, {0.07f, 0.05f}};
+        long t = 1_000;
+        for (float[] e : ears) {
+            final FaceFrame f = eyes(t, 0.7f, e[0]);
+            f.earR = e[1];
+            assertFalse(b.update(f, true));
+            t += 150;
+        }
+        final FaceFrame open = eyes(t, 0.4f, 0.2f);
+        b.update(open, true);
+        open.t = t + 150;
+        assertTrue(b.update(open, true));
+        assertEquals(900, b.lastMs());
+    }
+
+    @Test
+    public void eyesThatCannotBeToldApartNeverClose() {
+        b.setProfile(new EyeProfile(0.24f, 0.2f, 0.06f, 0.05f, 0.055f, 0.048f));
+        assertTrue(b.isBlind());
+        assertFalse(b.isClosed(eyes(0, 0.9f, 0.0f)));
+    }
+
+    @Test
     public void beforeTheOpenEyesAreKnownOnlyAHighBlinkCounts() {
         assertFalse(b.isClosed(eyes(0, 0.6f, 0.05f)));
         assertTrue(b.isClosed(eyes(0, 0.8f, 0.05f)));

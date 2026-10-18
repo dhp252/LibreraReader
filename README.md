@@ -333,7 +333,10 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
     down, in a lit room and in bed.
   - Gaze (M3): the first time a gaze feature applies (book mode: "Gaze page turn"; scroll mode:
     "Gaze auto-scroll speed"), Eye mode offers to calibrate: a dark screen, a dot in 7 places
-    (about 10 s), follow it with your eyes; back or Cancel stops it. "Calibrated" or why not.
+    (about 12 s), follow it with your eyes, then "Now close your eyes until you feel a tick"
+    (about 3 s); back or Cancel stops it. "Calibrated: about ±N% of the screen" and whether your
+    closed eyes were learned (long blink then uses your own limit: reading the bottom lines must
+    not count as closed eyes, a real long blink must).
     The settings show "Calibrate this orientation (calibrated / not calibrated)"; turn the phone:
     that orientation is offered once too. With "Show what the camera sees", an orange ring shows
     where Eye mode thinks you look, with two lines (book mode: top zone and last lines; scroll

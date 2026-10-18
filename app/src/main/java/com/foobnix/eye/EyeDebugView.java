@@ -63,7 +63,8 @@ final class EyeDebugView extends View {
                 !pose.isLearned() ? "learning your reading pose…"
                         : String.format(Locale.US, "off gaze: across %+.0f° · up %+.0f° (limits %.0f, %.0f)",
                         pose.dH(), pose.dV(), EyeRules.DEV_GAZE_H, EyeRules.DEV_GAZE_V),
-                !f.face ? "" : !blink.knowsOpen() ? String.format(Locale.US, "eyes %.2f %.2f · learning open eyes…", f.earL, f.earR)
+                !f.face ? "" : blink.isBlind() ? String.format(Locale.US, "eyes %.2f %.2f · closed eyes not told apart here", f.earL, f.earR)
+                        : !blink.knowsOpen() ? String.format(Locale.US, "eyes %.2f %.2f · learning open eyes…", f.earL, f.earR)
                         : String.format(Locale.US, "eyes open %.0f%% %.0f%%%s · last closure %.1f s %s",
                         100 * blink.openShareL(f), 100 * blink.openShareR(f), blink.isClosed(f) ? " CLOSED" : "",
                         blink.lastMs() / 1000f, blink.last().name()),
