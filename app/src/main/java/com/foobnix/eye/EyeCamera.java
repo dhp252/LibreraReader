@@ -160,15 +160,27 @@ final class EyeCamera {
     }
 
     private void createEngine() {
+        if (engineFailure != null) {
+            // a class that failed its static init stays failed until the app restarts: a second
+            // try only says NoClassDefFoundError, so the first reason is told again
+            engineFailed = true;
+            final String why = engineFailure;
+            main.post(() -> listener.onCameraError(why, true));
+            return;
+        }
         try {
             engine = new MediaPipeFaceEngine(app);
         } catch (Throwable t) {
             LOG.e(t);
             engineFailed = true;
-            final String why = t.getClass().getSimpleName() + ": " + t.getMessage();
+            final String why = EyeErrors.describe(t);
+            engineFailure = why;
             main.post(() -> listener.onCameraError(why, true));
         }
     }
+
+    /** Why the face engine could not start in this app run, null while it can. */
+    private static volatile String engineFailure;
 
     @OptIn(markerClass = ExperimentalCamera2Interop.class)
     private void bind() {

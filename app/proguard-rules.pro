@@ -103,6 +103,13 @@
 # fields and methods by name, and its graphs are protobuf-lite messages read by reflection.
 -keep class com.google.mediapipe.** { *; }
 -keep class com.google.protobuf.** { *; }
+# MediaPipe's Java side logs through Flogger, which finds its backend by name
+# (com.google.common.flogger.backend.system.DefaultPlatform): renamed or merged, every
+# MediaPipe class with a logger fails its static init ("Eye mode cannot start ... NoClassDefFoundError").
+-keep class com.google.common.flogger.** { *; }
+# The usage logging MediaPipe starts (its backend is removed in the manifest) wires itself with
+# names too; kept whole so it can fail quietly instead of failing the landmarker.
+-keep class com.google.android.datatransport.** { *; }
 -dontwarn com.google.mediapipe.**
 -dontwarn com.google.protobuf.**
 -dontwarn com.google.auto.value.**
