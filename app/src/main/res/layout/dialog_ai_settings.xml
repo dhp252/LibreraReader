@@ -92,14 +92,6 @@
             android:singleLine="true" />
 
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:alpha="0.75"
-            android:padding="4dip"
-            android:text="@string/ai_key_note"
-            android:textSize="13sp" />
-
-        <TextView
             android:id="@+id/aiTestResult"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

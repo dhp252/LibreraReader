@@ -68,7 +68,7 @@
     <string name="ai_marked_as">AI: %1$s</string>
     <string name="ai_remove_highlights">Remove AI highlights…</string>
     <string name="ai_save_into_pdf">Save AI highlights into PDF</string>
-    <string name="ai_settings">AI settings…</string>
+    <string name="ai_settings">AI settings</string>
     <string name="ai_key_passages">Key passages</string>
     <string name="ai_reading_book">Reading the book…</string>
     <string name="ai_reading_pages">Reading page %1$d of %2$d…</string>
@@ -101,7 +101,6 @@
     <string name="ai_model">Model</string>
     <string name="ai_language">Summary language (empty: the book\'s)</string>
     <string name="ai_max_chars">Book text per request (characters)</string>
-    <string name="ai_key_note">With WebDAV sync on, these settings reach your other devices; the key goes to your WebDAV server encrypted with your WebDAV password. It is never backed up or sent to Google Drive. Book text is sent to the AI server only when you use an AI action.</string>
     <string name="ai_master_prompt">Your instructions for every AI action (optional)</string>
     <string name="ai_test">Test</string>
     <string name="ai_test_ok">Works: %1$s</string>
