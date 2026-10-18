@@ -55,6 +55,10 @@ public class AppSP {
     public boolean eyePauseTts = false;
     public boolean eyeScreen = true;
     public boolean eyeLongBlink = true;
+    public boolean eyeGazeTurn = true;
+    public boolean eyeGazeScroll = true;
+    /** Gaze calibrations per display rotation, JSON {"r0": GazeModel, ...} (F-010 M3). */
+    public String eyeCalibration = "";
     public boolean eyePreview = false;
     public boolean eyeTrace = false;
 

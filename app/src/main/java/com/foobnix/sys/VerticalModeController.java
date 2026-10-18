@@ -787,7 +787,10 @@ public class VerticalModeController extends DocumentController {
                             e.printStackTrace();
                         }
                     }
-                    auto();
+                    // Eye mode (F-010) holds the scroll while the reader's eyes are at the top
+                    if (com.foobnix.eye.EyeScroll.factor() > 0) {
+                        auto();
+                    }
 
                     if (repeat) {
                         try {
@@ -815,7 +818,8 @@ public class VerticalModeController extends DocumentController {
                         }
                         LOG.d("TEST", "Speed after" + x);
 
-                        Thread.sleep(Math.max(AppState.MAX_SPEED - (int) x + 5, 5));
+                        // Eye mode (F-010) speeds it up while the eyes are near the bottom
+                        Thread.sleep(com.foobnix.eye.EyeScroll.sleepMs(Math.max(AppState.MAX_SPEED - (int) x + 5, 5)));
                     } catch (final InterruptedException e) {
                         e.printStackTrace();
                     }

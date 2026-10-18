@@ -64,6 +64,6 @@ public final class EyeUi {
         icon.setImageResource(image);
         icon.setContentDescription(icon.getContext().getString(text));
         icon.setVisibility(View.VISIBLE);
-        icon.setOnClickListener(v -> EyeMode.showSettings(host.activity()));
+        icon.setOnClickListener(v -> EyeMode.iconTapped(host.activity()));
     }
 }

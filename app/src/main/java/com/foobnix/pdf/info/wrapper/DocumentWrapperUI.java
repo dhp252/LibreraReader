@@ -310,6 +310,26 @@ public class DocumentWrapperUI {
             // (onNextScreen alone scrolls by 0 when "by pages" is set, the default)
             nextChose(false);
         }
+
+        @Override
+        public boolean isScrollMode() {
+            return true;
+        }
+
+        @Override
+        public boolean isTwoPages() {
+            return false;
+        }
+
+        @Override
+        public boolean isRtl() {
+            return false;
+        }
+
+        @Override
+        public long expectedPageMs() {
+            return -1;
+        }
     };
     View  titleBar, overlay, menuLayout, moveLeft, moveRight, bottomBar, seekLine, onCloseBook, seekSpeedLayot, zoomPlus,
             zoomMinus;

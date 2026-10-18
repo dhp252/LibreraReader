@@ -331,6 +331,19 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
     reading the bottom lines, looking down at your lap, resting the eyes 3 s: no turn. Not while
     read-aloud plays or a dialog is open. Record a trace with a few long blinks and a few looks
     down, in a lit room and in bed.
+  - Gaze (M3): the first time a gaze feature applies (book mode: "Gaze page turn"; scroll mode:
+    "Gaze auto-scroll speed"), Eye mode offers to calibrate: a dark screen, a dot in 7 places
+    (about 10 s), follow it with your eyes; back or Cancel stops it. "Calibrated" or why not.
+    The settings show "Calibrate this orientation (calibrated / not calibrated)"; turn the phone:
+    that orientation is offered once too. With "Show what the camera sees", an orange ring shows
+    where Eye mode thinks you look, with two lines (book mode: top zone and last lines; scroll
+    mode: the quarters). Does the ring follow you down the page?
+  - Book mode: read to the last lines, rest there a moment, look up to the top: next page (tick).
+    A glance at the clock or the title soon after a page came, or reading back up slowly: no
+    turn. Tap the eye in the status bar: one dot in the middle, "Gaze re-centred".
+  - Scroll mode with auto-scroll on: keep reading near the top: it waits ("TOP ×0.0" by the
+    lines); in the middle it goes at your speed; near the bottom it speeds up bit by bit (up to
+    twice), and slows back when you are in the middle again. Your set speed stays the same.
   - Turn the phone: the dots stay on your face. Switch book ↔ scroll mode: Eye mode stays on.
     Close the book and open it again: Eye mode is off.
   - Battery: note the level, read 30 min with Eye mode on (corner panel off), compare.

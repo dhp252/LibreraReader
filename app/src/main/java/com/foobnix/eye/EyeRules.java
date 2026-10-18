@@ -80,6 +80,42 @@ public final class EyeRules {
     /** No second long blink this soon after one. */
     public static final long BLINK_COOLDOWN_MS = 1_000L;
 
+    // calibrated gaze (M3, D-90)
+    /** Calibration dots: time to settle on a dot, then time its frames count. */
+    public static final long CAL_SETTLE_MS = 500L;
+    public static final long CAL_COLLECT_MS = 900L;
+    public static final long REZERO_SETTLE_MS = 400L;
+    public static final long REZERO_COLLECT_MS = 800L;
+    /** Frames a dot needs to count, and dots a calibration needs. */
+    public static final int CAL_MIN_FRAMES = 4;
+    public static final int CAL_MIN_DOTS = 5;
+    /** A good calibration: the dots fit the line to this share of the screen ... */
+    public static final float CAL_RMS = 0.12f;
+    /** ... and the gaze moved at least this many degrees between the top and bottom dots. */
+    public static final float CAL_MIN_SPREAD = 4f;
+    /** Book mode: screen y of the bottom zone (the last lines) and of the top zone. */
+    public static final float BOTTOM_ZONE = 0.72f;
+    public static final float TOP_ZONE = 0.35f;
+    /** Resting on the last lines this long arms the turn; the jump up must come this soon after. */
+    public static final long BOTTOM_DWELL_MS = 1_000L;
+    public static final long JUMP_MS = 800L;
+    /** The page's expected time is unknown (no WPM, no words): the guard is this. */
+    public static final long TURN_GUARD_FALLBACK_MS = 5_000L;
+    /** Re-zero from page turns: gaze y after a page is shown, the first lines' y, step, bound. */
+    public static final long NUDGE_FROM_MS = 300L;
+    public static final long NUDGE_TO_MS = 1_500L;
+    public static final float NUDGE_TARGET_Y = 0.12f;
+    public static final float NUDGE_STEP = 0.15f;
+    public static final float NUDGE_MAX = 0.3f;
+    /** Scroll mode zones (enter / leave) and the speed factor's steps. */
+    public static final float SCROLL_TOP_ENTER = 0.25f;
+    public static final float SCROLL_TOP_LEAVE = 0.30f;
+    public static final float SCROLL_BOTTOM_ENTER = 0.75f;
+    public static final float SCROLL_BOTTOM_LEAVE = 0.70f;
+    public static final float SCROLL_RAMP_PER_S = 0.1f;
+    public static final float SCROLL_EASE_PER_S = 0.5f;
+    public static final float SCROLL_MAX_FACTOR = 2f;
+
     /**
      * A smoothing weight given per frame at {@link #PRESENCE_FPS}, for a frame {@code dtMs} after
      * the last: the same smoothing in time at any frame rate.

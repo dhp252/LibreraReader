@@ -231,6 +231,26 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         public void nextPageByEye() {
             nextPage();
         }
+
+        @Override
+        public boolean isScrollMode() {
+            return false;
+        }
+
+        @Override
+        public boolean isTwoPages() {
+            return AppSP.get().isDouble;
+        }
+
+        @Override
+        public boolean isRtl() {
+            return AppSP.get().isRTL;
+        }
+
+        @Override
+        public long expectedPageMs() {
+            return dc == null ? -1 : com.foobnix.stats.ReadingTracker.expectedPageMs(dc);
+        }
     };
     Runnable reloadDocBrigntness = new Runnable() {
 

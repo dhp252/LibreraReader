@@ -36,6 +36,9 @@ public final class FaceFrame {
     /** Eye aspect ratio per eye ({@link FaceSignals#ear}): lid gap over eye width. */
     public float earL;
     public float earR;
+    /** Where Eye mode put the gaze on the screen (0..1), NaN without a calibration: for the trace. */
+    public float gx = Float.NaN;
+    public float gy = Float.NaN;
     /** Head pose in degrees ({@link HeadPose}). */
     public float yaw;
     public float pitch;
@@ -88,6 +91,10 @@ public final class FaceFrame {
                 o.put("fy", round(faceY));
                 o.put("fs", round(faceSize));
             }
+            if (!Float.isNaN(gy)) {
+                o.put("gx", round(gx));
+                o.put("gy", round(gy));
+            }
             if (state != null) {
                 o.put("st", state);
             }
@@ -111,6 +118,8 @@ public final class FaceFrame {
             f.t = o.getLong("t");
             f.face = o.getInt("f") == 1;
             f.luma = (float) o.optDouble("l", 0);
+            f.gx = (float) o.optDouble("gx", Float.NaN);
+            f.gy = (float) o.optDouble("gy", Float.NaN);
             f.w = o.optInt("w", 0);
             f.h = o.optInt("h", 0);
             f.rot = o.optInt("r", 0);

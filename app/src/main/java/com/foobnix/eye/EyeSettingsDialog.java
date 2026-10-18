@@ -75,6 +75,29 @@ final class EyeSettingsDialog {
                 sp.eyeLongBlink = on;
             }
         });
+        add(box, a, R.string.eye_gaze_turn, new Flag() {
+            public boolean get() {
+                return sp.eyeGazeTurn;
+            }
+
+            public void set(boolean on) {
+                sp.eyeGazeTurn = on;
+            }
+        });
+        add(box, a, R.string.eye_gaze_scroll, new Flag() {
+            public boolean get() {
+                return sp.eyeGazeScroll;
+            }
+
+            public void set(boolean on) {
+                sp.eyeGazeScroll = on;
+            }
+        });
+        final Button calibrate = new Button(a);
+        calibrate.setText(a.getString(R.string.eye_calibrate,
+                a.getString(EyeMode.isCalibratedNow(a) ? R.string.eye_calibrated : R.string.eye_not_calibrated)));
+        calibrate.setAllCaps(false);
+        box.addView(calibrate, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         add(box, a, R.string.eye_preview, new Flag() {
             public boolean get() {
                 return sp.eyePreview;
@@ -102,11 +125,15 @@ final class EyeSettingsDialog {
 
         final ScrollView scroll = new ScrollView(a);
         scroll.addView(box);
-        new AlertDialog.Builder(a)
+        final AlertDialog dialog = new AlertDialog.Builder(a)
                 .setTitle(R.string.eye_mode)
                 .setView(scroll)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+        calibrate.setOnClickListener(v -> {
+            dialog.dismiss();
+            EyeMode.calibrateNow(a);
+        });
     }
 
     private static void add(LinearLayout box, Activity a, int text, Flag flag) {

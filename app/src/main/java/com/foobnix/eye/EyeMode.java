@@ -73,8 +73,20 @@ public final class EyeMode implements EyeCamera.Listener {
         /** The footer button's look. */
         void showEyeButton(boolean on);
 
-        /** A long blink turns the page: book mode one page, scroll mode one screen. */
+        /** A long blink or a gaze turn turns the page: book mode one page, scroll mode one screen. */
         void nextPageByEye();
+
+        /** Scroll mode (auto-scroll by gaze) rather than book mode (gaze page turn). */
+        boolean isScrollMode();
+
+        /** Book mode shows two pages side by side. */
+        boolean isTwoPages();
+
+        /** The book reads right to left (the second of two pages is the left one). */
+        boolean isRtl();
+
+        /** How long the page on screen should take at the reader's speed, ms; -1 = not known. */
+        long expectedPageMs();
     }
 
     public static final int REQ_CAMERA = 0xE7E;
@@ -104,6 +116,17 @@ public final class EyeMode implements EyeCamera.Listener {
     private int tracedPage = -1;
     private String lastAction;
     private long lastActionAt;
+    // calibrated gaze (M3)
+    private final EyeGaze gaze = new EyeGaze();
+    private Calibration calibrating;
+    private EyeCalibrationView calibrationView;
+    private androidx.activity.OnBackPressedCallback calibrationBack;
+    private boolean pausedForCalibration;
+    private EyeGazeView gazeView;
+    /** Rotations the calibration was offered for in this session (once each). */
+    private final java.util.Set<Integer> offered = new java.util.HashSet<>();
+    private int shownPage = -1;
+    private ScrollZones.Zone lastZone = ScrollZones.Zone.MIDDLE;
 
     private final Runnable dim = this::dim;
 
@@ -248,13 +271,49 @@ public final class EyeMode implements EyeCamera.Listener {
 
     /** A page is shown: recorded in the trace. */
     public static void pageShown(DocumentController dc) {
-        if (current != null && current.trace != null && dc != null && dc.getActivity() == current.host.activity()) {
-            final int page = dc.getCurentPageFirst1();
-            if (page != current.tracedPage) {
-                current.tracedPage = page;
-                current.trace.event(SystemClock.uptimeMillis(), "page", "pg", page);
-            }
+        if (current == null || dc == null || dc.getActivity() != current.host.activity()) {
+            return;
         }
+        final int page = dc.getCurentPageFirst1();
+        if (page == current.shownPage) {
+            return;
+        }
+        current.shownPage = page;
+        final long now = SystemClock.uptimeMillis();
+        if (!current.host.isScrollMode()) {
+            current.gaze.pageShown(now, current.host.expectedPageMs());
+        }
+        if (current.trace != null && page != current.tracedPage) {
+            current.tracedPage = page;
+            current.trace.event(now, "page", "pg", page);
+        }
+    }
+
+    /** A tap on the status icon: re-zero the gaze when it is calibrated and used, else the settings. */
+    public static void iconTapped(Activity a) {
+        if (current != null && current.host.activity() == a && current.gazeUsed() && current.gaze.hasModel()) {
+            current.startCalibration(true);
+        } else {
+            showSettings(a);
+        }
+    }
+
+    /** From the settings: calibrate the current orientation (Eye mode must be on). */
+    static void calibrateNow(Activity a) {
+        if (current == null || current.host.activity() != a || !current.resumed) {
+            Toast.makeText(a, R.string.eye_turn_on_first, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        current.startCalibration(false);
+    }
+
+    /** For the settings: whether the current orientation has a good calibration. */
+    static boolean isCalibratedNow(Activity a) {
+        if (current != null && current.host.activity() == a) {
+            current.gaze.rotation(current.rotationNow());
+            return current.gaze.hasModel();
+        }
+        return false;
     }
 
     /**
@@ -327,7 +386,10 @@ public final class EyeMode implements EyeCamera.Listener {
             host.restartScreenTimer();
         }
         resumed = false;
+        endCalibration(true);
         removeDebug();
+        removeGazeView();
+        EyeScroll.set(1);
         if (trace != null) {
             trace.close();
             trace = null;
@@ -340,7 +402,9 @@ public final class EyeMode implements EyeCamera.Listener {
         if (resumed) {
             pause();
         }
+        endCalibration(true);
         removeDebug();
+        removeGazeView();
         // the old reader's window goes with it: nothing left dimmed here
         handler.removeCallbacks(dim);
         dimmed = false;
@@ -370,6 +434,7 @@ public final class EyeMode implements EyeCamera.Listener {
         }
         resumed = false;
         handler.removeCallbacks(dim);
+        EyeScroll.set(1);
         if (camera != null) {
             camera.stop();
         }
@@ -382,7 +447,7 @@ public final class EyeMode implements EyeCamera.Listener {
         final AppSP sp = AppSP.get();
         if (camera != null) {
             camera.setPreview(sp.eyePreview);
-            final int fps = sp.eyeLongBlink ? EyeRules.LONG_BLINK_FPS : EyeRules.PRESENCE_FPS;
+            final int fps = sp.eyeLongBlink || sp.eyeGazeTurn || sp.eyeGazeScroll ? EyeRules.LONG_BLINK_FPS : EyeRules.PRESENCE_FPS;
             if (camera.fps() != fps) {
                 camera.setFps(fps);
                 if (camera.isRunning()) {
@@ -392,10 +457,18 @@ public final class EyeMode implements EyeCamera.Listener {
                 }
             }
         }
+        if (sp.eyePreview && gazeView == null) {
+            addGazeView();
+        } else if (!sp.eyePreview) {
+            removeGazeView();
+        }
         if (sp.eyePreview && debug == null) {
             addDebug();
         } else if (!sp.eyePreview) {
             removeDebug();
+        }
+        if (!gazeUsed()) {
+            EyeScroll.set(1);
         }
         if (sp.eyeTrace && trace == null) {
             trace = TraceRecorder.start(host.activity());
@@ -418,6 +491,24 @@ public final class EyeMode implements EyeCamera.Listener {
             LOG.e(e);
             debug = null;
         }
+    }
+
+    private void addGazeView() {
+        try {
+            gazeView = new EyeGazeView(host.activity());
+            host.activity().addContentView(gazeView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+        } catch (Exception e) {
+            LOG.e(e);
+            gazeView = null;
+        }
+    }
+
+    private void removeGazeView() {
+        if (gazeView != null && gazeView.getParent() instanceof ViewGroup) {
+            ((ViewGroup) gazeView.getParent()).removeView(gazeView);
+        }
+        gazeView = null;
     }
 
     private void removeDebug() {
@@ -445,11 +536,22 @@ public final class EyeMode implements EyeCamera.Listener {
         if (!wasClosing && blink.isClosing()) {
             stateAtClosure = before;
         }
+        final boolean closed = blink.isClosed(f);
+        gaze.rotation(rotationNow());
+        if (calibrating != null) {
+            calibrating.frame(f, closed, presence.isDark() && !presence.canTell());
+        }
+        final float[] g = gaze.predict(f, f.face && !closed && state == State.SEES && calibrating == null);
+        f.gx = g[0];
+        f.gy = g[1];
         if (trace != null) {
             trace.frame(f, state.name());
         }
-        if (wasClosing && !blink.isClosing()) {
-            closureEnded(longBlink);
+        if (calibrating == null) {
+            if (wasClosing && !blink.isClosing()) {
+                closureEnded(longBlink);
+            }
+            gazeFrame(f, state);
         }
         if (debug != null) {
             debug.show(f, preview, state, presence, blink, fps, lastAction, lastAction == null ? 0 : f.t - lastActionAt);
@@ -522,6 +624,197 @@ public final class EyeMode implements EyeCamera.Listener {
             default:
                 // can't see: nothing new; what was paused while away stays paused until you are seen
                 break;
+        }
+    }
+
+    // ---------------------------------------------------------------- calibrated gaze (M3)
+
+    private int rotationNow() {
+        try {
+            return host.activity().getWindowManager().getDefaultDisplay().getRotation();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /** Whether a gaze feature applies to this reader: book mode's page turn or scroll mode's speed. */
+    private boolean gazeUsed() {
+        final AppSP sp = AppSP.get();
+        return host.isScrollMode() ? sp.eyeGazeScroll : sp.eyeGazeTurn;
+    }
+
+    private void gazeFrame(FaceFrame f, State state) {
+        final boolean used = gazeUsed();
+        String label = "";
+        if (used && gaze.hasModel()) {
+            if (host.isScrollMode()) {
+                final float factor = host.isAutoRunning() ? gaze.scrollFactor(lastGazeAt < 0 ? 0 : f.t - lastGazeAt) : 1;
+                EyeScroll.set(factor);
+                if (gaze.zone() != lastZone && host.isAutoRunning()) {
+                    lastZone = gaze.zone();
+                    if (trace != null) {
+                        trace.event(f.t, "zone", "zone", lastZone.name());
+                    }
+                }
+                label = String.format(java.util.Locale.US, "%s ×%.1f", gaze.zone().name(), factor);
+            } else {
+                final Boolean second = host.isTwoPages()
+                        ? (host.isRtl() ? gaze.x() < 0.5f : gaze.x() > 0.5f) : null;
+                if (gaze.bookTurn(f.t, second)) {
+                    gazeTurn(state);
+                }
+                if (gaze.nudge(f.t, state == State.SEES)) {
+                    gaze.saveModel();
+                    if (trace != null) {
+                        trace.event(f.t, "nudge", "offY", gaze.model().offY);
+                    }
+                }
+                label = gaze.isArmed() ? "armed: look up to turn" : "";
+            }
+        } else {
+            EyeScroll.set(1);
+            if (used && state == State.SEES) {
+                offerCalibration();
+            }
+        }
+        lastGazeAt = f.t;
+        if (gazeView != null) {
+            gazeView.show(gaze.x(), gaze.y(), host.isScrollMode(), gaze.hasModel() ? label : "not calibrated");
+        }
+    }
+
+    private long lastGazeAt = -1;
+
+    private void gazeTurn(State state) {
+        if (trace != null) {
+            trace.event(SystemClock.uptimeMillis(), "gazeturn");
+        }
+        if (state != State.SEES) {
+            act("gaze turn · not reading");
+        } else if (host.isDialogOpen()) {
+            act("gaze turn · a dialog is open");
+        } else if (TTSEngine.get().isPlaying()) {
+            act("gaze turn · read-aloud turns the pages");
+        } else {
+            host.nextPageByEye();
+            tick();
+            act("gaze · next page");
+        }
+    }
+
+    /** Once per rotation and session: calibrate now or later. */
+    private void offerCalibration() {
+        final int r = gaze.rotation();
+        if (offered.contains(r) || host.isDialogOpen() || calibrating != null) {
+            return;
+        }
+        offered.add(r);
+        final Activity a = host.activity();
+        new AlertDialog.Builder(a)
+                .setTitle(R.string.eye_calibrate_offer_title)
+                .setMessage(host.isScrollMode() ? R.string.eye_calibrate_offer_scroll : R.string.eye_calibrate_offer_book)
+                .setPositiveButton(R.string.eye_calibrate_now, (d, w) -> startCalibration(false))
+                .setNegativeButton(R.string.eye_later, null)
+                .show();
+    }
+
+    private void startCalibration(boolean rezero) {
+        if (calibrating != null || !resumed) {
+            return;
+        }
+        final Activity a = host.activity();
+        try {
+            if (host.isAutoRunning()) {
+                host.pauseAuto();
+                pausedForCalibration = true;
+            }
+            calibrating = rezero ? Calibration.rezero(SystemClock.uptimeMillis()) : Calibration.full(SystemClock.uptimeMillis());
+            calibrationView = new EyeCalibrationView(a, calibrating, this::calibrationDone);
+            a.addContentView(calibrationView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+            if (a instanceof androidx.activity.ComponentActivity) {
+                // a back gesture (predictive back sends no key) cancels instead of closing the book
+                calibrationBack = new androidx.activity.OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        if (calibrating != null) {
+                            calibrating.cancel();
+                            calibrationDone(calibrating);
+                        }
+                    }
+                };
+                ((androidx.activity.ComponentActivity) a).getOnBackPressedDispatcher().addCallback(calibrationBack);
+            }
+            if (trace != null) {
+                trace.event(SystemClock.uptimeMillis(), rezero ? "rezero" : "calibration");
+            }
+        } catch (Exception e) {
+            LOG.e(e);
+            endCalibration(true);
+        }
+    }
+
+    private void calibrationDone(Calibration c) {
+        if (c != calibrating) {
+            return;
+        }
+        final Activity a = host.activity();
+        final Calibration.Result r = c.result();
+        endCalibration(false);
+        if (trace != null) {
+            trace.event(SystemClock.uptimeMillis(), "calibrated", "result", r.name(), "dots", c.goodDots(),
+                    "rms", c.model() == null ? -1 : c.model().rmsY());
+        }
+        int note;
+        switch (r) {
+            case OK:
+                if (c.isRezero()) {
+                    final float[] g = c.rezeroGaze();
+                    if (gaze.model() != null && g != null) {
+                        gaze.model().rezero(0.5f, 0.5f, g[0], g[1]);
+                        gaze.saveModel();
+                    }
+                    note = R.string.eye_rezeroed;
+                } else {
+                    gaze.setModel(c.model());
+                    note = R.string.eye_cal_ok;
+                }
+                break;
+            case POOR:
+                note = R.string.eye_cal_poor;
+                break;
+            case TOO_DARK:
+                note = R.string.eye_cal_dark;
+                break;
+            case CANCELLED:
+                note = 0;
+                break;
+            default:
+                note = R.string.eye_cal_no_face;
+                break;
+        }
+        if (note != 0) {
+            Toast.makeText(a, note, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /** Takes the calibration layer away and gives back what it paused. */
+    private void endCalibration(boolean cancel) {
+        if (calibrating != null && cancel) {
+            calibrating.cancel();
+        }
+        calibrating = null;
+        if (calibrationView != null && calibrationView.getParent() instanceof ViewGroup) {
+            ((ViewGroup) calibrationView.getParent()).removeView(calibrationView);
+        }
+        calibrationView = null;
+        if (calibrationBack != null) {
+            calibrationBack.remove();
+            calibrationBack = null;
+        }
+        if (pausedForCalibration) {
+            pausedForCalibration = false;
+            host.resumeAuto();
         }
     }
 

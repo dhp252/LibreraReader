@@ -326,6 +326,36 @@ public final class ReadingTracker {
         return isCut(dc) ? total / 2 : total;
     }
 
+    /**
+     * How long the view page on screen should take at the reader's speed in this book, ms; -1 when
+     * the words or the speed are not known yet (Eye mode's gaze page turn, F-010).
+     */
+    public static long expectedPageMs(DocumentController dc) {
+        try {
+            final String path = dc.getCurrentBook().getPath();
+            final int wpm = ReadingSpeed.wpm(ExtUtils.getFileName(path));
+            if (wpm <= 0) {
+                return -1;
+            }
+            final int[] real = realPages(dc, dc.getCurentPageFirst1());
+            long words = 0;
+            for (int p = real[0]; p <= real[1]; p++) {
+                final int w = WordCounter.words(path, p);
+                if (w < 0) {
+                    return -1;
+                }
+                words += w;
+            }
+            if (isCut(dc)) {
+                words /= 2;
+            }
+            return words * 60_000L / wpm;
+        } catch (Exception e) {
+            LOG.e(e);
+            return -1;
+        }
+    }
+
     /** Words from the view page shown to the end of view page {@code lastView}, -1 when not known. */
     public static long wordsLeft(DocumentController dc, int lastView) {
         final String path = dc.getCurrentBook().getPath();
