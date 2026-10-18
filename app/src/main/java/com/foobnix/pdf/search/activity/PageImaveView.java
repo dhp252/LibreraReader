@@ -1119,6 +1119,10 @@ public class PageImaveView extends View {
                 return;
             }
             isLognPress = true;
+            // the finger now drags the selection: the pager (slide or curl) must not turn the page
+            if (getParent() != null) {
+                getParent().requestDisallowInterceptTouchEvent(true);
+            }
             xInit = e.getX();
             yInit = e.getY();
             String selectText = selectText(xInit, yInit, e.getX(), e.getY());

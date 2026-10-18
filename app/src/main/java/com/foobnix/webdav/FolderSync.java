@@ -120,6 +120,30 @@ public class FolderSync {
     /** More deletions than this in one run, and more than half of what was synced, are not trusted. */
     static final int SAFE_DELETES = 10;
 
+    /**
+     * Held while a file merged by item ({@link Merger}) is read or replaced on the device, by the
+     * sync and by the stores that write such files (MarksStore, StudyStore): neither overwrites a
+     * change the other has just made (a mark erased while a sync merged the file came back).
+     */
+    public static final Object LOCAL_FILES = new Object();
+
+    /**
+     * Puts {@code temp} in the place of {@code file}: in one step where the system can, so a sync
+     * listing the folder never finds the file missing (and takes it for deleted).
+     */
+    public static void replace(File temp, File file) throws IOException {
+        if (temp.renameTo(file)) {
+            return;
+        }
+        // systems that cannot rename over a file (Windows, in the JVM tests)
+        if (file.exists() && !file.delete()) {
+            throw new IOException("cannot replace " + file);
+        }
+        if (!temp.renameTo(file)) {
+            throw new IOException("cannot write " + file);
+        }
+    }
+
     private final Remote remote;
     private final File localRoot;
     private final String remoteRoot;
@@ -388,6 +412,10 @@ public class FolderSync {
 
     private void download(String path, WebDavClient.Entry remoteEntry, Map<String, Record> state, Result result) throws IOException {
         final File target = new File(localRoot, path);
+        if (merges(path)) {
+            downloadMerged(path, target, remoteEntry, state, result);
+            return;
+        }
         remote.download(remotePath(path), target);
         if (remoteEntry.lastModified > 0) {
             // not all Android storage keeps it; the record below uses whatever stuck
@@ -400,12 +428,87 @@ public class FolderSync {
     }
 
     /**
+     * The server's copy of a file merged by item replaces this one, unless this device wrote the
+     * file since the sync looked at it (a mark made or erased meanwhile): then both are merged
+     * and the next sync uploads the result.
+     */
+    private void downloadMerged(String path, File target, WebDavClient.Entry remoteEntry, Map<String, Record> state,
+                                Result result) throws IOException {
+        final Record last = state.get(path);
+        final File theirs = new File(baseFolder(), path + ".remote.tmp");
+        theirs.getParentFile().mkdirs();
+        try {
+            remote.download(remotePath(path), theirs);
+            final String remoteText = read(theirs);
+            synchronized (LOCAL_FILES) {
+                final boolean writtenMeanwhile = target.isFile() && (last == null
+                        || target.lastModified() != last.localModified || target.length() != last.localSize);
+                String merged = null;
+                if (writtenMeanwhile) {
+                    final File base = baseOf(path);
+                    try {
+                        merged = merger.merge(path, base.isFile() ? read(base) : null, read(target), remoteText);
+                    } catch (Exception e) {
+                        // damaged here: the server's copy is taken
+                        merged = null;
+                    }
+                }
+                writeAtomically(target, merged != null ? merged : remoteText);
+                if (merged != null) {
+                    // the server has its copy; this one differs from it and is uploaded next time
+                    state.put(path, new Record(-1, -1, tag(remoteEntry), remoteEntry.size));
+                } else {
+                    if (remoteEntry.lastModified > 0) {
+                        target.setLastModified(remoteEntry.lastModified);
+                    }
+                    state.put(path, record(target, remoteEntry));
+                }
+                writeAtomically(baseOf(path), remoteText);
+            }
+        } finally {
+            theirs.delete();
+        }
+        result.downloaded++;
+        result.changedHere.add(path);
+    }
+
+    /**
      * Uploads over the server copy {@code known} (null: none) only if it is still there unchanged:
      * a device writing the file in between is not overwritten ({@link ChangedMeanwhile}).
      */
     private void upload(String path, File local, WebDavClient.Entry known, Map<String, Record> state, Result result) throws IOException {
+        if (!merges(path)) {
+            send(path, local, known);
+            state.put(path, record(local, uploadedEntry(path, local)));
+            result.uploaded++;
+            return;
+        }
+        // a file merged by item goes up as it is now: a change written during the upload is not
+        // taken for sent (it would never reach the server, and another device's copy would
+        // bring back what it changed)
+        final File sent = new File(baseFolder(), path + ".upload.tmp");
+        sent.getParentFile().mkdirs();
+        final long modified;
+        final long size;
         try {
-            remote.upload(local, remotePath(path), ifMatch(known));
+            synchronized (LOCAL_FILES) {
+                modified = local.lastModified();
+                size = local.length();
+                writeAtomically(sent, read(local));
+            }
+            send(path, sent, known);
+            final WebDavClient.Entry uploaded = uploadedEntry(path, sent);
+            state.put(path, new Record(modified, size, tag(uploaded), uploaded.size));
+            writeAtomically(baseOf(path), read(sent));
+        } finally {
+            sent.delete();
+        }
+        result.uploaded++;
+    }
+
+    private void send(String path, File source, WebDavClient.Entry known) throws IOException {
+        try {
+            remote.upload(source, remotePath(path), ifMatch(known));
         } catch (WebDavClient.WebDavException e) {
             if (e.code != WebDavClient.PRECONDITION_FAILED) {
                 throw e;
@@ -415,15 +518,13 @@ public class FolderSync {
                 throw new ChangedMeanwhile(path, now);
             }
             // the copy is the one we saw, yet the server refused: it cannot compare its own tags
-            remote.upload(local, remotePath(path), null);
+            remote.upload(source, remotePath(path), null);
         }
-        WebDavClient.Entry uploaded = remote.stat(remotePath(path));
-        if (uploaded == null) {
-            uploaded = new WebDavClient.Entry(remotePath(path), false, local.length(), 0, null);
-        }
-        state.put(path, record(local, uploaded));
-        keepBase(path, local);
-        result.uploaded++;
+    }
+
+    private WebDavClient.Entry uploadedEntry(String path, File source) throws IOException {
+        final WebDavClient.Entry uploaded = remote.stat(remotePath(path));
+        return uploaded != null ? uploaded : new WebDavClient.Entry(remotePath(path), false, source.length(), 0, null);
     }
 
     /** The condition for an upload over {@code known}: weak or missing ETags cannot be matched. */
@@ -459,11 +560,14 @@ public class FolderSync {
         try {
             remote.download(remotePath(path), theirs);
             final File base = baseOf(path);
-            final String merged = merger.merge(path, base.isFile() ? read(base) : null, read(local), read(theirs));
-            if (merged == null) {
-                throw new IOException("not merged");
+            // read and written in one go: a mark erased in between is not undone by the merge
+            synchronized (LOCAL_FILES) {
+                final String merged = merger.merge(path, base.isFile() ? read(base) : null, read(local), read(theirs));
+                if (merged == null) {
+                    throw new IOException("not merged");
+                }
+                writeAtomically(local, merged);
             }
-            writeAtomically(local, merged);
         } catch (Exception e) {
             if (remoteEntry.lastModified > local.lastModified()) {
                 download(path, remoteEntry, state, result);
@@ -506,16 +610,12 @@ public class FolderSync {
         if (parent != null) {
             parent.mkdirs();
         }
-        final File temp = new File(file.getPath() + ".tmp");
+        // not the stores' "<name>.tmp": the two never share a half-written file
+        final File temp = new File(file.getPath() + ".sync.tmp");
         try (OutputStream stream = new FileOutputStream(temp)) {
             stream.write(text.getBytes(StandardCharsets.UTF_8));
         }
-        if (file.exists() && !file.delete()) {
-            throw new IOException("cannot replace " + file);
-        }
-        if (!temp.renameTo(file)) {
-            throw new IOException("cannot write " + file);
-        }
+        replace(temp, file);
     }
 
     /** Downloads one server file on request (books in {@link Mode#ON_DEMAND}) and starts tracking it. */

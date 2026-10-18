@@ -129,15 +129,12 @@ public class MarksLayer {
         }
     }
 
-    /** Reads the stored marks of the book again, on a thread of its own. */
+    /**
+     * Reads the stored marks of the book again, in turn with the writes ({@link MarkEdits}): a read
+     * started before a mark was erased must not draw it again after.
+     */
     public void reload(final String bookName) {
-        new Thread(() -> {
-            try {
-                set(bookName, MarksStore.get().load(bookName));
-            } catch (Exception e) {
-                LOG.e(e);
-            }
-        }, "@T marks").start();
+        MarkEdits.reload(bookName);
     }
 
     /** The marks of a book, as just read or written. */

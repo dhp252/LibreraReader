@@ -53,6 +53,17 @@ final class MarkEdits {
         });
     }
 
+    /** The stored marks of a book, read again for the open book. */
+    static void reload(final String book) {
+        WRITER.execute(() -> {
+            try {
+                MarksLayer.get().set(book, MarksStore.get().load(book));
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+        });
+    }
+
     static void add(String book, final Mark mark, Done done) {
         apply(book, marks -> marks.put(mark.id, mark), done);
     }

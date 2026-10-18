@@ -31,7 +31,8 @@ public class MarksStore {
 
     public static final String FOLDER = "marks";
 
-    private static final Object LOCK = new Object();
+    /** The sync's lock for merged files: a sync merging this file waits, and is waited for. */
+    private static final Object LOCK = com.foobnix.webdav.FolderSync.LOCAL_FILES;
 
     public interface Change {
         void apply(Map<String, Mark> marks);
@@ -100,12 +101,8 @@ public class MarksStore {
             } catch (JSONException e) {
                 throw new IOException(e.getMessage());
             }
-            if (file.exists() && !file.delete()) {
-                throw new IOException("cannot replace " + file);
-            }
-            if (!temp.renameTo(file)) {
-                throw new IOException("cannot write " + file);
-            }
+            // in one step: a sync listing the folder meanwhile must not take the file for deleted
+            com.foobnix.webdav.FolderSync.replace(temp, file);
         }
         // sent with the page and bookmarks once reading settles
         com.foobnix.webdav.SyncEvents.readingChanged();

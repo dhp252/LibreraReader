@@ -299,6 +299,10 @@ public class VerticalViewPager extends CustomViewPager {
         if (value != null && !value.isFinished()) {
             return false;
         }
+        // a finger dragging a text selection (set by the page's long press) is not a page swipe
+        if (ev.getActionMasked() != MotionEvent.ACTION_DOWN && AppState.get().selectedText != null && !curlDragging) {
+            return false;
+        }
 
         if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
             applyTurnStyle();

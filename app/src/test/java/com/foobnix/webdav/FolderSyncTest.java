@@ -72,6 +72,11 @@ public class FolderSyncTest {
 
         @Override
         public void download(String path, File target) throws IOException {
+            if (beforeDownload != null) {
+                final Runnable here = beforeDownload;
+                beforeDownload = null;
+                here.run();
+            }
             target.getParentFile().mkdirs();
             try (FileOutputStream out = new FileOutputStream(target)) {
                 out.write(files.get(path).data);
@@ -80,6 +85,8 @@ public class FolderSyncTest {
 
         /** Runs before the next upload: another device writing in between. */
         Runnable beforeUpload;
+        /** Runs before the next download: this device writing the file in between. */
+        Runnable beforeDownload;
         /** A server that refuses every condition, even a matching one. */
         boolean refusesConditions;
         int refused;
@@ -360,6 +367,60 @@ public class FolderSyncTest {
         // and settled: nothing more to do
         result = merging().sync();
         assertEquals(0, result.uploaded + result.downloaded);
+    }
+
+    @Test
+    public void aMarkErasedDuringTheUploadIsSentNextTime() throws Exception {
+        final String path = "marks/book.pdf.json";
+        write(path, "{\"a\":{\"t\":1},\"b\":{\"t\":2}}", 10_000);
+        // the reader erases b while the file is being sent
+        remote.beforeUpload = () -> {
+            try {
+                write(path, "{\"a\":{\"t\":1}}", 20_000);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        merging().sync();
+        assertTrue(remote.get("Librera/" + path).contains("\"b\""));
+
+        final FolderSync.Result result = merging().sync();
+
+        assertEquals(1, result.uploaded);
+        assertEquals(java.util.Collections.singleton("a"), keys(new org.json.JSONObject(remote.get("Librera/" + path))));
+    }
+
+    @Test
+    public void aMarkErasedDuringTheDownloadStaysErased() throws Exception {
+        final String path = "marks/book.pdf.json";
+        write(path, "{\"a\":{\"t\":1},\"b\":{\"t\":2}}", 10_000);
+        merging().sync();
+        // another device adds c; while it comes down, the reader erases b here
+        remote.put("Librera/" + path, "{\"a\":{\"t\":1},\"b\":{\"t\":2},\"c\":{\"t\":3}}");
+        remote.beforeDownload = () -> {
+            try {
+                write(path, "{\"a\":{\"t\":1}}", 20_000);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+
+        merging().sync();
+
+        final java.util.Set<String> both = new java.util.HashSet<>(java.util.Arrays.asList("a", "c"));
+        assertEquals(both, keys(new org.json.JSONObject(read(path))));
+        merging().sync();
+        assertEquals(both, keys(new org.json.JSONObject(remote.get("Librera/" + path))));
+        assertEquals(0, merging().sync().uploaded);
+    }
+
+    @Test
+    public void replaceOverwritesTheFile() throws IOException {
+        final File file = write("x.json", "old", 10_000);
+        final File temp = write("x.json.tmp", "new", 10_000);
+        FolderSync.replace(temp, file);
+        assertEquals("new", read("x.json"));
+        assertFalse(temp.exists());
     }
 
     @Test
