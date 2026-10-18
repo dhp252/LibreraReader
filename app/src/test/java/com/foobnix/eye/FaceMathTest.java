@@ -81,6 +81,24 @@ public class FaceMathTest {
         assertFalse(f.eyesClosed());
     }
 
+    @Test
+    public void eyesToOneSideOrUp() {
+        final FaceFrame f = new FaceFrame();
+        f.face = true;
+        // looking to one side: one eye out, the other in
+        FaceSignals.blendshapes(f, Arrays.asList("eyeLookOutLeft", "eyeLookInRight", "eyeLookUpLeft", "eyeLookUpRight"),
+                Arrays.asList(0.7f, 0.6f, 0.1f, 0.2f));
+        assertEquals(0.65f, f.eyesSide, E);
+        assertEquals(0.15f, f.eyesUp, E);
+        assertTrue(f.eyesOff());
+        // both eyes in (crossed, or a near page) is not a side
+        FaceSignals.blendshapes(f, Arrays.asList("eyeLookInLeft", "eyeLookInRight"), Arrays.asList(0.6f, 0.6f));
+        assertEquals(0.3f, f.eyesSide, E);
+        assertFalse(f.eyesOff());
+        FaceSignals.blendshapes(f, Arrays.asList("eyeLookUpLeft", "eyeLookUpRight"), Arrays.asList(0.7f, 0.65f));
+        assertTrue(f.eyesOff());
+    }
+
     // ------------------------------------------------------------------ head pose
 
     /** Column-major 4×4 from a row-major 3×3 rotation, scaled. */
@@ -221,6 +239,8 @@ public class FaceMathTest {
         f.irisLX = 0.48f;
         f.irisRY = -0.03f;
         f.faceSize = 0.21f;
+        f.eyesSide = 0.4f;
+        f.eyesUp = 0.1f;
         f.lx = new float[]{1, 2};
         final String line = f.toJson("S");
         final JSONObject o = new JSONObject(line);
@@ -238,6 +258,8 @@ public class FaceMathTest {
         assertEquals(0.48f, back.irisLX, E);
         assertEquals(-0.03f, back.irisRY, E);
         assertEquals(0.21f, back.faceSize, E);
+        assertEquals(0.4f, back.eyesSide, E);
+        assertEquals(0.1f, back.eyesUp, E);
         assertNull(back.lx);
     }
 

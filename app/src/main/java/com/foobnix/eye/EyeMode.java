@@ -42,7 +42,8 @@ import com.foobnix.tts.TTSService;
  * What it does with the presence state ({@link PresenceDetector}): away pauses auto-scroll or
  * page flipping (and read aloud if asked) and dims the screen after a while; looking again
  * resumes what Eye mode paused; while it sees you the screen stays on. Can't see leaves the reader
- * as it is without Eye mode. Nothing runs while one of the reader's dialogs is open.
+ * as it is without Eye mode. Open dialogs do not stop any of this (the page flipping dialog stays
+ * open after Start).
  */
 public final class EyeMode implements EyeCamera.Listener {
 
@@ -60,6 +61,7 @@ public final class EyeMode implements EyeCamera.Listener {
 
         void resumeAuto();
 
+        /** For eye-driven page turns (M2, M3), which must wait for dialogs to close. */
         boolean isDialogOpen();
 
         /** Starts the reader's own keep-screen-on time again from now (as a page turn does). */
@@ -94,6 +96,8 @@ public final class EyeMode implements EyeCamera.Listener {
     private long lastFrameAt;
     private float fps;
     private int tracedPage = -1;
+    private String lastAction;
+    private long lastActionAt;
 
     private final Runnable dim = this::dim;
 
@@ -375,7 +379,7 @@ public final class EyeMode implements EyeCamera.Listener {
         try {
             final Activity a = host.activity();
             debug = new EyeDebugView(a);
-            final FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Dips.dpToPx(150), Dips.dpToPx(270),
+            final FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(Dips.dpToPx(180), Dips.dpToPx(320),
                     Gravity.TOP | Gravity.END);
             lp.topMargin = Dips.dpToPx(56);
             lp.rightMargin = Dips.dpToPx(8);
@@ -410,7 +414,8 @@ public final class EyeMode implements EyeCamera.Listener {
             trace.frame(f, state.name());
         }
         if (debug != null) {
-            debug.show(f, preview, state, presence.luma(), presence.isDark(), fps);
+            debug.show(f, preview, state, presence.luma(), presence.isDark(), presence.canTell(), fps,
+                    lastAction, lastAction == null ? 0 : f.t - lastActionAt);
         }
         if (state == State.SEES && AppSP.get().eyeScreen) {
             keepScreenOn();
@@ -452,19 +457,24 @@ public final class EyeMode implements EyeCamera.Listener {
             // from now on the reader's own keep-screen-on time counts
             host.restartScreenTimer();
         }
-        if (host.isDialogOpen()) {
-            return;
-        }
+        // a dialog open (the page flipping one stays open after Start) does not stop any of this:
+        // only eye-driven page turns (M2, M3) will wait for dialogs to close
         final AppSP sp = AppSP.get();
         switch (state) {
             case AWAY:
-                if (sp.eyePauseAway && host.isAutoRunning()) {
+                if (!sp.eyePauseAway) {
+                    act("away · pausing is off in the settings");
+                } else if (host.isAutoRunning()) {
                     host.pauseAuto();
                     pausedAuto = true;
+                    act("paused auto-scroll / flipping");
+                } else {
+                    act("away · no auto-scroll or flipping running");
                 }
                 if (sp.eyePauseTts && TTSEngine.get().isPlaying()) {
                     tts(TTSNotification.TTS_PAUSE);
                     pausedTts = true;
+                    act("paused read-aloud");
                 }
                 scheduleDim();
                 break;
@@ -484,13 +494,24 @@ public final class EyeMode implements EyeCamera.Listener {
             pausedAuto = false;
             if (!host.isAutoRunning()) {
                 host.resumeAuto();
+                act("resumed auto-scroll / flipping");
             }
         }
         if (pausedTts) {
             pausedTts = false;
             if (!TTSEngine.get().isPlaying()) {
                 tts(TTSNotification.TTS_PLAY);
+                act("resumed read-aloud");
             }
+        }
+    }
+
+    /** What Eye mode last did, for the corner panel and the trace. */
+    private void act(String what) {
+        lastAction = what;
+        lastActionAt = SystemClock.uptimeMillis();
+        if (trace != null) {
+            trace.event(lastActionAt, "action", "what", what);
         }
     }
 
@@ -518,7 +539,7 @@ public final class EyeMode implements EyeCamera.Listener {
     }
 
     private void dim() {
-        if (dimmed || presence.state() != State.AWAY || !AppSP.get().eyeScreen || host.isDialogOpen()) {
+        if (dimmed || presence.state() != State.AWAY || !AppSP.get().eyeScreen) {
             return;
         }
         final Window w = host.activity().getWindow();
@@ -527,9 +548,7 @@ public final class EyeMode implements EyeCamera.Listener {
         lp.screenBrightness = EyeRules.DIM_BRIGHTNESS;
         w.setAttributes(lp);
         dimmed = true;
-        if (trace != null) {
-            trace.event(SystemClock.uptimeMillis(), "dim");
-        }
+        act("dimmed the screen");
     }
 
     private void undim() {

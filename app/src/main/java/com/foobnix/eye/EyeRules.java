@@ -21,6 +21,16 @@ public final class EyeRules {
     public static final float BRIGHT_LUMA = 0.11f;
     /** Weight of a new frame in the smoothed luminance. */
     public static final float LUMA_SMOOTH = 0.3f;
+    /**
+     * A dark room is still "away" when a face was found at nearly this brightness: down to this
+     * share of the luminance the face was last seen at, the camera can still tell (D-98).
+     */
+    public static final float SEEN_LUMA_RATIO = 0.6f;
+    /** Below this the frame is black (camera covered or blocked): always "can't see". */
+    public static final float BLACK_LUMA = 0.015f;
+    /** Blendshape score from which both eyes looking to one side, or up, are off the screen. */
+    public static final float EYES_SIDE = 0.55f;
+    public static final float EYES_UP = 0.6f;
 
     /** A face turned further than this from the camera is not looking at the screen. */
     public static final float LOOK_YAW = 40f;
