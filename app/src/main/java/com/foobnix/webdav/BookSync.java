@@ -89,6 +89,10 @@ public final class BookSync {
             if (open && changed.contains(com.foobnix.annotation.MarksStore.profilePath(name)) && name.equals(marks.getBook())) {
                 marks.reload(name);
             }
+            // answers, labels and cards seen on another device (F-009)
+            if (open && changed.contains(com.foobnix.study.StudyStore.profilePath(name))) {
+                com.foobnix.study.StudySession.reloadIfOpen(name);
+            }
         } catch (Exception e) {
             LOG.e(e);
         }
@@ -109,10 +113,12 @@ public final class BookSync {
             case JumpRule.JUMP:
                 current.follow(synced, page);
                 com.foobnix.stats.ReadingTracker.nextJumpVia(com.foobnix.stats.StatsEvent.VIA_SYNC);
+                com.foobnix.study.StudySession.nextJumpIsSync();
                 dc.onGoToPage(page);
                 note(dc.getActivity(), dc.getActivity().getString(R.string.sync_moved_to, page, device),
                         dc.getActivity().getString(R.string.sync_undo), () -> {
                             com.foobnix.stats.ReadingTracker.nextJumpVia(com.foobnix.stats.StatsEvent.VIA_SYNC);
+                            com.foobnix.study.StudySession.nextJumpIsSync();
                             dc.onGoToPage(here);
                         });
                 break;
@@ -121,6 +127,7 @@ public final class BookSync {
                         dc.getActivity().getString(R.string.go), () -> {
                             current.follow(synced, page);
                             com.foobnix.stats.ReadingTracker.nextJumpVia(com.foobnix.stats.StatsEvent.VIA_SYNC);
+                            com.foobnix.study.StudySession.nextJumpIsSync();
                             dc.onGoToPage(page);
                         });
                 break;

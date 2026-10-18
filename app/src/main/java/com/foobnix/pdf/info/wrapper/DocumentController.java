@@ -777,8 +777,11 @@ public abstract class DocumentController {
         AppBook bs = SettingsManager.getBookSettings();
         if (bs != null) {
             bs.updateFromAppState();
+            // when the book was read last (any device), before this page makes it now
+            final long lastRead = bs.t;
             bs.currentPageChanged(getCurentPageFirst1(), getPageCount());
             com.foobnix.stats.ReadingTracker.pageShown(this);
+            com.foobnix.study.StudySession.pageShown(this, lastRead);
 
             handler2.removeCallbacks(saveCurrentPageRunnable);
             handler2.postDelayed(saveCurrentPageRunnable, 1000);

@@ -175,6 +175,7 @@ The fork's tests all pass.
 | `com.foobnix.ai` | quote matching, per-book AI store, TOC chapters, prompts, Claude/OpenAI request and stream parsing |
 | `com.foobnix.sys` | the crash marks that keep a book which crashed a codec from crashing the app again |
 | `com.foobnix.annotation` | stylus rules; marks found again after an EPUB re-layout; the marks file; Markdown export; color names |
+| `com.foobnix.study` | study chapters (long parts split), the skim sent at opt-in, preview answers, chapter cards, time per chapter, the study file |
 
 `WebDavServerTest` runs against a real WebDAV server and is skipped when there is none. To run
 it, start a local one ([wsgidav](https://github.com/mar10/wsgidav)) and advertise it in
@@ -230,6 +231,18 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   you want from the book. Marks come in red, blue, purple, orange, green and grey, never yellow.
   ✦ > Colors shows what each means; tap a mark and its category shows. Messages of the pen
   toolbar now appear above it, not over it.
+- **Study** (a non-fiction book with a table of contents): ✦ > Study this book. It asks your goal
+  if the book has none, skims the book (about a minute), then opens the Study panel: thesis,
+  goal, "Read · Skim · Skip" counts, time vs the whole book, and every chapter with ● ◐ ○, its
+  time and state. Do the labels make sense for your goal? Tap a ● to change it; tap a chapter for
+  its questions and actions. Page into a new chapter: a card at the bottom shows its label, time,
+  reason and questions (Skim: Summary, Key passages; Skip: Summary, Next chapter); the next page
+  turn takes it away, and it never comes again for that chapter. Page out of a Read or Skim
+  chapter: "Done: <chapter>" comes first. A jump (TOC, search) shows only the card of where you
+  land. A book split in Parts gets a card per chapter inside them. Close the book, set the phone
+  date 3 days ahead (or wait), open it: "Welcome back". ⋮ > Stop studying hides everything;
+  ✦ > Study this book brings it back without a new skim. A second device shows the same panel
+  after a sync, and a card seen on one is not shown on the other.
 - **Stylus** (a phone or tablet with an active pen): open a PDF without opening the toolbar and
   write with the pen: it draws at once, thinner or bolder with pressure, while a finger still turns
   pages. Rest your palm while writing: nothing happens. Set "Stylus draws with" to Highlighter

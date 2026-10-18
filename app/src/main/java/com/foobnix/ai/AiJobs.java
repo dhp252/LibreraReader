@@ -103,7 +103,7 @@ public final class AiJobs {
     }
 
     /** The TOC of the book, kept for {@link #knownChapter}. */
-    static List<BookChapters.Entry> toc(Target t, BookText text) {
+    public static List<BookChapters.Entry> toc(Target t, BookText text) {
         final List<BookChapters.Entry> toc = text.toc();
         layout = new Layout(layoutKey(t), toc, text.pageCount());
         return toc;
@@ -128,19 +128,19 @@ public final class AiJobs {
         return null;
     }
 
-    private static class Cancelled extends Exception {
+    public static class Cancelled extends Exception {
     }
 
     /** A job on a thread of its own; its results go to the main thread while it is not cancelled. */
-    abstract static class Job {
-        final Activity activity;
-        final Target target;
-        final AiSettings settings;
-        volatile boolean cancelled;
+    public abstract static class Job {
+        protected final Activity activity;
+        protected final Target target;
+        protected final AiSettings settings;
+        protected volatile boolean cancelled;
         private volatile AiClient client;
-        String stopReason;
+        protected String stopReason;
 
-        Job(Activity activity, Target target) {
+        protected Job(Activity activity, Target target) {
             this.activity = activity;
             this.target = target;
             this.settings = AiSettings.load(activity);
@@ -172,18 +172,18 @@ public final class AiJobs {
             }
         }
 
-        abstract void work() throws Exception;
+        protected abstract void work() throws Exception;
 
-        abstract void failed(String message);
+        protected abstract void failed(String message);
 
-        void checkCancelled() throws Cancelled {
+        protected void checkCancelled() throws Cancelled {
             if (cancelled || Apps.isDestroyedActivity(activity)) {
                 throw new Cancelled();
             }
         }
 
         /** One request; {@code output} gets the answer as it streams, or null. */
-        String ask(String system, String user, AiClient.Output output) throws IOException, Cancelled {
+        protected String ask(String system, String user, AiClient.Output output) throws IOException, Cancelled {
             checkCancelled();
             final AiClient c = new AiClient(settings);
             client = c;
@@ -207,11 +207,11 @@ public final class AiJobs {
             }
         }
 
-        boolean wasCutOff() {
+        protected boolean wasCutOff() {
             return "max_tokens".equals(stopReason) || "length".equals(stopReason);
         }
 
-        BookText open() throws IOException {
+        protected BookText open() throws IOException {
             final BookText text = BookText.open(target.path, target.width, target.height, target.fontSize);
             if (text == null) {
                 throw new AiClient.AiException(activity.getString(R.string.ai_cannot_open));
@@ -219,7 +219,7 @@ public final class AiJobs {
             return text;
         }
 
-        void ui(Runnable r) {
+        protected void ui(Runnable r) {
             if (cancelled) {
                 return;
             }
@@ -230,15 +230,15 @@ public final class AiJobs {
             });
         }
 
-        void toast(String text) {
+        protected void toast(String text) {
             ui(() -> Toast.makeText(activity, text, Toast.LENGTH_LONG).show());
         }
 
-        String string(int res, Object... args) {
+        protected String string(int res, Object... args) {
             return activity.getString(res, args);
         }
 
-        String message(Throwable e) {
+        protected String message(Throwable e) {
             if (e instanceof AiClient.AiException && ((AiClient.AiException) e).refusal
                     && !string(R.string.ai_declined).equals(e.getMessage())) {
                 return string(R.string.ai_declined) + ": " + e.getMessage();
@@ -246,12 +246,12 @@ public final class AiJobs {
             return TxtUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : e.getClass().getSimpleName();
         }
 
-        String chapterTitle(BookChapters.Range range) {
+        protected String chapterTitle(BookChapters.Range range) {
             return TxtUtils.isNotEmpty(range.title) ? range.title : string(R.string.ai_pages, range.from + 1, range.to);
         }
 
         /** Plain text of pages from..to into {@code plain} and {@code lengths}, both indexed by page. */
-        void read(BookText text, int from, int to, String[] plain, int[] lengths, Progress progress) throws Cancelled {
+        protected void read(BookText text, int from, int to, String[] plain, int[] lengths, Progress progress) throws Cancelled {
             for (int p = from; p < to; p++) {
                 checkCancelled();
                 if (progress != null && (p - from) % 10 == 0) {
@@ -262,7 +262,7 @@ public final class AiJobs {
             }
         }
 
-        static String join(String[] plain, int from, int to) {
+        protected static String join(String[] plain, int from, int to) {
             final StringBuilder out = new StringBuilder();
             for (int p = from; p < to; p++) {
                 if (TxtUtils.isNotEmpty(plain[p])) {
@@ -276,7 +276,7 @@ public final class AiJobs {
         }
     }
 
-    interface Progress {
+    public interface Progress {
         void on(String status);
     }
 
@@ -306,16 +306,24 @@ public final class AiJobs {
         private final boolean wholeBook;
         private final boolean regenerate;
         private final SummaryScreen screen;
+        /** A chapter given by the caller (a study chapter), else the one at the reader's page. */
+        private final BookChapters.Range given;
 
         public SummaryJob(Activity activity, Target target, boolean wholeBook, boolean regenerate, SummaryScreen screen) {
+            this(activity, target, wholeBook, regenerate, screen, null);
+        }
+
+        public SummaryJob(Activity activity, Target target, boolean wholeBook, boolean regenerate, SummaryScreen screen,
+                          BookChapters.Range given) {
             super(activity, target);
             this.wholeBook = wholeBook;
             this.regenerate = regenerate;
             this.screen = screen;
+            this.given = given;
         }
 
         @Override
-        void failed(String message) {
+        protected void failed(String message) {
             ui(() -> screen.onError(message));
         }
 
@@ -324,10 +332,10 @@ public final class AiJobs {
         }
 
         @Override
-        void work() throws Exception {
+        protected void work() throws Exception {
             if (!regenerate) {
                 // a saved summary opens at once when its chapter is known without reading the book
-                final BookChapters.Range known = wholeBook ? null : knownChapter(target);
+                final BookChapters.Range known = wholeBook ? null : given != null ? given : knownChapter(target);
                 final String key = wholeBook ? AiStore.BOOK : known == null ? null : known.key;
                 final AiStore.Summary saved = key == null ? null : AiStore.get().load(target.name).summary(key);
                 if (saved != null) {
@@ -345,7 +353,7 @@ public final class AiJobs {
                 final List<BookChapters.Entry> toc = toc(target, text);
                 final BookChapters.Range range = wholeBook
                         ? new BookChapters.Range(0, pages, target.title, AiStore.BOOK)
-                        : BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES);
+                        : given != null ? given : BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES);
                 final String title = wholeBook ? target.title : chapterTitle(range);
                 ui(() -> screen.onTitle(title));
 
@@ -465,11 +473,19 @@ public final class AiJobs {
         private final boolean wholeBook;
         private volatile HighlightScreen screen;
         private volatile String status = "";
+        /** A chapter given by the caller (a study chapter), else the one at the reader's page. */
+        private final BookChapters.Range given;
 
         public HighlightJob(Activity activity, Target target, boolean wholeBook, HighlightScreen screen) {
+            this(activity, target, wholeBook, screen, null);
+        }
+
+        public HighlightJob(Activity activity, Target target, boolean wholeBook, HighlightScreen screen,
+                            BookChapters.Range given) {
             super(activity, target);
             this.wholeBook = wholeBook;
             this.screen = screen;
+            this.given = given;
         }
 
         public String getStatus() {
@@ -503,7 +519,7 @@ public final class AiJobs {
         }
 
         @Override
-        void failed(String message) {
+        protected void failed(String message) {
             ui(() -> {
                 final HighlightScreen s = screen;
                 if (s != null) {
@@ -515,7 +531,7 @@ public final class AiJobs {
         }
 
         @Override
-        void work() throws Exception {
+        protected void work() throws Exception {
             if (!settings.isReady()) {
                 ui(() -> {
                     final HighlightScreen s = screen;
@@ -542,7 +558,7 @@ public final class AiJobs {
                         return;
                     }
                 } else {
-                    todo.add(BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES));
+                    todo.add(given != null ? given : BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES));
                 }
 
                 // the reader's goal decides whether "apply" is asked for (AiCategory)
@@ -633,12 +649,12 @@ public final class AiJobs {
         }
 
         @Override
-        void failed(String message) {
+        protected void failed(String message) {
             toast(message);
         }
 
         @Override
-        void work() throws Exception {
+        protected void work() throws Exception {
             final AiStore.Book book;
             if (wholeBook) {
                 book = AiStore.get().update(target.name, b -> b.highlights.clear());
@@ -667,12 +683,12 @@ public final class AiJobs {
         }
 
         @Override
-        void failed(String message) {
+        protected void failed(String message) {
             toast(message);
         }
 
         @Override
-        void work() throws Exception {
+        protected void work() throws Exception {
             final AiStore.Book data = AiStore.get().load(target.name);
             final Map<Integer, List<String>> keysByPage = new TreeMap<>();
             final Map<String, AiCategory> categoryOf = new HashMap<>();

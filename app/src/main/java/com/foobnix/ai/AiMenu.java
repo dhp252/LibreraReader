@@ -29,6 +29,16 @@ public final class AiMenu {
         final boolean bookSaved = data.summary(AiStore.BOOK) != null;
 
         final MyPopupMenu menu = new MyPopupMenu(a, anchor);
+        // study mode (F-009): its panel once the book is studied
+        final com.foobnix.study.StudySession study = com.foobnix.study.StudySession.of(dc);
+        final boolean studying = study != null && study.book().on && study.book().hasPreview();
+        menu.getMenu(R.drawable.ic_study, studying ? R.string.study_panel : R.string.study_this_book, () -> {
+            if (studying) {
+                com.foobnix.study.StudyPanel.show(a, dc);
+            } else {
+                com.foobnix.study.StudyStart.begin(a, dc, false);
+            }
+        });
         menu.getMenu().add(saved(a, R.string.ai_summary_chapter, chapterSaved))
                 .setIcon(R.drawable.glyphicons_588_book_open_text)
                 .setOnMenuItemClickListener(item -> {
@@ -61,7 +71,7 @@ public final class AiMenu {
         menu.getMenu(R.drawable.glyphicons_66_tag, R.string.ai_goal, () -> {
             final AiHighlights highlights = AiHighlights.get();
             final String current = target.name.equals(highlights.getBook()) ? highlights.data().goal : null;
-            AiLegend.askGoal(a, target.name, current, null);
+            AiLegend.askGoal(a, target.name, current, () -> com.foobnix.study.StudyStart.goalChanged(a, dc));
         });
         menu.getMenu(R.drawable.ic_annot_eraser, R.string.ai_remove_highlights, () ->
                 chooseScope(a, anchor, wholeBook -> new AiJobs.RemoveJob(a, AiJobs.Target.of(dc), wholeBook).start()));

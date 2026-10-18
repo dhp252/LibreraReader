@@ -31,6 +31,15 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen {
 
     /** Starts a run, or shows the one going on. */
     public static void start(Activity activity, DocumentController dc, boolean wholeBook) {
+        start(activity, dc, wholeBook, null);
+    }
+
+    /** Key passages of one chapter (study mode's chapters), wherever the reader is. */
+    public static void start(Activity activity, DocumentController dc, BookChapters.Range chapter) {
+        start(activity, dc, false, chapter);
+    }
+
+    private static void start(Activity activity, DocumentController dc, boolean wholeBook, BookChapters.Range chapter) {
         final AiJobs.HighlightJob runningJob = AiJobs.runningHighlights();
         if (runningJob != null) {
             showRunning(activity, runningJob);
@@ -45,19 +54,19 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen {
             final String goal = AiStore.get().load(target.name).goal;
             activity.runOnUiThread(() -> {
                 if (goal == null) {
-                    AiLegend.askGoal(activity, target.name, null, () -> run(activity, target, wholeBook));
+                    AiLegend.askGoal(activity, target.name, null, () -> run(activity, target, wholeBook, chapter));
                 } else {
-                    run(activity, target, wholeBook);
+                    run(activity, target, wholeBook, chapter);
                 }
             });
         }, "@T AI goal").start();
     }
 
-    private static void run(Activity activity, AiJobs.Target target, boolean wholeBook) {
+    private static void run(Activity activity, AiJobs.Target target, boolean wholeBook, BookChapters.Range chapter) {
         if (AiJobs.runningHighlights() != null) {
             return;
         }
-        final AiJobs.HighlightJob job = new AiJobs.HighlightJob(activity, target, wholeBook, null);
+        final AiJobs.HighlightJob job = new AiJobs.HighlightJob(activity, target, wholeBook, null, chapter);
         final AiHighlightDialog screen = new AiHighlightDialog(activity, job);
         job.setScreen(screen);
         screen.open();

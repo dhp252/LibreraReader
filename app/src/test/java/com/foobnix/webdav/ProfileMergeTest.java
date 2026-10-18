@@ -185,4 +185,21 @@ public class ProfileMergeTest {
                 "{\"a\":{\"t\":5,\"col\":\"#ff6666\"}}"));
         assertEquals("#5fb236", merged.getJSONObject("a").getString("col"));
     }
+
+    @Test
+    public void studyAnswersOfTwoDevicesBothStay() throws Exception {
+        assertTrue(ProfileMerge.handles("study/Book.epub.json"));
+        String base = "{\"@book\":{\"t\":1,\"on\":true},\"c2\":{\"t\":1},\"c5\":{\"t\":1}}";
+        // the phone answered chapter 2, the tablet chapter 5 and turned studying off
+        String local = "{\"@book\":{\"t\":1,\"on\":true},\"c2\":{\"t\":4,\"a\":[\"phone\"]},\"c5\":{\"t\":1}}";
+        String remote = "{\"@book\":{\"t\":3,\"on\":false},\"c2\":{\"t\":1},\"c5\":{\"t\":6,\"a\":[\"tablet\"]}}";
+        JSONObject merged = obj(ProfileMerge.merge("study/Book.epub.json", base, local, remote));
+        assertEquals("phone", merged.getJSONObject("c2").getJSONArray("a").getString(0));
+        assertEquals("tablet", merged.getJSONObject("c5").getJSONArray("a").getString(0));
+        assertFalse(merged.getJSONObject("@book").getBoolean("on"));
+        // the same chapter on both: the newer
+        merged = obj(ProfileMerge.merge("study/Book.epub.json", base, "{\"c2\":{\"t\":9,\"a\":[\"later\"]}}",
+                "{\"c2\":{\"t\":4,\"a\":[\"earlier\"]}}"));
+        assertEquals("later", merged.getJSONObject("c2").getJSONArray("a").getString(0));
+    }
 }

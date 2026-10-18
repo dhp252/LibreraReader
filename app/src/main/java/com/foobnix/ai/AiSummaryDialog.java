@@ -30,6 +30,8 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
     private final Activity activity;
     private final AiJobs.Target target;
     private final boolean wholeBook;
+    /** A study chapter to summarize, else the chapter at the reader's page. */
+    private final BookChapters.Range chapter;
 
     private AlertDialog dialog;
     private ProgressBar progress;
@@ -40,17 +42,26 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
     private AiJobs.SummaryJob job;
     private boolean running;
 
-    private AiSummaryDialog(Activity activity, AiJobs.Target target, boolean wholeBook) {
+    private AiSummaryDialog(Activity activity, AiJobs.Target target, boolean wholeBook, BookChapters.Range chapter) {
         this.activity = activity;
         this.target = target;
         this.wholeBook = wholeBook;
+        this.chapter = chapter;
     }
 
     public static void show(Activity activity, DocumentController dc, boolean wholeBook) {
         if (dc == null || dc.getCurrentBook() == null) {
             return;
         }
-        new AiSummaryDialog(activity, AiJobs.Target.of(dc), wholeBook).open();
+        new AiSummaryDialog(activity, AiJobs.Target.of(dc), wholeBook, null).open();
+    }
+
+    /** The summary of one chapter, wherever the reader is (study mode's chapters). */
+    public static void show(Activity activity, DocumentController dc, BookChapters.Range chapter) {
+        if (dc == null || dc.getCurrentBook() == null) {
+            return;
+        }
+        new AiSummaryDialog(activity, AiJobs.Target.of(dc), false, chapter).open();
     }
 
     private void open() {
@@ -88,7 +99,7 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
         status.setText("");
         progress.setVisibility(View.VISIBLE);
         updateButtons();
-        job = new AiJobs.SummaryJob(activity, target, wholeBook, regenerate, this);
+        job = new AiJobs.SummaryJob(activity, target, wholeBook, regenerate, this, chapter);
         job.start();
     }
 

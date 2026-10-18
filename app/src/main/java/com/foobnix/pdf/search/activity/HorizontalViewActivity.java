@@ -1603,6 +1603,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         AiHighlights.get().close(this);
         com.foobnix.annotation.MarksLayer.get().close(this);
         com.foobnix.stats.ReadingTracker.destroyed(this);
+        com.foobnix.study.StudySession.destroyed(this);
 
         if (loadinAsyncTask != null) {
             try {

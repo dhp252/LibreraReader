@@ -317,6 +317,7 @@ public class VerticalViewActivity extends AbstractActionActivity<VerticalViewAct
     protected void onDestroy() {
         super.onDestroy();
         com.foobnix.stats.ReadingTracker.destroyed(this);
+        com.foobnix.study.StudySession.destroyed(this);
         if (handler != null) {
             handler.removeCallbacksAndMessages(null);
         }

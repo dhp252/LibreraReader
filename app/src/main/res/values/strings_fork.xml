@@ -237,4 +237,45 @@
     <string name="stats_duration_short_min">%1$dm</string>
     <string name="stats_duration_short_h_min">%1$dh %2$dm</string>
     <string name="stats_under_a_minute">&lt; 1 min</string>
+
+    <!-- F-009 study mode -->
+    <string name="study_this_book">Study this book</string>
+    <string name="study_panel">Study panel</string>
+    <string name="study_skimming">Skimming the book…</string>
+    <string name="study_no_text">There is no text the AI can read in this book (a scanned book?), so it cannot be studied.</string>
+    <string name="study_preview_unreadable">The AI\'s answer could not be read. Try again.</string>
+    <string name="study_ready">The study plan of the book is ready (✦ &gt; Study panel).</string>
+    <string name="study_retry">Retry</string>
+    <string name="study_not_saved">Study data not saved: %1$s</string>
+    <string name="study_relabel">The chapters were labelled for another goal. Label them again for the new goal?</string>
+    <string name="study_relabel_yes">Label again</string>
+    <string name="study_relabel_no">Keep</string>
+    <string name="study_goal">Goal: %1$s</string>
+    <string name="study_no_goal">none</string>
+    <string name="study_counts">Read %1$d · Skim %2$d · Skip %3$d</string>
+    <string name="study_time_saved">About %1$s instead of %2$s</string>
+    <string name="study_more">More…</string>
+    <string name="study_stop">Stop studying</string>
+    <string name="study_redo_preview">Redo preview</string>
+    <string name="study_export_notes">Export notes (Markdown)</string>
+    <string name="study_loading_chapters">Finding the chapters…</string>
+    <string name="study_label_read">Read closely</string>
+    <string name="study_label_skim">Skim</string>
+    <string name="study_label_skip">Skip</string>
+    <string name="study_chapter_n">%1$d. %2$s</string>
+    <string name="study_about">About %1$s</string>
+    <string name="study_read_for">Read for:</string>
+    <string name="study_summary">Summary</string>
+    <string name="study_next_chapter">Next chapter</string>
+    <string name="study_go_to_chapter">Go to chapter</string>
+    <string name="study_done_with_chapter">Done with chapter</string>
+    <string name="study_done_with">Done: %1$s</string>
+    <string name="study_after_questions">Questions to check what stuck: %1$d.</string>
+    <string name="study_after_no_questions">Chapter done.</string>
+    <string name="study_no_questions">This chapter has nothing to check.</string>
+    <string name="study_later">Later</string>
+    <string name="study_welcome_back">Welcome back</string>
+    <string name="study_last_read_days">Last read %1$d days ago.</string>
+    <string name="study_look_back">Look back first</string>
+    <string name="study_continue">Continue</string>
 </resources>

@@ -255,15 +255,34 @@ public final class ReadingTracker {
     }
 
     /** The book's own page count (the view's differs in two-page and half-page view). */
-    static int realPageCount(DocumentController dc) {
+    public static int realPageCount(DocumentController dc) {
         if ((isDouble(dc) || isCut(dc)) && dc.getCodecDocument() != null) {
             return dc.getCodecDocument().getPageCount();
         }
         return dc.getPageCount();
     }
 
+    /** The view page (1-based) showing the book's page {@code real} (1-based): {@link #realPages} turned round. */
+    public static int viewPage(DocumentController dc, int real) {
+        if (isCut(dc)) {
+            return 2 * real - 1;
+        }
+        if (isDouble(dc)) {
+            if (AppSP.get().isDoubleCoverAlone) {
+                return real <= 1 ? 1 : real / 2 + 1;
+            }
+            return (real + 1) / 2;
+        }
+        return real;
+    }
+
+    /** Whether a page turn shows two of the book's pages at once. */
+    public static boolean twoPages(DocumentController dc) {
+        return isDouble(dc);
+    }
+
     /** The book's first and last page (1-based) shown on this view page. */
-    static int[] realPages(DocumentController dc, int view) {
+    public static int[] realPages(DocumentController dc, int view) {
         if (isCut(dc)) {
             final int real = (view + 1) / 2;
             return new int[]{real, real};
