@@ -66,8 +66,14 @@ public final class EyeRules {
     public static final float BLINK_CLOSED = 0.5f;
     /** ...and before the open-eye ratio is known, from which it is. */
     public static final float BLINK_CLOSED_ALONE = 0.75f;
-    /** A closed eye has at most this share of its open aspect ratio (looking down narrows it less). */
-    public static final float EAR_CLOSED = 0.55f;
+    /**
+     * A closure starts when both eyes are at most this share of their open aspect ratio, and goes
+     * on while they stay under {@link #EAR_CLOSED_KEEP} (D-105). In the owner's second trace
+     * (tablet) reading the bottom lines narrowed the eyes to 0.38–0.43 of open, a real closure to
+     * 0.17–0.27.
+     */
+    public static final float EAR_CLOSED = 0.30f;
+    public static final float EAR_CLOSED_KEEP = 0.42f;
     /** Frames with eyeBlink under this, looking, teach the open aspect ratio. */
     public static final float BLINK_OPEN = 0.4f;
     /** Open frames needed before the open aspect ratio is trusted. */
@@ -82,7 +88,9 @@ public final class EyeRules {
 
     // calibrated gaze (M3, D-90)
     /** Calibration dots: time to settle on a dot, then time its frames count. */
-    public static final long CAL_SETTLE_MS = 500L;
+    public static final long CAL_SETTLE_MS = 700L;
+    /** The first dot shows this much longer: the eyes take up to 0.8 s to find it. */
+    public static final long CAL_LEAD_MS = 600L;
     public static final long CAL_COLLECT_MS = 900L;
     public static final long REZERO_SETTLE_MS = 400L;
     public static final long REZERO_COLLECT_MS = 800L;
@@ -115,6 +123,8 @@ public final class EyeRules {
     public static final float SCROLL_RAMP_PER_S = 0.1f;
     public static final float SCROLL_EASE_PER_S = 0.5f;
     public static final float SCROLL_MAX_FACTOR = 2f;
+    /** The gaze must stay in the top zone this long before the scroll waits (a glance up re-reads). */
+    public static final long SCROLL_TOP_DWELL_MS = 600L;
 
     /**
      * A smoothing weight given per frame at {@link #PRESENCE_FPS}, for a frame {@code dtMs} after

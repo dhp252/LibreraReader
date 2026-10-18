@@ -202,7 +202,10 @@ public class GazeTest {
     public void scrollZones() {
         final ScrollZones z = new ScrollZones();
         assertEquals(1, z.update(0.5f, 100), E);
-        assertEquals(0, z.update(0.2f, 100), E);
+        // a glance up does not stop it; staying in the top zone does
+        assertEquals(1, z.update(0.2f, 100), E);
+        assertEquals(1, z.update(0.2f, 400), E);
+        assertEquals(0, z.update(0.2f, 200), E);
         // the edge overlap: 0.27 is still the top
         assertEquals(0, z.update(0.27f, 100), E);
         assertEquals(1, z.update(0.4f, 100), E);

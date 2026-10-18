@@ -13,6 +13,8 @@ public final class ScrollZones {
 
     private Zone zone = Zone.MIDDLE;
     private float factor = 1;
+    /** How long the gaze has been in the top zone, ms (it waits from {@link EyeRules#SCROLL_TOP_DWELL_MS}). */
+    private long topMs;
 
     /** @param y the gaze's screen y, NaN when not known (the factor goes back to 1) */
     public float update(float y, long dtMs) {
@@ -20,6 +22,7 @@ public final class ScrollZones {
         if (Float.isNaN(y)) {
             zone = Zone.MIDDLE;
             factor = 1;
+            topMs = 0;
             return factor;
         }
         switch (zone) {
@@ -41,9 +44,14 @@ public final class ScrollZones {
                 }
                 break;
         }
+        topMs = zone == Zone.TOP ? topMs + Math.max(0, dtMs) : 0;
         switch (zone) {
             case TOP:
-                factor = 0;
+                if (topMs >= EyeRules.SCROLL_TOP_DWELL_MS) {
+                    factor = 0;
+                } else {
+                    factor = factor < 1 ? 1 : Math.max(1, factor - EyeRules.SCROLL_EASE_PER_S * dt);
+                }
                 break;
             case BOTTOM:
                 factor = Math.min(EyeRules.SCROLL_MAX_FACTOR, Math.max(1, factor) + EyeRules.SCROLL_RAMP_PER_S * dt);

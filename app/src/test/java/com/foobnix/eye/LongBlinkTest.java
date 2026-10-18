@@ -97,6 +97,24 @@ public class LongBlinkTest {
     }
 
     @Test
+    public void readingTheBottomLinesOfATabletIsNotClosed() {
+        // the owner's second trace: eyeBlink 0.63, eyes at 0.4 of open while reading the last lines
+        open(1_000);
+        assertEquals(0, run(1_500, 0.63f, 0.11f) + open(500));
+        assertFalse(b.isClosed(eyes(0, 0.63f, 0.11f)));
+    }
+
+    @Test
+    public void aClosureGoesOnWhileTheLidsOpenInSteps() {
+        open(1_000);
+        // deep for 0.3 s, then a shallower 0.4 of open for 0.5 s: one 0.8 s closure
+        closed(300);
+        run(500, 0.6f, 0.11f);
+        assertEquals(1, open(300));
+        assertEquals(800, b.lastMs());
+    }
+
+    @Test
     public void beforeTheOpenEyesAreKnownOnlyAHighBlinkCounts() {
         assertFalse(b.isClosed(eyes(0, 0.6f, 0.05f)));
         assertTrue(b.isClosed(eyes(0, 0.8f, 0.05f)));

@@ -38,8 +38,22 @@ public final class Calibration {
         this.start = start;
     }
 
+    /** The first dot shows {@link EyeRules#CAL_LEAD_MS} longer (its time starts that much later). */
     public static Calibration full(long start) {
-        return new Calibration(SPOTS, EyeRules.CAL_SETTLE_MS, EyeRules.CAL_COLLECT_MS, start);
+        return new Calibration(SPOTS, EyeRules.CAL_SETTLE_MS, EyeRules.CAL_COLLECT_MS, start + EyeRules.CAL_LEAD_MS);
+    }
+
+    public long settleMs() {
+        return settleMs;
+    }
+
+    public long collectMs() {
+        return collectMs;
+    }
+
+    /** When the first dot's own time starts (after the lead-in). */
+    public long start() {
+        return start;
     }
 
     public static Calibration rezero(long start) {
@@ -52,19 +66,22 @@ public final class Calibration {
 
     /** The dot to show at {@code t}, null once done. */
     public float[] spotAt(long t) {
-        final int i = (int) ((t - start) / (settleMs + collectMs));
+        final int i = t < start ? 0 : (int) ((t - start) / (settleMs + collectMs));
         return i >= 0 && i < spots.length && result == Result.RUNNING ? spots[i] : null;
     }
 
     /** How far the current dot is in its time, 0..1 (the view shrinks it). */
     public float progress(long t) {
+        if (t < start) {
+            return 0;
+        }
         final long per = settleMs + collectMs;
         return Math.max(0, Math.min(1, ((t - start) % per) / (float) per));
     }
 
     /** A frame; {@code dark} = the room is too dark to tell (presence). @return the result so far */
     public Result frame(FaceFrame f, boolean closed, boolean dark) {
-        if (tick(f.t) != Result.RUNNING) {
+        if (tick(f.t) != Result.RUNNING || f.t < start) {
             return result;
         }
         final long per = settleMs + collectMs;
@@ -81,7 +98,7 @@ public final class Calibration {
 
     /** Moves on with the time alone (frames may stop coming): closes the dots whose time is over. */
     public Result tick(long t) {
-        if (result != Result.RUNNING) {
+        if (result != Result.RUNNING || t < start) {
             return result;
         }
         final int i = (int) ((t - start) / (settleMs + collectMs));

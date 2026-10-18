@@ -6,9 +6,9 @@ package com.foobnix.eye;
  * are shorter; longer is resting the eyes.
  * <p>
  * A frame is closed when both eyeBlink scores are high <b>and</b> both eye aspect ratios fell
- * well below the reader's own open ones ({@link EyeRules#EAR_CLOSED}): in the owner's trace
- * looking down at the bottom lines scored the same eyeBlink as a closed eye, but it only narrows
- * the eyes. Until enough open frames taught the open ratios, a higher eyeBlink alone counts.
+ * well below the reader's own open ones ({@link EyeRules#EAR_CLOSED}, then
+ * {@link EyeRules#EAR_CLOSED_KEEP} while the closure lasts): in the owner's traces looking down at
+ * the bottom lines scored the same eyeBlink as a closed eye, but it only narrows the eyes. Until enough open frames taught the open ratios, a higher eyeBlink alone counts.
  * One open frame inside a closure ({@link EyeRules#BLINK_GAP_MS}) does not split it. Pure.
  */
 public final class LongBlink {
@@ -37,7 +37,9 @@ public final class LongBlink {
         if (!knowsOpen()) {
             return f.blinkL >= EyeRules.BLINK_CLOSED_ALONE && f.blinkR >= EyeRules.BLINK_CLOSED_ALONE;
         }
-        return blink && f.earL <= openL * EyeRules.EAR_CLOSED && f.earR <= openR * EyeRules.EAR_CLOSED;
+        // deep to start, a little less deep to go on (the lids open in steps)
+        final float share = closedFrom >= 0 ? EyeRules.EAR_CLOSED_KEEP : EyeRules.EAR_CLOSED;
+        return blink && f.earL <= openL * share && f.earR <= openR * share;
     }
 
     /**

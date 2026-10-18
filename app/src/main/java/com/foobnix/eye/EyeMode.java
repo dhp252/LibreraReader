@@ -746,7 +746,8 @@ public final class EyeMode implements EyeCamera.Listener {
                 ((androidx.activity.ComponentActivity) a).getOnBackPressedDispatcher().addCallback(calibrationBack);
             }
             if (trace != null) {
-                trace.event(SystemClock.uptimeMillis(), rezero ? "rezero" : "calibration");
+                trace.event(SystemClock.uptimeMillis(), rezero ? "rezero" : "calibration", "start", calibrating.start(),
+                        "settle", calibrating.settleMs(), "collect", calibrating.collectMs());
             }
         } catch (Exception e) {
             LOG.e(e);
@@ -777,7 +778,8 @@ public final class EyeMode implements EyeCamera.Listener {
                     note = R.string.eye_rezeroed;
                 } else {
                     gaze.setModel(c.model());
-                    note = R.string.eye_cal_ok;
+                    Toast.makeText(a, a.getString(R.string.eye_cal_ok, Math.round(100 * c.model().rmsY())), Toast.LENGTH_LONG).show();
+                    note = 0;
                 }
                 break;
             case POOR:
