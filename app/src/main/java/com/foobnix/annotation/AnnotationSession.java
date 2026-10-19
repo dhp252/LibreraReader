@@ -11,8 +11,13 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.webkit.WebView;
+import android.widget.AbsSeekBar;
+import android.widget.AdapterView;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.PopupMenu;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.foobnix.android.utils.Dips;
@@ -30,6 +35,7 @@ import org.ebookdroid.BookType;
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -517,6 +523,10 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
             stylusDraw = stylusWorks()
                     ? StylusRules.draw(ev.getToolType(stylus), toolbarTool(), AppState.get().stylusTool, sideButton)
                     : StylusRules.DRAW_NONE;
+            if (stylusDraw != StylusRules.DRAW_NONE && !onPage(ev.getX(stylus), ev.getY(stylus))) {
+                // a button, a bar or a panel over the page: the stylus presses it as a finger does
+                stylusDraw = StylusRules.DRAW_NONE;
+            }
             if (stylusDraw == StylusRules.DRAW_PEN && !fixedLayout()) {
                 // a pen stroke cannot follow text that reflows: the stylus highlights it instead
                 stylusDraw = StylusRules.DRAW_HIGHLIGHTER;
@@ -557,6 +567,78 @@ public class AnnotationSession implements AnnotationToolbar.Listener {
             finishStroke(draw, action != MotionEvent.ACTION_CANCEL);
         }
         return true;
+    }
+
+    /** The views that show the book: the scroll-mode document, the book-mode pages and their curl. */
+    private static final int[] PAGE_IDS = {R.id.documentView, R.id.pager2, R.id.pageCurl};
+
+    /** What a touch meets at a view, for {@link #partAt}. */
+    private static final int PART_NONE = 0;
+    private static final int PART_PAGE = 1;
+    private static final int PART_CONTROL = 2;
+
+    /**
+     * Whether a stylus coming down at (x, y) (window pixels) lands on the book rather than on the
+     * reader's controls over it. The topmost view under the point that a finger tap would stop at
+     * decides, as Android gives touches: the page (or the pen's draw view) draws; a button, a bar, a
+     * list, a slider or a floating panel gets the stylus as it gets a finger.
+     */
+    private boolean onPage(float x, float y) {
+        final List<View> pages = new ArrayList<>();
+        for (int id : PAGE_IDS) {
+            final View page = activity.findViewById(id);
+            if (page != null) {
+                pages.add(page);
+            }
+        }
+        if (pages.isEmpty()) {
+            // a reader screen this does not know: draw as before
+            return true;
+        }
+        pages.add(drawView);
+        return partAt(activity.getWindow().getDecorView(), x, y, pages, new int[2]) == PART_PAGE;
+    }
+
+    private static int partAt(View view, float x, float y, List<View> pages, int[] origin) {
+        if (view.getVisibility() != View.VISIBLE) {
+            return PART_NONE;
+        }
+        view.getLocationInWindow(origin);
+        if (x < origin[0] || y < origin[1] || x >= origin[0] + view.getWidth() || y >= origin[1] + view.getHeight()) {
+            return PART_NONE;
+        }
+        if (pages.contains(view)) {
+            return PART_PAGE;
+        }
+        if (view instanceof ViewGroup) {
+            final ViewGroup group = (ViewGroup) view;
+            final List<View> children = new ArrayList<>();
+            for (int i = group.getChildCount() - 1; i >= 0; i--) {
+                children.add(group.getChildAt(i));
+            }
+            // topmost first, as touches are given: raised children, then the last drawn
+            Collections.sort(children, (a, b) -> Float.compare(b.getZ(), a.getZ()));
+            for (View child : children) {
+                final int part = partAt(child, x, y, pages, origin);
+                if (part != PART_NONE) {
+                    return part;
+                }
+            }
+        }
+        return takesTouch(view) ? PART_CONTROL : PART_NONE;
+    }
+
+    /**
+     * A view a finger tap stops at, or a panel raised over the page (the top bar, a floating
+     * dialog). Not a background: the blue light filter covers the whole page and takes nothing.
+     */
+    private static boolean takesTouch(View view) {
+        return view.isClickable() || view.isLongClickable() || view.isContextClickable()
+                || view instanceof AdapterView || view instanceof AbsSeekBar || view instanceof WebView
+                || view instanceof ScrollView || view instanceof HorizontalScrollView
+                || view.canScrollVertically(1) || view.canScrollVertically(-1)
+                || view.canScrollHorizontally(1) || view.canScrollHorizontally(-1)
+                || view.getZ() > 0;
     }
 
     private static int stylusIndex(MotionEvent ev) {
