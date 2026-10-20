@@ -229,14 +229,22 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   devices show both sets. Erase one on a device: it goes on the other too.
 - **AI colors**: ✦ > Highlight key passages on a non-fiction chapter: the first time it asks what
   you want from the book. Marks come in red, blue, purple, orange, green and grey, never yellow.
-  ✦ > Colors shows what each means; tap a mark and its category shows. Messages of the pen
-  toolbar now appear above it, not over it.
+  ✦ > Colors shows what each means. Messages of the pen toolbar now appear above it, not over it.
+- **AI ideas** (one EPUB and one PDF chapter, ideally a two-column PDF): ✦ > Highlight key
+  passages > This chapter. The result names the ideas marked and any "not located". Pages should
+  rarely be empty: key sentences filled, must-read paragraphs with a colored bar in the left
+  margin, also where a paragraph runs onto the next page (and into the next column). ✦ > Ideas of
+  this chapter: every idea, indented under the one it supports; does it miss anything you think
+  matters? Tap an idea: the book goes to it. Tap a sentence or a bar: its idea, Explain (an answer
+  streams in), All ideas. ✦ > Paragraph bars / Key sentences hide each layer. Whole book, then
+  Cancel: the chapters done stay.
 - **Study** (a non-fiction book with a table of contents): ✦ > Study this book. It asks your goal
   if the book has none, skims the book (about a minute), then opens the Study panel: thesis,
   goal, "Read · Skim · Skip" counts, time vs the whole book, and every chapter with ● ◐ ○, its
   time and state. Do the labels make sense for your goal? Tap a ● to change it; tap a chapter for
   its questions and actions. Page into a new chapter: a card at the bottom shows its label, time,
-  reason and questions (Skim: Summary, Key passages; Skip: Summary, Next chapter); the next page
+  reason and questions (Read: Prepare this chapter; Skim: Summary, Prepare this chapter; Skip:
+  Summary, Next chapter; a prepared chapter shows Ideas instead of Prepare); the next page
   turn takes it away, and it never comes again for that chapter. Page out of a Read or Skim
   chapter: "Done: <chapter>" comes first, with Answer and Later. A jump (TOC, search) shows only
   the card of where you land. A book split in Parts gets a card per chapter inside them.
