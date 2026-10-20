@@ -67,6 +67,21 @@ public final class AiMenu {
                     showHighlights(a, !AiHighlights.get().isVisible());
                     return true;
                 });
+        menu.getMenu().setIcon(R.drawable.glyphicons_25_eye)
+                .addCheckbox(a.getString(R.string.ai_show_bars), AiHighlights.get().isBarsVisible(),
+                        (button, checked) -> showLayers(a, checked, AiHighlights.get().isSentencesVisible()))
+                .setOnMenuItemClickListener(item -> {
+                    showLayers(a, !AiHighlights.get().isBarsVisible(), AiHighlights.get().isSentencesVisible());
+                    return true;
+                });
+        menu.getMenu().setIcon(R.drawable.glyphicons_25_eye)
+                .addCheckbox(a.getString(R.string.ai_show_sentences), AiHighlights.get().isSentencesVisible(),
+                        (button, checked) -> showLayers(a, AiHighlights.get().isBarsVisible(), checked))
+                .setOnMenuItemClickListener(item -> {
+                    showLayers(a, AiHighlights.get().isBarsVisible(), !AiHighlights.get().isSentencesVisible());
+                    return true;
+                });
+        menu.getMenu(R.drawable.glyphicons_588_book_open_text, R.string.ai_ideas_chapter, () -> AiIdeasDialog.showHere(a, dc));
         menu.getMenu(R.drawable.glyphicons_92_contrast, R.string.ai_colors, () -> AiLegend.show(a));
         menu.getMenu(R.drawable.glyphicons_66_tag, R.string.ai_goal, () -> {
             final AiHighlights highlights = AiHighlights.get();
@@ -89,6 +104,15 @@ public final class AiMenu {
         settings.highlightsVisible = show;
         settings.save(a);
         AiHighlights.get().setVisible(show);
+    }
+
+    /** Which layers of the AI highlights are drawn, for every book on this device. */
+    public static void showLayers(Activity a, boolean bars, boolean sentences) {
+        final AiSettings settings = AiSettings.load(a);
+        settings.barsVisible = bars;
+        settings.sentencesVisible = sentences;
+        settings.save(a);
+        AiHighlights.get().setLayers(bars, sentences);
     }
 
     private static String saved(Activity a, int text, boolean saved) {

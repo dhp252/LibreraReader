@@ -105,4 +105,33 @@ public class QuoteMatcherTest {
         assertEquals("the maison resta well-known", QuoteMatcher.join(Arrays.asList("the", "mai-", "son", "resta", "well-known")));
         assertEquals("pre- War", QuoteMatcher.join(Arrays.asList("pre-", "War")));
     }
+
+    @Test
+    public void locatesAParagraphByItsFirstAndLastWords() {
+        // 0..2 before, 3..24 the paragraph, then the next one repeats its last words
+        QuoteMatcher.Words chapter = page("End of before. Habits are the compound interest of self-improvement, "
+                + "and small changes add up over years until they become remarkable results in the end. "
+                + "Next paragraph: they become remarkable results in the end. again.");
+        int[] span = QuoteMatcher.locateSpan(chapter, "Habits are the compound interest", "they become remarkable results in the end.");
+        assertArrayEquals(new int[]{3, 24}, span);
+    }
+
+    @Test
+    public void aShortParagraphMayHaveItsEndInsideItsStart() {
+        QuoteMatcher.Words chapter = page("Before. A single short paragraph of only twelve words is here now. After it.");
+        int[] span = QuoteMatcher.locateSpan(chapter, "A single short paragraph of only", "of only twelve words is here now.");
+        assertArrayEquals(new int[]{1, 11}, span);
+    }
+
+    @Test
+    public void aParagraphWithoutItsEndRunsTheFallbackLength() {
+        StringBuilder text = new StringBuilder("The paragraph starts with these exact words");
+        for (int i = 0; i < 100; i++) {
+            text.append(" w").append(i);
+        }
+        QuoteMatcher.Words chapter = page(text.toString());
+        int[] span = QuoteMatcher.locateSpan(chapter, "The paragraph starts with these exact words", "words the model made up at the end");
+        assertArrayEquals(new int[]{0, QuoteMatcher.SPAN_FALLBACK_WORDS - 1}, span);
+        assertNull(QuoteMatcher.locateSpan(chapter, "A start that is nowhere in the text", "w99 w99"));
+    }
 }

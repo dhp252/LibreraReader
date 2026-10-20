@@ -407,7 +407,7 @@ public class VerticalModeController extends DocumentController {
     }
 
     @Override
-    public com.foobnix.ai.AiCategory aiCategoryAt(float x, float y) {
+    public com.foobnix.ai.AiHighlights.Band aiMarkAt(float x, float y) {
         final com.foobnix.ai.AiHighlights highlights = com.foobnix.ai.AiHighlights.get();
         if (!highlights.isVisible() || highlights.count() == 0) {
             return null;
@@ -422,7 +422,7 @@ public class VerticalModeController extends DocumentController {
             return null;
         }
         // bands are in page-relative coordinates, as the page's words
-        return highlights.categoryAt(p.page, p.point.x / page.cpi.width, p.point.y / page.cpi.height);
+        return highlights.bandAt(p.page, p.point.x / page.cpi.width, p.point.y / page.cpi.height);
     }
 
     // ---- separate marks (F-008) ----

@@ -99,6 +99,8 @@ public class AiSettingsDialog {
                 other.answerLanguage = settings.answerLanguage;
                 other.masterPrompt = settings.masterPrompt;
                 other.highlightsVisible = settings.highlightsVisible;
+                other.barsVisible = settings.barsVisible;
+                other.sentencesVisible = settings.sentencesVisible;
                 settings = other;
                 fill();
             }

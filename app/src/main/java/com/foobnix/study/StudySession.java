@@ -287,45 +287,11 @@ public final class StudySession {
      * or the chapter's start.
      */
     public void jumpTo(String quote, int page, BookChapters.Range range) {
-        final String key = quote == null ? null : com.foobnix.ai.QuoteMatcher.key(quote);
-        if (key == null || !dc.isTextFormat()) {
-            goToPage(page >= 0 ? page : range.from);
+        if (dc == null) {
             return;
         }
-        final AiJobs.Target t = AiJobs.Target.of(dc);
-        new Thread(() -> {
-            int found = -1;
-            try (BookText text = BookText.open(t.path, t.width, t.height, t.fontSize)) {
-                if (text != null) {
-                    final int pages = text.pageCount();
-                    final int hint = Math.max(range.from, Math.min(range.to - 1, page >= 0 ? page : range.from));
-                    final int lo = Math.max(0, range.from - 2);
-                    final int hi = Math.min(pages - 1, range.to + 1);
-                    // nearest to the hint first, then outwards
-                    for (int d = 0; found < 0 && d <= hi - lo; d++) {
-                        for (int p : d == 0 ? new int[]{hint} : new int[]{hint + d, hint - d}) {
-                            if (found < 0 && p >= lo && p <= hi) {
-                                final com.foobnix.ai.QuoteMatcher.Words words =
-                                        new com.foobnix.ai.QuoteMatcher.Words(BookText.words(text.text(p)));
-                                if (!com.foobnix.ai.QuoteMatcher.onPage(words, Collections.singletonList(key)).isEmpty()) {
-                                    found = p;
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                LOG.e(e);
-            }
-            final int go = found >= 0 ? found : page >= 0 ? page : range.from;
-            post(() -> goToPage(go));
-        }, "@T Study quote").start();
-    }
-
-    private void goToPage(int bookPage) {
-        if (dc != null) {
-            dc.onGoToPage(ReadingTracker.viewPage(dc, bookPage + 1));
-        }
+        final int hint = Math.max(range.from, Math.min(range.to - 1, page >= 0 ? page : range.from));
+        com.foobnix.ai.AiJump.toQuote(dc, quote, hint, Math.max(0, range.from - 2), range.to + 1);
     }
 
     /** The reader's notes (marks with a note) by the chapter they are in, for the outline. Off the main thread. */
@@ -362,8 +328,19 @@ public final class StudySession {
         AiSummaryDialog.show(owner, dc, range);
     }
 
-    public void keyPassages(BookChapters.Range range) {
+    /** Marks the chapter by its ideas: must-read paragraphs and key sentences (design-2026-10-21-layered-marks.md). */
+    public void prepare(BookChapters.Range range) {
         AiHighlightDialog.start(owner, dc, range);
+    }
+
+    /** The chapter has its ideas marked. */
+    public boolean prepared(BookChapters.Range range) {
+        final com.foobnix.ai.AiStore.Chapter c = AiHighlights.get().data().chapter(range.key);
+        return c != null && !c.ideas.isEmpty();
+    }
+
+    public void ideas(BookChapters.Range range) {
+        com.foobnix.ai.AiIdeasDialog.showKey(owner, dc, range.key);
     }
 
     /** Minutes for a chapter at the reader's speed, by its label. */
@@ -578,8 +555,12 @@ public final class StudySession {
         if (!StudyBook.READ.equals(ch.label)) {
             v.button(owner.getString(R.string.study_summary), false, () -> summary(range));
         }
-        if (StudyBook.SKIM.equals(ch.label)) {
-            v.button(owner.getString(R.string.ai_key_passages), true, () -> keyPassages(range));
+        if (!StudyBook.SKIP.equals(ch.label)) {
+            if (prepared(range)) {
+                v.button(owner.getString(R.string.study_ideas), false, () -> ideas(range));
+            } else {
+                v.button(owner.getString(R.string.study_prepare), true, () -> prepare(range));
+            }
         }
         if (StudyBook.SKIP.equals(ch.label)) {
             final BookChapters.Range next = next(range);

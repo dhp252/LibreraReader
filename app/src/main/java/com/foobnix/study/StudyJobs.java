@@ -244,10 +244,17 @@ public final class StudyJobs {
                 final String goal = ai.goal == null ? "" : ai.goal;
                 final List<String> marks = marks(target.name, from, to);
                 final List<String> passages = new ArrayList<>();
+                final List<String> ideas = new ArrayList<>();
                 for (AiStore.Chapter chapter : ai.highlights) {
                     for (AiStore.Quote q : chapter.quotes) {
-                        if (q.page >= from && q.page < to && passages.size() < 30) {
+                        if (q.page >= from && q.page < to && passages.size() < 60) {
                             passages.add("[" + q.category.code + "] " + q.text);
+                        }
+                    }
+                    // the ideas the reader saw marked: recall is checked against the same ones
+                    if (chapter.key.equals(range.key)) {
+                        for (AiStore.Idea idea : chapter.ideas) {
+                            ideas.add("[" + idea.category.code + "] " + idea.text);
                         }
                     }
                 }
@@ -278,7 +285,7 @@ public final class StudyJobs {
                 final String answer = ask(
                         AiPrompts.withMaster(settings.masterPrompt, StudyPrompts.checkSystem(settings.answerLanguage, !goal.trim().isEmpty())),
                         StudyPrompts.check(target.title, chapterTitle(range), goal, chapterText, summarized, questions, answers,
-                                recall, marks, passages),
+                                recall, marks, passages, ideas),
                         delta -> {
                             streamed.append(delta);
                             final String shown = StudyPrompts.visible(streamed.toString());

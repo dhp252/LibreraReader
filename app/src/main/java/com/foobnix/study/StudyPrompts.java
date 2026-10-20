@@ -158,7 +158,8 @@ public final class StudyPrompts {
                 .append("that holds the answer.\n")
                 .append("## Recall\n")
                 .append("Only when the reader wrote what else they remember: one or two sentences on the key points ")
-                .append("of the chapter they did not mention.\n")
+                .append("of the chapter they did not mention; when the chapter's ideas are listed, name the ones ")
+                .append("they left out in the words of that list.\n")
                 .append("## Map\n")
                 .append("A JSON array in a ```json fence: the chapter's 2 to 5 main claims, each {\"text\": \"<the ")
                 .append("claim in at most 15 words>\", \"cat\": \"main\", \"quote\": \"<one sentence copied exactly ")
@@ -167,7 +168,7 @@ public final class StudyPrompts {
         if (hasGoal) {
             out.append(", or apply (something the reader could act on for their goal)");
         }
-        out.append(". Where the reader's marks, notes or the key passages show what matters, follow them. ")
+        out.append(". Where the reader's marks, notes, the key passages or the chapter's ideas show what matters, follow them. ")
                 .append("Quotes are copied character for character, no ellipses; leave a quote empty rather than ")
                 .append("paraphrase it.");
         return out.toString();
@@ -177,10 +178,11 @@ public final class StudyPrompts {
      * @param text       the chapter, or the summaries of its parts when {@code summarized}
      * @param marks      the reader's marks in the chapter, one per line ("quote" + note)
      * @param passages   the AI key passages of the chapter, "[category] quote"
+     * @param ideas      the chapter's ideas as marked in the book, "[category] idea", or none
      */
     public static String check(String bookTitle, String chapterTitle, String goal, String text, boolean summarized,
                                List<String> questions, List<String> answers, String recall,
-                               List<String> marks, List<String> passages) {
+                               List<String> marks, List<String> passages, List<String> ideas) {
         final StringBuilder out = new StringBuilder();
         if (bookTitle != null && !bookTitle.trim().isEmpty()) {
             out.append("Book: ").append(bookTitle.trim()).append('\n');
@@ -208,6 +210,13 @@ public final class StudyPrompts {
             out.append("Key passages the AI picked in this chapter:\n");
             for (String p : passages) {
                 out.append("- ").append(p).append('\n');
+            }
+            out.append('\n');
+        }
+        if (ideas != null && !ideas.isEmpty()) {
+            out.append("The ideas of this chapter, as marked in the reader's book:\n");
+            for (String i : ideas) {
+                out.append("- ").append(i).append('\n');
             }
             out.append('\n');
         }

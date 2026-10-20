@@ -104,14 +104,16 @@ public class StudyPromptsTest {
     @Test
     public void aCheckRequestCarriesTheAnswersOrAsksOnlyForTheMap() {
         final String asked = StudyPrompts.check("B", "Ch", "goal", "TEXT", false, Arrays.asList("Q1", "Q2"),
-                Arrays.asList("A1", ""), "", Arrays.asList("\"m\" (note: n)"), Arrays.asList("[main] p"));
+                Arrays.asList("A1", ""), "", Arrays.asList("\"m\" (note: n)"), Arrays.asList("[main] p"),
+                Arrays.asList("[main] Habits compound."));
         assertTrue(asked.contains("<chapter>\nTEXT\n</chapter>"));
         assertTrue(asked.contains("1. Q: Q1\n   A: A1"));
         assertTrue(asked.contains("2. Q: Q2\n   A: (no answer)"));
         assertTrue(asked.contains("- \"m\" (note: n)"));
         assertTrue(asked.contains("- [main] p"));
+        assertTrue(asked.contains("The ideas of this chapter, as marked in the reader's book:\n- [main] Habits compound."));
         final String mapOnly = StudyPrompts.check("B", "Ch", "", "TEXT", true, Arrays.asList("Q1"),
-                Arrays.asList(""), " ", null, null);
+                Arrays.asList(""), " ", null, null, null);
         assertTrue(mapOnly.endsWith("write only the ## Map section."));
         assertTrue(mapOnly.contains("summaries of its parts"));
         assertTrue(StudyPrompts.checkSystem("", true).contains("apply"));

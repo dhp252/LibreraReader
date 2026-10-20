@@ -57,11 +57,41 @@ public class AiStore {
         public final int page;
         /** Why the AI picked it, and its color. */
         public final AiCategory category;
+        /** The {@link Idea#id} it carries, or -1 (key passages from before ideas). */
+        public final int idea;
 
         public Quote(String text, int page, AiCategory category) {
+            this(text, page, category, -1);
+        }
+
+        public Quote(String text, int page, AiCategory category, int idea) {
             this.text = text;
             this.page = page;
             this.category = category;
+            this.idea = idea;
+        }
+    }
+
+    /** One idea of a chapter, as the AI listed it; its marks are the quotes and paragraphs naming its id. */
+    public static class Idea {
+        /** Unique in its chapter. */
+        public final int id;
+        public final String text;
+        public final AiCategory category;
+        /** The id of the idea it supports (a main idea's evidence, caveat...), or -1. */
+        public final int parent;
+        /** Whether a mark of it was found in the book when it was picked (else "not located"). */
+        public final boolean marked;
+        /** 0-based page of its first mark when it was picked, or -1. */
+        public final int page;
+
+        public Idea(int id, String text, AiCategory category, int parent, boolean marked, int page) {
+            this.id = id;
+            this.text = text;
+            this.category = category;
+            this.parent = parent;
+            this.marked = marked;
+            this.page = page;
         }
     }
 
@@ -71,14 +101,53 @@ public class AiStore {
         public final String title;
         public final String model;
         public final long time;
+        /** Key sentences: filled. */
         public final List<Quote> quotes;
+        /** The ideas the marks belong to, in reading order; empty for key passages from before ideas. */
+        public final List<Idea> ideas;
+        /** Must-read paragraphs, each the book's whole words: a bar beside them. */
+        public final List<Quote> paragraphs;
+        /** The AI's answer was cut off: ideas after the cut are missing. */
+        public final boolean incomplete;
 
         public Chapter(String key, String title, String model, long time, List<Quote> quotes) {
+            this(key, title, model, time, quotes, new ArrayList<Idea>(), new ArrayList<Quote>(), false);
+        }
+
+        public Chapter(String key, String title, String model, long time, List<Quote> quotes,
+                       List<Idea> ideas, List<Quote> paragraphs, boolean incomplete) {
             this.key = key;
             this.title = title;
             this.model = model;
             this.time = time;
             this.quotes = quotes;
+            this.ideas = ideas;
+            this.paragraphs = paragraphs;
+            this.incomplete = incomplete;
+        }
+
+        /** The same chapter with other key sentences (the rest kept). */
+        public Chapter withQuotes(List<Quote> quotes) {
+            return new Chapter(key, title, model, time, quotes, ideas, paragraphs, incomplete);
+        }
+
+        public Idea idea(int id) {
+            for (Idea idea : ideas) {
+                if (idea.id == id) {
+                    return idea;
+                }
+            }
+            return null;
+        }
+
+        public int notLocated() {
+            int n = 0;
+            for (Idea idea : ideas) {
+                if (!idea.marked) {
+                    n++;
+                }
+            }
+            return n;
         }
     }
 
@@ -174,14 +243,35 @@ public class AiStore {
             for (Chapter chapter : highlights) {
                 final JSONArray quotes = new JSONArray();
                 for (Quote q : chapter.quotes) {
-                    quotes.put(new JSONObject().put("text", q.text).put("page", q.page).put("category", q.category.code));
+                    quotes.put(quoteJson(q));
                 }
-                h.put(new JSONObject()
+                final JSONObject c = new JSONObject()
                         .put("key", chapter.key)
                         .put("title", chapter.title)
                         .put("model", chapter.model)
                         .put("time", chapter.time)
-                        .put("quotes", quotes));
+                        .put("quotes", quotes);
+                // apart from quotes: an older version draws sentences only, never a whole paragraph
+                if (!chapter.ideas.isEmpty()) {
+                    final JSONArray ideas = new JSONArray();
+                    for (Idea idea : chapter.ideas) {
+                        ideas.put(new JSONObject().put("id", idea.id).put("text", idea.text)
+                                .put("category", idea.category.code).put("parent", idea.parent)
+                                .put("marked", idea.marked).put("page", idea.page));
+                    }
+                    c.put("ideas", ideas);
+                }
+                if (!chapter.paragraphs.isEmpty()) {
+                    final JSONArray paragraphs = new JSONArray();
+                    for (Quote q : chapter.paragraphs) {
+                        paragraphs.put(quoteJson(q));
+                    }
+                    c.put("paragraphs", paragraphs);
+                }
+                if (chapter.incomplete) {
+                    c.put("incomplete", true);
+                }
+                h.put(c);
             }
             root.put("highlights", h);
             return root.toString();
@@ -202,19 +292,41 @@ public class AiStore {
             final JSONArray h = root.optInt("version", 1) < 2 ? null : root.optJSONArray("highlights");
             for (int i = 0; h != null && i < h.length(); i++) {
                 final JSONObject o = h.getJSONObject(i);
-                final List<Quote> quotes = new ArrayList<>();
-                final JSONArray q = o.optJSONArray("quotes");
-                for (int k = 0; q != null && k < q.length(); k++) {
-                    final JSONObject quote = q.getJSONObject(k);
-                    final AiCategory category = AiCategory.of(quote.optString("category", null));
+                final List<Idea> ideas = new ArrayList<>();
+                final JSONArray d = o.optJSONArray("ideas");
+                for (int k = 0; d != null && k < d.length(); k++) {
+                    final JSONObject idea = d.getJSONObject(k);
+                    final AiCategory category = AiCategory.of(idea.optString("category", null));
                     if (category != null) {
-                        quotes.add(new Quote(quote.getString("text"), quote.optInt("page", -1), category));
+                        ideas.add(new Idea(idea.getInt("id"), idea.optString("text", ""), category,
+                                idea.optInt("parent", -1), idea.optBoolean("marked", true), idea.optInt("page", -1)));
                     }
                 }
                 book.highlights.add(new Chapter(o.getString("key"), o.optString("title", ""),
-                        o.optString("model", ""), o.optLong("time", 0), quotes));
+                        o.optString("model", ""), o.optLong("time", 0), quotes(o.optJSONArray("quotes")),
+                        ideas, quotes(o.optJSONArray("paragraphs")), o.optBoolean("incomplete", false)));
             }
             return book;
+        }
+
+        private static JSONObject quoteJson(Quote q) throws JSONException {
+            final JSONObject o = new JSONObject().put("text", q.text).put("page", q.page).put("category", q.category.code);
+            if (q.idea >= 0) {
+                o.put("idea", q.idea);
+            }
+            return o;
+        }
+
+        private static List<Quote> quotes(JSONArray q) throws JSONException {
+            final List<Quote> quotes = new ArrayList<>();
+            for (int k = 0; q != null && k < q.length(); k++) {
+                final JSONObject quote = q.getJSONObject(k);
+                final AiCategory category = AiCategory.of(quote.optString("category", null));
+                if (category != null) {
+                    quotes.add(new Quote(quote.getString("text"), quote.optInt("page", -1), category, quote.optInt("idea", -1)));
+                }
+            }
+            return quotes;
         }
     }
 

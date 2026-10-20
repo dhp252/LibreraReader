@@ -455,6 +455,47 @@ public final class AiJobs {
         }
     }
 
+    // --- explaining a mark ---
+
+    /** What the explanation of a mark shows; called on the main thread. */
+    public interface ExplainScreen {
+        void onText(String delta);
+
+        void onDone();
+
+        void onError(String message);
+
+        void onNeedSettings();
+    }
+
+    /** One request about a tapped mark, streamed and not stored. */
+    public static class ExplainJob extends Job {
+        private final String user;
+        private final ExplainScreen screen;
+
+        public ExplainJob(Activity activity, Target target, String user, ExplainScreen screen) {
+            super(activity, target);
+            this.user = user;
+            this.screen = screen;
+        }
+
+        @Override
+        protected void failed(String message) {
+            ui(() -> screen.onError(message));
+        }
+
+        @Override
+        protected void work() throws Exception {
+            if (!settings.isReady()) {
+                ui(screen::onNeedSettings);
+                return;
+            }
+            ask(AiPrompts.withMaster(settings.masterPrompt, AiPrompts.explainSystem(settings.answerLanguage)), user,
+                    delta -> ui(() -> screen.onText(delta)));
+            ui(screen::onDone);
+        }
+    }
+
     // --- key passages ---
 
     /** What the key passages progress shows; called on the main thread. */
@@ -468,7 +509,13 @@ public final class AiJobs {
         void onNeedSettings();
     }
 
-    /** Key passages of the chapter at the reader's page, or of every chapter not marked yet. */
+    /** Text of a chapter asked for its ideas at once: a model lists fewer of them from longer text. */
+    static final int IDEAS_PART_CHARS = 20000;
+
+    /**
+     * Key passages of the chapter at the reader's page, or of every chapter not marked yet: every
+     * idea, marked by its key sentences and must-read paragraphs (IdeaMarks).
+     */
     public static class HighlightJob extends Job {
         private final boolean wholeBook;
         private volatile HighlightScreen screen;
@@ -549,7 +596,9 @@ public final class AiJobs {
                 if (wholeBook) {
                     final AiStore.Book done = AiStore.get().load(target.name);
                     for (BookChapters.Range chapter : BookChapters.chaptersOrBlocks(toc, pages, BookChapters.BLOCK_PAGES)) {
-                        if (done.chapter(chapter.key) == null) {
+                        // key passages from before ideas are done again
+                        final AiStore.Chapter had = done.chapter(chapter.key);
+                        if (had == null || had.ideas.isEmpty()) {
                             todo.add(chapter);
                         }
                     }
@@ -564,14 +613,18 @@ public final class AiJobs {
                 // the reader's goal decides whether "apply" is asked for (AiCategory)
                 final String goal = AiStore.get().load(target.name).goal;
                 final boolean hasGoal = goal != null && !goal.trim().isEmpty();
-                int passages = 0;
+                final String system = AiPrompts.withMaster(settings.masterPrompt, AiPrompts.ideasSystem(hasGoal, settings.answerLanguage));
+                final String repairSystem = AiPrompts.withMaster(settings.masterPrompt, AiPrompts.repairSystem());
+                int marked = 0;
+                int notLocated = 0;
                 int chapters = 0;
                 int withoutText = 0;
+                boolean anyCutOff = false;
                 final String[] plain = new String[pages];
                 final int[] lengths = new int[pages];
                 for (int i = 0; i < todo.size(); i++) {
                     final BookChapters.Range chapter = todo.get(i);
-                    status(string(R.string.ai_chapter_progress, i + 1, todo.size(), passages));
+                    status(string(R.string.ai_chapter_progress, i + 1, todo.size(), marked));
 
                     final List<String> words = new ArrayList<>();
                     final List<Integer> wordPage = new ArrayList<>();
@@ -590,45 +643,67 @@ public final class AiJobs {
                         continue;
                     }
 
-                    final List<AiPrompts.Picked> picked = new ArrayList<>();
-                    for (BookChapters.Range part : BookChapters.parts(Collections.singletonList(chapter), lengths, settings.maxChars)) {
-                        final String partText = join(plain, part.from, part.to);
-                        final String answer = ask(AiPrompts.withMaster(settings.masterPrompt, AiPrompts.keyPassagesSystem(hasGoal)),
-                                AiPrompts.keyPassages(target.title, chapterTitle(chapter), partText,
-                                        AiPrompts.passageCount(partText.length()), hasGoal ? goal : ""), null);
-                        for (AiPrompts.Picked p : AiPrompts.parsePicked(answer)) {
+                    // every idea of each part, with its anchors (design-2026-10-21-layered-marks.md)
+                    final List<BookChapters.Range> parts = BookChapters.parts(Collections.singletonList(chapter), lengths,
+                            Math.min(settings.maxChars, IDEAS_PART_CHARS));
+                    final List<List<AiPrompts.Idea>> partIdeas = new ArrayList<>();
+                    boolean cutOff = false;
+                    for (BookChapters.Range part : parts) {
+                        final AiPrompts.Ideas answer = AiPrompts.parseIdeas(ask(system, AiPrompts.ideas(target.title,
+                                chapterTitle(chapter), join(plain, part.from, part.to), hasGoal ? goal : ""), null));
+                        cutOff |= answer.cutOff || wasCutOff();
+                        final List<AiPrompts.Idea> ideas = new ArrayList<>();
+                        for (AiPrompts.Idea idea : answer.ideas) {
                             // without a goal there is nothing to judge "apply" against
-                            if (p.category != AiCategory.APPLY || hasGoal) {
-                                picked.add(p);
+                            if (idea.category != AiCategory.APPLY || hasGoal) {
+                                ideas.add(idea);
                             }
                         }
+                        partIdeas.add(ideas);
                     }
-                    final List<String> quotes = new ArrayList<>();
-                    for (AiPrompts.Picked p : picked) {
-                        quotes.add(p.quote);
+                    final List<AiPrompts.Idea> ideas = IdeaMarks.join(partIdeas);
+                    final IdeaMarks.Placed placed = IdeaMarks.place(words, wordPage, ideas);
+
+                    // one more try, part by part, for the ideas none of whose quotes are in the book
+                    int first = 0;
+                    for (int k = 0; k < parts.size(); k++) {
+                        final List<AiPrompts.Idea> missing = IdeaMarks.unmarked(ideas.subList(first, first + partIdeas.get(k).size()), placed);
+                        first += partIdeas.get(k).size();
+                        if (missing.isEmpty()) {
+                            continue;
+                        }
+                        status(string(R.string.ai_ideas_finding, i + 1, todo.size(), missing.size()));
+                        final BookChapters.Range part = parts.get(k);
+                        IdeaMarks.repair(placed, words, wordPage, missing, AiPrompts.parseRepair(ask(repairSystem,
+                                AiPrompts.repair(target.title, chapterTitle(chapter), join(plain, part.from, part.to), missing), null)));
                     }
                     for (int p = chapter.from; p < chapter.to; p++) {
                         plain[p] = null;
                     }
-
-                    final List<AiStore.Quote> found = new ArrayList<>();
-                    for (QuoteMatcher.Found f : QuoteMatcher.locateAll(words, quotes)) {
-                        found.add(new AiStore.Quote(f.text, wordPage.get(f.firstWord), picked.get(f.quote).category));
-                    }
-                    if (found.isEmpty()) {
+                    if (ideas.isEmpty()) {
+                        anyCutOff |= cutOff;
                         continue;
                     }
                     checkCancelled();
-                    final AiStore.Book book = AiStore.get().update(target.name, b -> b.putChapter(new AiStore.Chapter(
-                            chapter.key, chapter.title, settings.model, System.currentTimeMillis(), found)));
+                    final AiStore.Chapter done = IdeaMarks.chapter(chapter.key, chapter.title, settings.model,
+                            System.currentTimeMillis(), ideas, placed, wordPage, cutOff);
+                    final AiStore.Book book = AiStore.get().update(target.name, b -> b.putChapter(done));
                     AiHighlights.get().set(target.name, book);
-                    passages += found.size();
+                    marked += ideas.size() - done.notLocated();
+                    notLocated += done.notLocated();
+                    anyCutOff |= cutOff;
                     chapters++;
                 }
 
-                final StringBuilder message = new StringBuilder(passages == 0
+                final StringBuilder message = new StringBuilder(marked == 0
                         ? string(R.string.ai_highlights_none)
-                        : string(R.string.ai_highlights_done, passages, chapters));
+                        : string(R.string.ai_highlights_done, marked, chapters));
+                if (notLocated > 0) {
+                    message.append(' ').append(string(R.string.ai_ideas_not_located, notLocated));
+                }
+                if (anyCutOff) {
+                    message.append(' ').append(string(R.string.ai_ideas_cut_off));
+                }
                 if (withoutText > 0) {
                     message.append(' ').append(string(R.string.ai_chapters_without_text, withoutText));
                 }
@@ -751,7 +826,7 @@ public final class AiJobs {
                             left.add(quote);
                         }
                     }
-                    b.putChapter(new AiStore.Chapter(chapter.key, chapter.title, chapter.model, chapter.time, left));
+                    b.putChapter(chapter.withQuotes(left));
                 }
             });
             AiHighlights.get().set(target.name, book);

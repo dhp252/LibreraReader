@@ -64,6 +64,21 @@ public final class QuoteMatcher {
             return new int[]{owner[from], owner[to - 1]};
         }
 
+        /** The first letter of word {@code word}, or where it would be when it has none. */
+        int firstLetter(int word) {
+            int lo = 0;
+            int hi = owner.length;
+            while (lo < hi) {
+                final int mid = (lo + hi) >>> 1;
+                if (owner[mid] < word) {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
+            }
+            return lo;
+        }
+
         /** Letter {@code at} is the first of its word. */
         public boolean startsWord(int at) {
             return at == 0 || (at < owner.length && owner[at - 1] != owner[at]);
@@ -117,6 +132,41 @@ public final class QuoteMatcher {
             }
         }
         return null;
+    }
+
+    /** Words a paragraph runs when its last words are not found after its first ones. */
+    static final int SPAN_FALLBACK_WORDS = 60;
+    /** Letters a paragraph may run, from its first words to the end of its last ones. */
+    static final int SPAN_MAX_LETTERS = 8000;
+    /** Shortest end of a paragraph, in letters and digits, that is looked for. */
+    static final int MIN_SPAN_END = 6;
+
+    /**
+     * Where a paragraph is, given as its first words and its last words: from where {@code start}
+     * is to the first {@code end} that closes at or after it, within {@link #SPAN_MAX_LETTERS};
+     * {@link #SPAN_FALLBACK_WORDS} words from the start when the end is not found.
+     *
+     * @return {first, last} word indexes, inclusive, or null when the start is not in the text
+     */
+    public static int[] locateSpan(Words words, String start, String end) {
+        final int[] head = locate(words, start);
+        if (head == null) {
+            return null;
+        }
+        // only looked for just after the start: shorter than a quote is safe enough
+        final String endKey = end == null ? "" : TtsTextLocator.normalize(end);
+        if (endKey.length() >= MIN_SPAN_END) {
+            final String text = words.text;
+            final int from = words.firstLetter(head[0]);
+            final int headEnd = words.firstLetter(head[1]);
+            for (int at = text.indexOf(endKey, from); at >= 0 && at + endKey.length() - from <= SPAN_MAX_LETTERS;
+                 at = text.indexOf(endKey, at + 1)) {
+                if (at + endKey.length() > headEnd) {
+                    return new int[]{head[0], words.range(at, at + endKey.length())[1]};
+                }
+            }
+        }
+        return new int[]{head[0], Math.max(head[1], Math.min(words.size() - 1, head[0] + SPAN_FALLBACK_WORDS - 1))};
     }
 
     /** A quote as the book has it: its words joined, the index of its first word, and which quote it was. */

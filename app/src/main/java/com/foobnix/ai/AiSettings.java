@@ -33,6 +33,9 @@ public class AiSettings {
     /** Language of summaries; empty: the language of the book. */
     public String answerLanguage = "";
     public boolean highlightsVisible = true;
+    /** Within shown AI highlights: the bars beside must-read paragraphs, and the key sentences. */
+    public boolean barsVisible = true;
+    public boolean sentencesVisible = true;
     /** The user's own instructions, sent before Librera's for every AI action; empty: none. */
     public String masterPrompt = "";
 
@@ -40,7 +43,7 @@ public class AiSettings {
     public static final String[] SHARED = {"provider",
             CLAUDE + ".url", CLAUDE + ".model", CLAUDE + ".maxChars", CLAUDE + ".key",
             OPENAI + ".url", OPENAI + ".model", OPENAI + ".maxChars", OPENAI + ".key",
-            "answerLanguage", "highlightsVisible", "masterPrompt"};
+            "answerLanguage", "highlightsVisible", "barsVisible", "sentencesVisible", "masterPrompt"};
     private static final String MODIFIED = "modified";
 
     private static SharedPreferences prefs(Context c) {
@@ -63,6 +66,8 @@ public class AiSettings {
         s.maxChars = p.getInt(s.provider + ".maxChars", claude ? CLAUDE_MAX_CHARS : OPENAI_MAX_CHARS);
         s.answerLanguage = p.getString("answerLanguage", "");
         s.highlightsVisible = p.getBoolean("highlightsVisible", true);
+        s.barsVisible = p.getBoolean("barsVisible", true);
+        s.sentencesVisible = p.getBoolean("sentencesVisible", true);
         s.masterPrompt = p.getString("masterPrompt", "");
         return s;
     }
@@ -77,6 +82,8 @@ public class AiSettings {
                 .putInt(provider + ".maxChars", maxChars)
                 .putString("answerLanguage", answerLanguage.trim())
                 .putBoolean("highlightsVisible", highlightsVisible)
+                .putBoolean("barsVisible", barsVisible)
+                .putBoolean("sentencesVisible", sentencesVisible)
                 .putString("masterPrompt", masterPrompt.trim())
                 .putLong(MODIFIED, System.currentTimeMillis())
                 .apply();
@@ -109,7 +116,7 @@ public class AiSettings {
             try {
                 if (name.endsWith(".maxChars")) {
                     edit.putInt(name, Integer.parseInt(value));
-                } else if (name.equals("highlightsVisible")) {
+                } else if (name.endsWith("Visible")) {
                     edit.putBoolean(name, Boolean.parseBoolean(value));
                 } else {
                     for (String shared : SHARED) {

@@ -1511,6 +1511,11 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onAiMark(com.foobnix.ai.MessageAiMark event) {
+        com.foobnix.ai.AiMarkDialog.show(this, dc, event.band);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
     public void onTtsReadFrom(MessageTtsReadFrom event) {
         if (dc == null || dc.getCurrentBook() == null) {
             return;

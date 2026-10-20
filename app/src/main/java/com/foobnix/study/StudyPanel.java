@@ -209,7 +209,12 @@ public final class StudyPanel {
             buttons.addView(action(a.getString(R.string.study_add_to_map), () -> s.rebuild(range)));
         }
         buttons.addView(action(a.getString(R.string.study_summary), () -> s.summary(range)));
-        buttons.addView(action(a.getString(R.string.ai_key_passages), () -> s.keyPassages(range)));
+        if (s.prepared(range)) {
+            buttons.addView(action(a.getString(R.string.study_ideas), () -> s.ideas(range)));
+            buttons.addView(action(a.getString(R.string.study_reprepare), () -> s.prepare(range)));
+        } else {
+            buttons.addView(action(a.getString(R.string.study_prepare), () -> s.prepare(range)));
+        }
         final HorizontalScrollView hs = new HorizontalScrollView(a);
         hs.setHorizontalScrollBarEnabled(false);
         hs.addView(buttons);
@@ -229,6 +234,13 @@ public final class StudyPanel {
         });
         menu.getMenu(R.drawable.glyphicons_578_share, R.string.study_export_notes,
                 () -> MarksExport.start(a, dc.getCurrentBook().getPath(), dc));
+        final com.foobnix.ai.AiHighlights h = com.foobnix.ai.AiHighlights.get();
+        menu.getMenu().setIcon(R.drawable.glyphicons_25_eye)
+                .addCheckbox(a.getString(R.string.ai_show_bars), h.isBarsVisible(),
+                        (button, checked) -> com.foobnix.ai.AiMenu.showLayers(a, checked, h.isSentencesVisible()));
+        menu.getMenu().setIcon(R.drawable.glyphicons_25_eye)
+                .addCheckbox(a.getString(R.string.ai_show_sentences), h.isSentencesVisible(),
+                        (button, checked) -> com.foobnix.ai.AiMenu.showLayers(a, h.isBarsVisible(), checked));
         menu.show();
     }
 

@@ -118,4 +118,36 @@ public class AiStoreTest {
         assertTrue(book.highlights.isEmpty());
         assertEquals("Whale.", book.summary(AiStore.BOOK).text);
     }
+
+    @Test
+    public void keepsIdeasAndParagraphs() throws Exception {
+        final AiStore.Book book = new AiStore.Book();
+        book.putChapter(new AiStore.Chapter("one#0", "One", "m", 6,
+                Arrays.asList(new AiStore.Quote("Call me Ishmael.", 3, AiCategory.MAIN, 1)),
+                Arrays.asList(new AiStore.Idea(1, "The narrator goes to sea.", AiCategory.MAIN, -1, true, 3),
+                        new AiStore.Idea(2, "Whaling pays poorly.", AiCategory.EVIDENCE, 1, false, -1)),
+                Arrays.asList(new AiStore.Quote("Some years ago, never mind how long precisely.", 3, AiCategory.MAIN, 1)),
+                true));
+        final AiStore.Chapter read = AiStore.Book.fromJson(book.toJson()).chapter("one#0");
+        assertEquals(1, read.quotes.get(0).idea);
+        assertEquals(2, read.ideas.size());
+        assertEquals("Whaling pays poorly.", read.idea(2).text);
+        assertEquals(1, read.idea(2).parent);
+        assertEquals(AiCategory.EVIDENCE, read.idea(2).category);
+        assertEquals(1, read.notLocated());
+        assertEquals(3, read.idea(1).page);
+        assertEquals("Some years ago, never mind how long precisely.", read.paragraphs.get(0).text);
+        assertTrue(read.incomplete);
+    }
+
+    @Test
+    public void keyPassagesFromBeforeIdeasStillRead() throws Exception {
+        final String v2 = "{\"version\":2,\"updated\":5,\"highlights\":[{\"key\":\"one#0\",\"quotes\":"
+                + "[{\"text\":\"Call me Ishmael.\",\"page\":3,\"category\":\"main\"}]}]}";
+        final AiStore.Chapter read = AiStore.Book.fromJson(v2).chapter("one#0");
+        assertEquals(-1, read.quotes.get(0).idea);
+        assertTrue(read.ideas.isEmpty());
+        assertTrue(read.paragraphs.isEmpty());
+        assertEquals(0, read.notLocated());
+    }
 }
