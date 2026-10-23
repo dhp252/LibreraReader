@@ -11,12 +11,12 @@ public class WebDavBookMetaTest {
 
     @Test
     public void metadataLivesBesideTheCover() {
-        assertEquals("Books/.covers/Sci-fi/Dune.epub.json", WebDavBookMeta.metaOf("Books/Sci-fi/Dune.epub"));
+        assertEquals("Books/.covers/Dune.epub.json", WebDavBookMeta.metaOf("Books/Sci-fi/Dune.epub"));
         assertEquals("Dune.epub.json", WebDavBookMeta.metaNameOf("Dune.epub"));
         assertNull(WebDavBookMeta.metaOf("profile.Librera/app-State.json"));
-        assertEquals("Sci-fi/Dune.epub", WebDavCovers.bookOfMeta("Books/.covers/Sci-fi/Dune.epub.json"));
-        assertNull(WebDavCovers.bookOfMeta("Books/.covers/Sci-fi/Dune.epub.jpg"));
-        assertNull(WebDavCovers.bookOfCover("Books/.covers/Sci-fi/Dune.epub.json"));
+        assertEquals("Dune.epub", WebDavCovers.bookOfMeta("Books/.covers/Dune.epub.json"));
+        assertNull(WebDavCovers.bookOfMeta("Books/.covers/Dune.epub.jpg"));
+        assertNull(WebDavCovers.bookOfCover("Books/.covers/Dune.epub.json"));
     }
 
     @Test

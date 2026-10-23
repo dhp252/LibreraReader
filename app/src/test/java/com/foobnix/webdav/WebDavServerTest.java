@@ -206,4 +206,55 @@ public class WebDavServerTest {
         assertTrue(coversFolder);
         assertEquals(1, client.listRecursive("Books/.covers").stream().filter(e -> !e.directory).count());
     }
+
+    @Test
+    public void moveNeverReplacesAFile() throws IOException {
+        final File a = tmp.newFile("a.txt");
+        Files.write(a.toPath(), "A".getBytes(StandardCharsets.UTF_8));
+        final File b = tmp.newFile("b.txt");
+        Files.write(b.toPath(), "B".getBytes(StandardCharsets.UTF_8));
+        client.upload(a, "x/a é.txt");
+        client.upload(b, "y/b.txt");
+
+        client.move("x/a é.txt", "z/a é.txt");
+        assertNull(client.stat("x/a é.txt"));
+        assertNotNull(client.stat("z/a é.txt"));
+
+        try {
+            client.move("y/b.txt", "z/a é.txt");
+            fail("moved over a file");
+        } catch (WebDavClient.WebDavException e) {
+            assertEquals(WebDavClient.PRECONDITION_FAILED, e.code);
+        }
+        final File back = new File(tmp.getRoot(), "back.txt");
+        client.download("z/a é.txt", back);
+        assertEquals("A", read(back));
+    }
+
+    @Test
+    public void coversInFoldersAreMovedUpTheFlatOnesWinning() throws IOException {
+        final File old = tmp.newFile("old.jpg");
+        Files.write(old.toPath(), "OLD".getBytes(StandardCharsets.UTF_8));
+        final File flat = tmp.newFile("flat.jpg");
+        Files.write(flat.toPath(), "FLAT".getBytes(StandardCharsets.UTF_8));
+        client.upload(old, "Books/.covers/Sci-fi/Deep/Dune.epub.jpg");
+        client.upload(old, "Books/.covers/Sci-fi/Dune.epub.json");
+        client.upload(old, "Books/.covers/Sci-fi/Emma.pdf.jpg");
+        client.upload(flat, "Books/.covers/Emma.pdf.jpg");
+
+        final java.util.Set<String> covers = new java.util.TreeSet<>(java.util.Collections.singleton("Emma.pdf"));
+        final java.util.Set<String> metas = new java.util.TreeSet<>();
+        final FolderSync.Result result = new FolderSync.Result();
+        WebDavCovers.flatten(client, "Books/.covers/Sci-fi", covers, metas, result);
+
+        assertTrue(result.errors.toString(), result.errors.isEmpty());
+        assertEquals(new java.util.TreeSet<>(java.util.Arrays.asList("Dune.epub", "Emma.pdf")), covers);
+        assertEquals(java.util.Collections.singleton("Dune.epub"), metas);
+        assertNull(client.stat("Books/.covers/Sci-fi"));
+        final File emma = new File(tmp.getRoot(), "emma.jpg");
+        client.download("Books/.covers/Emma.pdf.jpg", emma);
+        assertEquals("FLAT", read(emma));
+        assertNotNull(client.stat("Books/.covers/Dune.epub.jpg"));
+        assertNotNull(client.stat("Books/.covers/Dune.epub.json"));
+    }
 }

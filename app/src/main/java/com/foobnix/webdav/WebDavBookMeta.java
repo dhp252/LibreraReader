@@ -7,7 +7,7 @@ import org.json.JSONObject;
 
 /**
  * The library metadata of a server book (title, author, series, pages...), shared like its cover:
- * {@code Books/.covers/<book path>.json}, written by the device that read the book (one that has
+ * {@code Books/.covers/<book file name>.json}, written by the device that read the book (one that has
  * it, or the one that fetched it for its cover), so every device shows server-only books with the
  * same details as downloaded ones.
  */
@@ -21,7 +21,7 @@ public final class WebDavBookMeta {
     private WebDavBookMeta() {
     }
 
-    /** "Books/a/b.pdf" -> "Books/.covers/a/b.pdf.json"; null for a path outside Books. */
+    /** "Books/a/b.pdf" -> "Books/.covers/b.pdf.json"; null for a path outside Books. */
     public static String metaOf(String bookPath) {
         final String cover = WebDavCovers.coverOf(bookPath);
         return cover == null ? null : cover.substring(0, cover.length() - WebDavCovers.JPG.length()) + JSON;

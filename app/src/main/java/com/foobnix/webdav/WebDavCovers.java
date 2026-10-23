@@ -26,13 +26,18 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
  * Book covers shared through the server, so a device can show the cover of a book it has not
  * downloaded: a device that has a book in Librera/Books uploads its cover once, as a small JPEG in
- * {@code Books/.covers/<book path>.jpg}, and the others fetch only that.
+ * {@code Books/.covers/<book file name>.jpg}, and the others fetch only that. The covers folder has
+ * no subfolders: a book moved to another folder keeps its cover, and the WebDAV tab lists one folder
+ * for the covers of all its folders (books with the same file name share one cover, the owner's
+ * choice).
  * <p>
  * The WebDAV tab shows a server-only book as a {@code FileMeta} whose path is an item path,
  * {@code webdav:<cover tag>:<server path>}: the cover tag changes when the cover does, and Glide
@@ -41,7 +46,7 @@ import java.util.TreeSet;
 public class WebDavCovers {
 
     public static final String PREFIX = "webdav:";
-    static final String COVERS = WebDav.BOOKS + "/.covers";
+    public static final String COVERS = WebDav.BOOKS + "/.covers";
     static final String JPG = ".jpg";
     /** Cover tag of a folder item. */
     private static final String FOLDER = "d";
@@ -53,16 +58,10 @@ public class WebDavCovers {
     private static WebDavClient client;
     private static String clientKey;
 
-    /** "Books/a/b.pdf" -> "Books/.covers/a/b.pdf.jpg"; null for a path outside Books. */
+    /** "Books/a/b.pdf" -> "Books/.covers/b.pdf.jpg"; null for a path outside Books. */
     public static String coverOf(String bookPath) {
         final String relative = relativeToBooks(bookPath);
-        return relative == null ? null : COVERS + "/" + relative + JPG;
-    }
-
-    /** Where the covers of a folder's books are: "Books/a" -> "Books/.covers/a". */
-    public static String coversFolderOf(String folder) {
-        final String relative = relativeToBooks(folder);
-        return relative == null ? COVERS : COVERS + "/" + relative;
+        return relative == null ? null : COVERS + "/" + coverNameOf(fileNameOf(relative));
     }
 
     /** The cover file name of a book file name: "b.pdf" -> "b.pdf.jpg". */
@@ -70,14 +69,29 @@ public class WebDavCovers {
         return bookName + JPG;
     }
 
-    /** The book path below Books ("a/b.pdf") of a cover ("Books/.covers/a/b.pdf.jpg"), or null. */
+    /** The book file name ("b.pdf") of a cover ("Books/.covers/b.pdf.jpg"), or null. */
     static String bookOfCover(String coverPath) {
-        final String path = WebDavClient.trimSlashes(coverPath);
-        if (!path.startsWith(COVERS + "/") || !path.endsWith(JPG)) {
+        return bookOf(coverPath, JPG);
+    }
+
+    /** The book file name ("b.pdf") of a metadata file ("Books/.covers/b.pdf.json"), or null. */
+    static String bookOfMeta(String metaPath) {
+        return bookOf(metaPath, WebDavBookMeta.JSON);
+    }
+
+    /** Null for anything but a file of that kind right in the covers folder. */
+    private static String bookOf(String path, String suffix) {
+        final String trimmed = WebDavClient.trimSlashes(path);
+        if (!trimmed.startsWith(COVERS + "/") || !trimmed.endsWith(suffix)) {
             return null;
         }
-        final String book = path.substring(COVERS.length() + 1, path.length() - JPG.length());
-        return book.isEmpty() ? null : book;
+        final String book = trimmed.substring(COVERS.length() + 1, trimmed.length() - suffix.length());
+        return book.isEmpty() || book.contains("/") ? null : book;
+    }
+
+    /** "a/b.pdf" -> "b.pdf". */
+    static String fileNameOf(String path) {
+        return path.substring(path.lastIndexOf('/') + 1);
     }
 
     /** "Books/a/b.pdf" -> "a/b.pdf"; null when not below Books. */
@@ -120,7 +134,7 @@ public class WebDavCovers {
         return path.substring(path.lastIndexOf('/') + 1);
     }
 
-    /** What a sync does with the covers. Paths are book paths below Books ("a/b.pdf"). */
+    /** What a sync does with the covers. Books are told by their file name ("b.pdf"). */
     static class Plan {
         /** Books on this device whose cover is not on the server. */
         final List<String> upload = new ArrayList<>();
@@ -129,9 +143,9 @@ public class WebDavCovers {
     }
 
     /**
-     * @param remoteBooks the books the books sync just listed on the server; null when it could not
-     *                    list them. Covers are only deleted against a listing that has books in it:
-     *                    a missing or emptied folder must not cost every cover.
+     * @param remoteBooks the file names of the books the books sync just listed on the server; null
+     *                    when it could not list them. Covers are only deleted against a listing that
+     *                    has books in it: a missing or emptied folder must not cost every cover.
      */
     static Plan plan(Set<String> localBooks, Set<String> remoteBooks, Set<String> covers, Set<String> skip) {
         final Plan plan = new Plan();
@@ -159,13 +173,18 @@ public class WebDavCovers {
         final FolderSync.Result result = new FolderSync.Result();
         final TreeSet<String> covers = new TreeSet<>();
         final TreeSet<String> metas = new TreeSet<>();
+        final List<String> folders = new ArrayList<>();
         try {
-            for (WebDavClient.Entry entry : client.listRecursive(COVERS)) {
-                final String book = entry.directory ? null : bookOfCover(entry.path);
+            for (WebDavClient.Entry entry : client.list(COVERS)) {
+                if (entry.directory) {
+                    folders.add(entry.path);
+                    continue;
+                }
+                final String book = bookOfCover(entry.path);
                 if (book != null) {
                     covers.add(book);
                 }
-                final String described = entry.directory ? null : bookOfMeta(entry.path);
+                final String described = bookOfMeta(entry.path);
                 if (described != null) {
                     metas.add(described);
                 }
@@ -175,15 +194,19 @@ public class WebDavCovers {
                 throw e;
             }
         }
+        for (String folder : folders) {
+            flatten(client, folder, covers, metas, result);
+        }
         final File failedFile = WebDav.stateFile(c, "covers-failed", AppProfile.SYNC_FOLDER_BOOKS);
-        final Set<String> local = localBooks(AppProfile.SYNC_FOLDER_BOOKS);
+        final Map<String, String> local = byFileName(localBooks(AppProfile.SYNC_FOLDER_BOOKS));
+        final Set<String> remote = books.getLastRemote() == null ? null : byFileName(books.getLastRemote()).keySet();
         final Set<String> failed = readLines(failedFile);
         // a book removed here, or replaced under another name, is tried afresh when it is back
-        failed.retainAll(local);
-        final Plan plan = plan(local, books.getLastRemote(), covers, failed);
+        failed.retainAll(local.keySet());
+        final Plan plan = plan(local.keySet(), remote, covers, failed);
 
         for (String book : plan.upload) {
-            final File source = new File(AppProfile.SYNC_FOLDER_BOOKS, book);
+            final File source = new File(AppProfile.SYNC_FOLDER_BOOKS, local.get(book));
             final File jpg = new File(c.getCacheDir(), "webdav-cover-upload.jpg");
             try {
                 // marked first: a book that crashes the codec is not tried again on every sync
@@ -213,11 +236,11 @@ public class WebDavCovers {
             }
         }
 
-        final Plan metaPlan = plan(local, books.getLastRemote(), metas, java.util.Collections.<String>emptySet());
+        final Plan metaPlan = plan(local.keySet(), remote, metas, java.util.Collections.<String>emptySet());
         final File json = new File(c.getCacheDir(), "webdav-meta-upload.json");
         for (String book : metaPlan.upload) {
             try {
-                final FileMeta meta = FileMetaCore.createMetaIfNeed(new File(AppProfile.SYNC_FOLDER_BOOKS, book).getPath(), false);
+                final FileMeta meta = FileMetaCore.createMetaIfNeed(new File(AppProfile.SYNC_FOLDER_BOOKS, local.get(book)).getPath(), false);
                 WebDavCoverMaker.writeText(json, WebDavBookMeta.toJson(meta));
                 client.upload(json, COVERS + "/" + book + WebDavBookMeta.JSON);
                 result.uploaded++;
@@ -238,14 +261,51 @@ public class WebDavCovers {
         return result;
     }
 
-    /** The book path below Books ("a/b.pdf") of a metadata file ("Books/.covers/a/b.pdf.json"), or null. */
-    static String bookOfMeta(String metaPath) {
-        final String path = WebDavClient.trimSlashes(metaPath);
-        if (!path.startsWith(COVERS + "/") || !path.endsWith(WebDavBookMeta.JSON)) {
-            return null;
+    /**
+     * Moves the covers and metadata of the first layout, kept in folders like the books
+     * ("Books/.covers/a/b.pdf.jpg"), into the covers folder itself, then deletes the folder: no
+     * cover is made again. One already there for the same file name wins over the moved one.
+     */
+    static void flatten(WebDavClient client, String folder, Set<String> covers, Set<String> metas, FolderSync.Result result) {
+        try {
+            for (WebDavClient.Entry entry : client.listRecursive(folder)) {
+                if (entry.directory) {
+                    continue;
+                }
+                final String flat = COVERS + "/" + entry.getName();
+                final String cover = bookOfCover(flat);
+                final String meta = bookOfMeta(flat);
+                final Set<String> kept = cover != null ? covers : meta != null ? metas : null;
+                final String book = cover != null ? cover : meta;
+                if (kept == null || kept.contains(book)) {
+                    continue;
+                }
+                try {
+                    client.move(entry.path, flat);
+                    kept.add(book);
+                } catch (WebDavClient.WebDavException e) {
+                    // another device moved it first, or one came meanwhile: that one stays
+                    if (e.code != 404 && e.code != WebDavClient.PRECONDITION_FAILED) {
+                        throw e;
+                    }
+                }
+            }
+            client.deleteFolder(folder);
+        } catch (IOException e) {
+            result.errors.add(folder + ": " + e.getMessage());
         }
-        final String book = path.substring(COVERS.length() + 1, path.length() - WebDavBookMeta.JSON.length());
-        return book.isEmpty() ? null : book;
+    }
+
+    /** Book paths ("a/b.pdf") by their file name ("b.pdf"); the first path wins a shared name. */
+    static Map<String, String> byFileName(Set<String> paths) {
+        final Map<String, String> byName = new TreeMap<>();
+        for (String path : new TreeSet<>(paths)) {
+            final String name = fileNameOf(path);
+            if (!byName.containsKey(name)) {
+                byName.put(name, path);
+            }
+        }
+        return byName;
     }
 
     /** The cover of a local book as a JPEG; false when the book could not be opened. */
@@ -393,6 +453,15 @@ public class WebDavCovers {
             LOG.d("WebDAV metadata", meta.path, e.getMessage());
         }
         return null;
+    }
+
+    /** Keeps a metadata JSON this device has just uploaded ({@code meta} is its entry), so it is never fetched back. */
+    static void keepMetaJson(Context c, WebDavClient.Entry meta, String json) {
+        try {
+            WebDavCoverMaker.writeText(metaCacheOf(c, meta), FolderSync.tag(meta).replace('\n', ' ') + "\n" + json);
+        } catch (IOException e) {
+            LOG.d("WebDAV metadata", meta.path, e.getMessage());
+        }
     }
 
     private static File metaCacheOf(Context c, WebDavClient.Entry meta) {

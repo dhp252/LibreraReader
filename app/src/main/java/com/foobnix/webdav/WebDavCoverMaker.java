@@ -42,10 +42,10 @@ public class WebDavCoverMaker {
 
     public interface Listener {
         /**
-         * On the maker's thread: {@code cover} is the new cover entry, {@code meta} the new
-         * metadata JSON; either is null when it was not made.
+         * On the maker's thread: {@code cover} is the cover entry, {@code metaEntry} the metadata
+         * file's and {@code meta} its JSON; each is null when it was not made (or not found).
          */
-        void onMade(WebDavClient.Entry book, WebDavClient.Entry cover, String meta);
+        void onMade(WebDavClient.Entry book, WebDavClient.Entry cover, WebDavClient.Entry metaEntry, String meta);
     }
 
     /** Asked before each book and while downloading: false stops the run. */
@@ -132,23 +132,35 @@ public class WebDavCoverMaker {
             final File jpg = new File(folder, "cover.jpg");
             final File json = new File(folder, "meta.json");
             try {
+                // the tab's covers listing may be minutes old: another device may have made them
+                final WebDavClient.Entry hasCover = need.cover ? client.stat(coverPath) : null;
+                final WebDavClient.Entry hasMeta = need.meta ? client.stat(metaPath) : null;
+                if ((hasCover != null || !need.cover) && (hasMeta != null || !need.meta)) {
+                    listener.onMade(book, hasCover, hasMeta, hasMeta == null ? null : WebDavCovers.metaJson(c, hasMeta));
+                    continue;
+                }
                 client.download(book.path, copy, () -> !wanted.stillWanted());
                 // marked before reading: a book that crashes the codec is not fetched again
                 failed.add(key(book));
                 WebDavCovers.writeLines(failedFile, failed);
 
-                WebDavClient.Entry cover = null;
-                if (need.cover && WebDavCovers.render(c, copy, jpg)) {
+                WebDavClient.Entry cover = hasCover;
+                if (need.cover && cover == null && WebDavCovers.render(c, copy, jpg)) {
                     client.upload(jpg, coverPath);
                     cover = client.stat(coverPath);
                 }
-                String meta = null;
-                if (need.meta) {
+                String meta = hasMeta == null ? null : WebDavCovers.metaJson(c, hasMeta);
+                WebDavClient.Entry metaEntry = hasMeta;
+                if (need.meta && metaEntry == null) {
                     final FileMeta read = ImageExtractor.getInstance(c).metaForSharing(copy.getPath());
                     if (read != null) {
                         meta = WebDavBookMeta.toJson(read);
                         writeText(json, meta);
                         client.upload(json, metaPath);
+                        metaEntry = client.stat(metaPath);
+                        if (metaEntry != null) {
+                            WebDavCovers.keepMetaJson(c, metaEntry, meta);
+                        }
                     }
                 }
                 if (cover == null && meta == null) {
@@ -157,7 +169,7 @@ public class WebDavCoverMaker {
                 }
                 failed.remove(key(book));
                 WebDavCovers.writeLines(failedFile, failed);
-                listener.onMade(book, cover, meta);
+                listener.onMade(book, cover, metaEntry, meta);
             } catch (IOException | org.json.JSONException e) {
                 // offline, server error or cancelled: nothing is remembered, the next view tries again
                 LOG.d("WebDAV cover", book.path, e.getMessage());

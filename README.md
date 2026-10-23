@@ -118,30 +118,38 @@ The APKs land in `app/build/outputs/apk/fdroid/<debug|release>/`, one per CPU ty
 Librera, or a build with another key). Build again with the key it was signed with, or uninstall
 it first, which deletes its settings.
 
-### On the maintainer's machine (Windows + WSL)
+### On the maintainer's machine (Ubuntu)
 
-Two helper scripts do steps 1 to 3 from Windows. They live outside the repo, in
-`.agents/skills/dev-build-apk/scripts/`: `setup_wsl_env.sh` runs once (already done there), and
-`build_apk.sh` builds. From PowerShell:
+Two helper scripts do steps 1 to 3. They live outside the repo, in
+`.agents/skills/dev-build-apk/scripts/`: `setup_env.sh` runs once (it installs the packages, the
+NDK, the JDK, `~/.gradle/gradle.properties`, a release key and MuPDF; safe to run again), and
+`build_apk.sh` builds. From the repo folder:
 
-```powershell
-wsl -e bash /mnt/c/Users/DOP07/PROJECTS/private/LibreraReader/.agents/skills/dev-build-apk/scripts/build_apk.sh fdroid release --debug-key
+```bash
+bash .agents/skills/dev-build-apk/scripts/setup_env.sh                         # once
+bash .agents/skills/dev-build-apk/scripts/build_apk.sh fdroid release --debug-key
 ```
 
-From Git Bash, put `MSYS_NO_PATHCONV=1` before `wsl`, or the `/mnt/c/...` path gets rewritten.
-The script mirrors the tree to the WSL disk (faster), builds, copies the APKs back and checks
-each one for `libMuPDF.so`. A good build ends with:
+The SDK comes from `sdk.dir` in `local.properties`. When the checkout is on a Windows or network
+disk (`/mnt/c`, `/mnt/d`...), MuPDF is built in `~/librera-native` and Gradle runs in a copy in
+`~/librera-build`, both much faster; the APKs are copied back and each one is checked for
+`libMuPDF.so`. A good build ends with:
 
 ```
 [build] [OK]  Librera Fdroid-9.6.44-mupdf1.28.5-arm64.apk  32M  libMuPDF.so x1
-[build] APKs: C:\Users\DOP07\PROJECTS\private\LibreraReader\app\build\outputs\apk\fdroid\release
+[build] APKs: /mnt/d/0.Projects/00/LibreraReader/app/build/outputs/apk/fdroid/release
 ```
+
+The same scripts run in WSL on Windows (`wsl -e bash /mnt/c/<repo>/.agents/skills/dev-build-apk/scripts/build_apk.sh ...`;
+from Git Bash put `MSYS_NO_PATHCONV=1` before `wsl`). The debug key (`~/.android/debug.keystore`,
+made by `--debug-key` when missing) is per machine: a phone updates only over APKs signed with the
+key it already has, so copy the old machine's key over when moving the build, or uninstall first.
 
 A failure prints a line with `[ERR]`. Arguments: `[flavor] [debug|release]`, then any of:
 
 | Option | Does |
 |--------|------|
-| `--debug-key` | signs with the debug key, as above (installs over a debug build) |
+| `--debug-key` | signs with the debug key, as above (installs over a build made with the same key) |
 | `--tests[=pattern,...]` | runs the JVM unit tests first; with `debug` only (there is no release test task) |
 | `--clean` | starts from scratch, when a build behaves oddly after big changes |
 | `--native` | rebuilds `libMuPDF.so`, only after changing `Builder/jni` (much longer) |
@@ -290,6 +298,12 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   the other can run AI actions without typing the key.
 - **WebDAV tab bar**: filter, the book count, sort by name/date/size (long press reverses), and the
   display menu (list, compact, grid, covers).
+- **WebDAV tab speed**: open a folder, wait a second, then open one of its subfolders: it shows at
+  once. Swipe the app away, open it again on the WebDAV tab: Books shows at once, then refreshes.
+  Tap a folder never seen while a pull to refresh runs: it opens without waiting for the refresh.
+- **Flat covers**: update both devices and sync each once: the server's `Books/.covers/` holds files
+  only, no folders, and every cover still shows (none is made again). Move a book to another
+  folder on the server from a computer: it keeps its cover.
 - **Back in a book**: back closes the book and shows the library, also for a book opened from a
   file manager or another app. A long press of back still shows the close menu.
 - **AI**: tap ✦ in the top bar, then AI settings:

@@ -341,6 +341,27 @@ public class WebDavClient implements FolderSync.Remote {
         }
     }
 
+    /**
+     * Moves a file on the server (MOVE), creating the target's missing folders; it never replaces
+     * a file: one already at {@code to} is a {@link WebDavException} with code
+     * {@link #PRECONDITION_FAILED}.
+     */
+    public void move(String from, String to) throws IOException {
+        final String parent = parentOf(to);
+        if (!parent.isEmpty()) {
+            mkdirs(parent);
+        }
+        final Request request = new Request.Builder()
+                .url(url(from, false))
+                .header("Destination", url(to, false).toString())
+                .header("Overwrite", "F")
+                .method("MOVE", null)
+                .build();
+        try (Response response = http.newCall(request).execute()) {
+            check(response, "MOVE " + from);
+        }
+    }
+
     /** Deletes a folder and all it holds; a folder already gone is fine. */
     public void deleteFolder(String path) throws IOException {
         final Request request = new Request.Builder().url(url(path, true)).delete().build();

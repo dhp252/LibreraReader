@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -19,18 +20,27 @@ public class WebDavCoversTest {
     }
 
     @Test
-    public void coverPathsMirrorTheBooksFolder() {
+    public void coversAreNamedAfterTheBookFileWhateverItsFolder() {
         assertEquals("Books/.covers/novel.epub.jpg", WebDavCovers.coverOf("Books/novel.epub"));
-        assertEquals("Books/.covers/Sci-fi/Dune é.pdf.jpg", WebDavCovers.coverOf("/Books/Sci-fi/Dune é.pdf"));
+        assertEquals("Books/.covers/Dune é.pdf.jpg", WebDavCovers.coverOf("/Books/Sci-fi/Old/Dune é.pdf"));
+        assertEquals(WebDavCovers.coverOf("Books/Sci-fi/Dune é.pdf"), WebDavCovers.coverOf("Books/Read/Dune é.pdf"));
         assertNull(WebDavCovers.coverOf("profile.Librera/app-State.json"));
         assertNull(WebDavCovers.coverOf("Books"));
 
-        assertEquals("Sci-fi/Dune é.pdf", WebDavCovers.bookOfCover("Books/.covers/Sci-fi/Dune é.pdf.jpg"));
+        assertEquals("Dune é.pdf", WebDavCovers.bookOfCover("Books/.covers/Dune é.pdf.jpg"));
         assertNull(WebDavCovers.bookOfCover("Books/.covers/notes.txt"));
         assertNull(WebDavCovers.bookOfCover("Books/novel.epub.jpg"));
+        // the first layout's covers, kept in folders, are not taken for flat ones
+        assertNull(WebDavCovers.bookOfCover("Books/.covers/Sci-fi/Dune é.pdf.jpg"));
+    }
 
-        assertEquals("Books/.covers", WebDavCovers.coversFolderOf("Books"));
-        assertEquals("Books/.covers/Sci-fi", WebDavCovers.coversFolderOf("Books/Sci-fi"));
+    @Test
+    public void booksAreToldByFileNameTheFirstPathWinning() {
+        final Map<String, String> byName = WebDavCovers.byFileName(set("b/Dune.epub", "a/Dune.epub", "Emma.pdf"));
+
+        assertEquals(2, byName.size());
+        assertEquals("a/Dune.epub", byName.get("Dune.epub"));
+        assertEquals("Emma.pdf", byName.get("Emma.pdf"));
     }
 
     @Test

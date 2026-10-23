@@ -42,6 +42,7 @@ import com.foobnix.webdav.WebDavClient;
 import com.foobnix.webdav.WebDavCoverMaker;
 import com.foobnix.webdav.WebDavCovers;
 import com.foobnix.webdav.WebDavDialog;
+import com.foobnix.webdav.WebDavListings;
 
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
@@ -58,7 +59,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The books on the WebDAV server (its Books folder), shown like the local ones: covers in the
@@ -85,6 +89,15 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     private static final long COVERS_AFTER_MS = 1500;
     /** Metadata files fetched at once when a folder is first seen. */
     private static final int META_FETCHES = 4;
+    /** A folder listed this recently is not listed again when opened (a subfolder listed ahead, say). */
+    private static final long FRESH_MS = 60_000;
+    /** The covers folder holds the covers of all folders: listed again at most this often while browsing, and on each sync. */
+    private static final long COVERS_FRESH_MS = 5 * 60_000;
+    /** Subfolders of the folder shown that are listed ahead of a tap, and how many at once. */
+    private static final int PREFETCH_MAX = 30;
+    private static final int PREFETCHES = 2;
+    /** A folder opened whose items are not there this soon shows empty, not as the folder left. */
+    private static final long BLANK_AFTER_MS = 150;
 
     private FileMetaAdapter adapter;
     private View header;
@@ -102,10 +115,6 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     private TextView pathView;
     private TextView status;
     private volatile String folder = WebDav.BOOKS;
-    /** The folder the items shown were listed from. */
-    private volatile String listedFolder;
-    /** What the last listing found wrong, shown in the status line; null when it went fine. */
-    private volatile String error;
     /** The server entry behind each item shown, by the item's path (item path or local path). */
     private final Map<String, WebDavClient.Entry> entries = new ConcurrentHashMap<>();
     private volatile boolean downloading;
@@ -119,9 +128,43 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     private final Map<String, Parcelable> scrollOf = new HashMap<>();
     /** The folder the list shows now (null before the first one). */
     private String displayedFolder;
-    /** Server-only books of the last listing whose metadata this device has not kept yet: {book, metadata file}. */
-    private volatile List<WebDavClient.Entry[]> metaToFetch = new ArrayList<>();
     private final Runnable startCovers = this::makeMissingCovers;
+    /** The tab's own threads: a listing never waits behind other tabs' loads in the app's shared pool (2 threads). */
+    private final ExecutorService lister = Executors.newCachedThreadPool(r -> new Thread(r, "@T WebDAV list"));
+    private final ExecutorService ahead = threads(PREFETCHES, "@T WebDAV list ahead");
+    /** Folder listings, kept in memory and on disk (see {@link #kept(Context)}). */
+    private WebDavListings kept;
+    private String keptFor;
+    /** Each request's number: an answer older than the one shown is dropped. */
+    private final AtomicInteger requests = new AtomicInteger();
+    private int shownRequest;
+    /** The folders being listed from the server, with how many listings each (the progress bar). */
+    private final Map<String, Integer> beingListed = new HashMap<>();
+    private final Runnable progressOn = () -> {
+        if (MyProgressBar != null && busy()) {
+            MyProgressBar.setVisibility(View.VISIBLE);
+        }
+    };
+    private final Runnable blank = () -> {
+        if (!folder.equals(displayedFolder)) {
+            display(new ArrayList<>());
+            setStatus(null);
+        }
+    };
+
+    /** A folder's items as built from its listing. */
+    private static final class Shown {
+        final List<FileMeta> items = new ArrayList<>();
+        /** Server-only books whose metadata this device has not kept yet: {book, metadata file}. */
+        final List<WebDavClient.Entry[]> metaToFetch = new ArrayList<>();
+    }
+
+    private static ExecutorService threads(int count, String name) {
+        final ThreadPoolExecutor pool = new ThreadPoolExecutor(count, count, 30, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(), r -> new Thread(r, name));
+        pool.allowCoreThreadTimeOut(true);
+        return pool;
+    }
 
     @Override
     public Pair<Integer, Integer> getNameAndIconRes() {
@@ -243,8 +286,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
 
         applyMode();
         onTintChanged();
-        showFolder();
-        populate();
+        load(folder);
         return view;
     }
 
@@ -392,83 +434,130 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     }
 
     @Override
-    public List<FileMeta> prepareDataInBackground() {
-        final Context c = getActivity() == null ? null : getActivity().getApplicationContext();
-        final String path = folder;
-        listedFolder = path;
-        final List<FileMeta> items = new ArrayList<>();
-        if (c == null || !WebDav.isEnabled(c)) {
-            error = c == null ? null : c.getString(R.string.webdav_tab_off);
-            return items;
+    public void populate() {
+        request(false);
+    }
+
+    /**
+     * Shows {@link #folder}: at once from its listing kept, then listed from the server when that
+     * is older than {@link #FRESH_MS} (the covers folder: {@link #COVERS_FRESH_MS}), or always with
+     * {@code again} (a sync, pull to refresh). Runs on the tab's own threads, never waiting for
+     * another listing; an answer for a folder no longer open is only kept.
+     */
+    private void request(boolean again) {
+        final Activity a = getActivity();
+        if (a == null) {
+            return;
         }
+        final Context c = a.getApplicationContext();
+        final String path = folder;
+        final int id = requests.incrementAndGet();
+        lister.execute(() -> list(c, path, id, again));
+    }
+
+    private void list(Context c, String path, int id, boolean again) {
+        if (!WebDav.isEnabled(c)) {
+            answer(path, id, new Shown(), c.getString(R.string.webdav_tab_off), true);
+            return;
+        }
+        final WebDavListings kept = kept(c);
+        WebDavListings.Listing listed = kept.get(path);
+        WebDavListings.Listing covers = kept.get(WebDavCovers.COVERS);
+        final long now = System.currentTimeMillis();
+        final boolean folderAgain = again || listed == null || listed.olderThan(FRESH_MS, now);
+        final boolean coversAgain = again || covers == null || covers.olderThan(COVERS_FRESH_MS, now);
+        final boolean known = listed != null && covers != null;
+        if (known) {
+            answer(path, id, build(c, listed, covers), null, !folderAgain && !coversAgain);
+        }
+        if (!folderAgain && !coversAgain) {
+            return;
+        }
+        listingStep(path, 1);
         try {
             // one client for the tab: its connections and login stay open between folders
             final WebDavClient client = WebDavCovers.sharedClient(c);
-            final FolderSync books = WebDav.books(c, client);
-            // the folder and its covers folder are listed at the same time
-            final FutureTask<List<WebDavClient.Entry>> coversListing =
-                    new FutureTask<>(() -> listOrEmpty(client, WebDavCovers.coversFolderOf(path)));
-            new Thread(coversListing, "@T WebDAV covers list").start();
-            final List<WebDavClient.Entry> listed = listOrEmpty(client, path);
-            final Map<String, WebDavClient.Entry> covers = new HashMap<>();
-            try {
-                for (WebDavClient.Entry cover : coversListing.get()) {
-                    covers.put(cover.getName(), cover);
-                }
-            } catch (ExecutionException e) {
-                throw e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
+            // the covers folder (one for all folders) is listed beside the folder, not after it
+            FutureTask<List<WebDavClient.Entry>> coversListing = null;
+            if (coversAgain) {
+                coversListing = new FutureTask<>(() -> listOrEmpty(client, WebDavCovers.COVERS));
+                lister.execute(coversListing);
             }
-            // what each book has is read afresh: a file replaced on the server needs both again
-            coverOfBook.clear();
-            metaOfBook.clear();
-            final List<WebDavClient.Entry[]> fetchMeta = new ArrayList<>();
-            // folders first, then by name
-            Collections.sort(listed, (x, y) -> x.directory != y.directory
-                    ? (x.directory ? -1 : 1)
-                    : x.getName().compareToIgnoreCase(y.getName()));
-
-            for (WebDavClient.Entry entry : listed) {
-                if (entry.getName().startsWith(".")) {
-                    continue;
-                }
-                final FileMeta item;
-                if (entry.directory) {
-                    item = new FileMeta(WebDavCovers.folderItem(entry.path));
-                    item.setCusType(FileMetaAdapter.DISPLAY_TYPE_DIRECTORY);
-                    item.setTitle(entry.getName());
-                    item.setPathTxt(entry.getName());
-                } else {
-                    final File local = books.localFileOf(entry);
-                    if (local != null && local.isFile()) {
-                        // a book on this device: the local book, with its cover, progress and heart
-                        item = FileMetaCore.createMetaIfNeed(local.getPath(), false);
-                    } else {
-                        final WebDavClient.Entry cover = covers.get(WebDavCovers.coverNameOf(entry.getName()));
-                        final WebDavClient.Entry metaEntry = covers.get(WebDavBookMeta.metaNameOf(entry.getName()));
-                        // only what this device keeps: the rest is fetched once the folder shows
-                        final String meta = metaEntry == null ? null : WebDavCovers.cachedMetaJson(c, metaEntry);
-                        if (metaEntry != null && meta == null) {
-                            fetchMeta.add(new WebDavClient.Entry[]{entry, metaEntry});
-                        }
-                        if (cover != null) {
-                            coverOfBook.put(entry.path, cover);
-                        }
-                        if (meta != null) {
-                            metaOfBook.put(entry.path, meta);
-                        }
-                        item = remoteBook(entry, cover, meta);
-                    }
-                }
-                entries.put(item.getPath(), entry);
-                items.add(item);
+            if (folderAgain) {
+                listed = kept.put(path, listOrEmpty(client, path), now);
             }
-            metaToFetch = fetchMeta;
-            error = null;
+            if (coversListing != null) {
+                try {
+                    covers = kept.put(WebDavCovers.COVERS, coversListing.get(), now);
+                } catch (ExecutionException e) {
+                    throw e.getCause() instanceof Exception ? (Exception) e.getCause() : e;
+                }
+            }
+            answer(path, id, build(c, listed, covers), null, true);
         } catch (Exception e) {
             LOG.e(e);
-            error = (getActivity() == null ? "" : getActivity().getString(R.string.fail) + ": ") + e.getMessage();
+            // what the listing kept showed stays
+            answer(path, id, known ? null : new Shown(), c.getString(R.string.fail) + ": " + e.getMessage(), true);
+        } finally {
+            listingStep(path, -1);
         }
-        return items;
+    }
+
+    /** The items of a folder listing, each book as this device has it, with its cover and metadata. */
+    private Shown build(Context c, WebDavListings.Listing listed, WebDavListings.Listing coversListed) {
+        final Shown shown = new Shown();
+        final FolderSync books = WebDav.books(c, WebDavCovers.sharedClient(c));
+        final Map<String, WebDavClient.Entry> covers = new HashMap<>();
+        for (WebDavClient.Entry cover : coversListed.entries) {
+            covers.put(cover.getName(), cover);
+        }
+        // folders first, then by name
+        final List<WebDavClient.Entry> sorted = new ArrayList<>(listed.entries);
+        Collections.sort(sorted, (x, y) -> x.directory != y.directory
+                ? (x.directory ? -1 : 1)
+                : x.getName().compareToIgnoreCase(y.getName()));
+
+        for (WebDavClient.Entry entry : sorted) {
+            if (entry.getName().startsWith(".")) {
+                continue;
+            }
+            final FileMeta item;
+            if (entry.directory) {
+                item = new FileMeta(WebDavCovers.folderItem(entry.path));
+                item.setCusType(FileMetaAdapter.DISPLAY_TYPE_DIRECTORY);
+                item.setTitle(entry.getName());
+                item.setPathTxt(entry.getName());
+            } else {
+                final File local = books.localFileOf(entry);
+                if (local != null && local.isFile()) {
+                    // a book on this device: the local book, with its cover, progress and heart
+                    item = FileMetaCore.createMetaIfNeed(local.getPath(), false);
+                } else {
+                    final WebDavClient.Entry cover = covers.get(WebDavCovers.coverNameOf(entry.getName()));
+                    final WebDavClient.Entry metaEntry = covers.get(WebDavBookMeta.metaNameOf(entry.getName()));
+                    // only what this device keeps: the rest is fetched once the folder shows
+                    final String meta = metaEntry == null ? null : WebDavCovers.cachedMetaJson(c, metaEntry);
+                    if (metaEntry != null && meta == null) {
+                        shown.metaToFetch.add(new WebDavClient.Entry[]{entry, metaEntry});
+                    }
+                    // what each book has is read afresh: a file replaced on the server needs both again
+                    if (cover != null) {
+                        coverOfBook.put(entry.path, cover);
+                    } else {
+                        coverOfBook.remove(entry.path);
+                    }
+                    if (meta != null) {
+                        metaOfBook.put(entry.path, meta);
+                    } else {
+                        metaOfBook.remove(entry.path);
+                    }
+                    item = remoteBook(entry, cover, meta);
+                }
+            }
+            entries.put(item.getPath(), entry);
+            shown.items.add(item);
+        }
+        return shown;
     }
 
     private static List<WebDavClient.Entry> listOrEmpty(WebDavClient client, String path) throws Exception {
@@ -501,32 +590,123 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         return item;
     }
 
-    @Override
-    public void populateDataInUI(List<FileMeta> items) {
-        if (adapter == null) {
+    /**
+     * Shows an answer for the folder open, unless a newer one is shown: {@code shown} null keeps
+     * what is shown (the listing kept, when the server failed); {@code last} when no newer listing
+     * of the folder is coming from this request.
+     */
+    private void answer(String path, int id, Shown shown, String error, boolean last) {
+        ui(() -> {
+            if (adapter == null || !path.equals(folder) || id < shownRequest) {
+                return;
+            }
+            shownRequest = id;
+            if (shown != null) {
+                if (error == null) {
+                    listedItems.put(path, new ArrayList<>(shown.items));
+                }
+                display(shown.items);
+            }
+            if (error != null) {
+                setStatus(error);
+                return;
+            }
+            if (last) {
+                fetchMissingMeta(shown.metaToFetch);
+                prefetch();
+            }
+            setStatus(shown.items.isEmpty()
+                    ? getString(WebDav.BOOKS.equals(path) ? R.string.webdav_empty : R.string.webdav_folder_empty)
+                    : null);
+        });
+    }
+
+    /**
+     * Lists the subfolders of the folder shown ahead of a tap, a few at a time, so the one opened
+     * next shows at once; stops when another folder is opened or the tab is left.
+     */
+    private void prefetch() {
+        final Activity a = getActivity();
+        if (a == null || !shown) {
             return;
         }
-        if (!folder.equals(listedFolder)) {
-            // another folder was opened while this one was being listed
-            populate();
+        final Context c = a.getApplicationContext();
+        final WebDavListings kept = kept(c);
+        final String forFolder = folder;
+        final List<String> subfolders = new ArrayList<>();
+        for (FileMeta item : allItems) {
+            if (WebDavCovers.isFolderItem(item.getPath()) && subfolders.size() < PREFETCH_MAX) {
+                subfolders.add(WebDavCovers.serverPathOf(item.getPath()));
+            }
+        }
+        for (String sub : subfolders) {
+            ahead.execute(() -> {
+                if (!shown || !forFolder.equals(folder)) {
+                    return;
+                }
+                final WebDavListings.Listing known = kept.get(sub);
+                final long now = System.currentTimeMillis();
+                if (known != null && !known.olderThan(FRESH_MS, now)) {
+                    return;
+                }
+                try {
+                    kept.put(sub, listOrEmpty(WebDavCovers.sharedClient(c), sub), now);
+                } catch (Exception e) {
+                    LOG.d("WebDAV list ahead", sub, e.getMessage());
+                }
+            });
+        }
+    }
+
+    /** The listings kept for the server and user set now: another server's never show. */
+    private synchronized WebDavListings kept(Context c) {
+        final String account = WebDav.getUrl(c) + "|" + WebDav.getUser(c);
+        if (kept == null || !account.equals(keptFor)) {
+            kept = new WebDavListings(new File(c.getCacheDir(), "webdav-listings"), account);
+            keptFor = account;
+        }
+        return kept;
+    }
+
+    /** Counts the server listings of each folder going on, for the progress bar. */
+    private void listingStep(String path, int step) {
+        synchronized (beingListed) {
+            final Integer before = beingListed.get(path);
+            final int now = (before == null ? 0 : before) + step;
+            if (now > 0) {
+                beingListed.put(path, now);
+            } else {
+                beingListed.remove(path);
+            }
+        }
+        ui(this::showProgress);
+    }
+
+    private boolean busy() {
+        synchronized (beingListed) {
+            return downloading || beingListed.containsKey(folder);
+        }
+    }
+
+    /**
+     * The progress bar shows while the folder open is listed from the server or a book downloads,
+     * after a moment: an answer that comes at once never flashes it.
+     */
+    private void showProgress() {
+        if (recyclerView == null || MyProgressBar == null) {
             return;
         }
-        if (error == null) {
-            listedItems.put(folder, new ArrayList<>(items));
-        }
-        display(items);
-        fetchMissingMeta();
-        if (error != null) {
-            setStatus(error);
-        } else if (items.isEmpty()) {
-            setStatus(getString(WebDav.BOOKS.equals(folder) ? R.string.webdav_empty : R.string.webdav_folder_empty));
+        recyclerView.removeCallbacks(progressOn);
+        if (busy()) {
+            recyclerView.postDelayed(progressOn, 100);
         } else {
-            setStatus(null);
+            MyProgressBar.setVisibility(View.GONE);
         }
     }
 
     /** Shows the items of {@link #folder}, scrolled where it was left (at the top when new). */
     private void display(List<FileMeta> items) {
+        recyclerView.removeCallbacks(blank);
         final RecyclerView.LayoutManager layout = recyclerView == null ? null : recyclerView.getLayoutManager();
         final boolean other = !folder.equals(displayedFolder);
         if (other && displayedFolder != null && layout != null) {
@@ -552,9 +732,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
      * Fetches the metadata files of the listing that this device has not kept, a few at a time,
      * each book updated as its file comes; covers are started after them.
      */
-    private void fetchMissingMeta() {
-        final List<WebDavClient.Entry[]> todo = metaToFetch;
-        metaToFetch = new ArrayList<>();
+    private void fetchMissingMeta(List<WebDavClient.Entry[]> todo) {
         final Activity a = getActivity();
         if (todo.isEmpty() || a == null) {
             scheduleCovers();
@@ -629,7 +807,15 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             return;
         }
         final String madeFor = folder;
-        coverMaker.start(a, todo, () -> shown && madeFor.equals(folder), (book, cover, meta) -> ui(() -> onMade(book, cover, meta)));
+        final Context c = a.getApplicationContext();
+        coverMaker.start(a, todo, () -> shown && madeFor.equals(folder), (book, cover, metaEntry, meta) -> {
+            for (WebDavClient.Entry made : new WebDavClient.Entry[]{cover, metaEntry}) {
+                if (made != null) {
+                    kept(c).replace(WebDavCovers.COVERS, made.path, made);
+                }
+            }
+            ui(() -> onMade(book, cover, meta));
+        });
     }
 
     /**
@@ -687,6 +873,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         shown = now;
         if (now && !was) {
             makeMissingCovers();
+            prefetch();
         } else if (!now) {
             coverMaker.stop();
         }
@@ -713,6 +900,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         coverMaker.stop();
         if (recyclerView != null) {
             recyclerView.removeCallbacks(startCovers);
+            recyclerView.removeCallbacks(blank);
         }
         final List<FileMeta> known = listedItems.get(path);
         if (known != null) {
@@ -720,7 +908,12 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             setStatus(null);
         } else {
             showFolder();
+            // the folder left stays a moment only: a tap must show, even with the folder row scrolled away
+            if (recyclerView != null) {
+                recyclerView.postDelayed(blank, BLANK_AFTER_MS);
+            }
         }
+        showProgress();
         populate();
     }
 
@@ -798,18 +991,8 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                     final Context c = getActivity().getApplicationContext();
                     final WebDavClient client = WebDavCovers.sharedClient(c);
                     client.delete(entry.path);
-                    final String cover = WebDavCovers.coverOf(entry.path);
-                    if (cover != null) {
-                        client.delete(cover);
-                    }
-                    final String meta = WebDavBookMeta.metaOf(entry.path);
-                    if (meta != null) {
-                        try {
-                            client.delete(meta);
-                        } catch (Exception e) {
-                            LOG.d("WebDAV metadata", e.getMessage());
-                        }
-                    }
+                    kept(c).replace(WebDavClient.parentOf(entry.path), entry.path, null);
+                    // the cover and metadata go at the next sync: a book of the same name elsewhere may share them
                     final File local = WebDav.books(c, client).localFileOf(entry);
                     if (local != null && local.isFile() && !local.delete()) {
                         LOG.d("WebDAV cannot delete", local);
@@ -838,7 +1021,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
         }
         downloading = true;
         setStatus(getString(R.string.download) + ": " + entry.getName() + " …");
-        MyProgressBar.setVisibility(View.VISIBLE);
+        showProgress();
         background(() -> {
             try {
                 final File downloaded = books.downloadOnDemand(entry);
@@ -850,7 +1033,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
                 });
             } finally {
                 downloading = false;
-                ui(() -> MyProgressBar.setVisibility(View.GONE));
+                ui(this::showProgress);
             }
         });
     }
@@ -889,7 +1072,7 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onSync(MessageSync msg) {
         if (msg.state == MessageSync.STATE_SUCCESS || msg.state == MessageSync.STATE_FAILE) {
-            populate();
+            request(true);
         }
     }
 
