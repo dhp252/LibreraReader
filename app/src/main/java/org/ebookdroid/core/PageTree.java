@@ -44,6 +44,7 @@ public class PageTree {
 
     synchronized void resetCropping() {
         root.croppedBounds = null;
+        root.cropChecked = false;
         if (this.treeNodes != null) {
             for (final PageTreeNode node : this.treeNodes) {
                 if (node != null) {

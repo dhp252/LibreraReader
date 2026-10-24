@@ -27,6 +27,7 @@ import com.foobnix.LibreraApp;
 import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.Safe;
+import com.foobnix.crop.CropPlans;
 import com.foobnix.dao2.FileMeta;
 import com.foobnix.ext.CacheZipUtils.CacheDir;
 import com.foobnix.ext.CalirbeExtractor;
@@ -125,6 +126,17 @@ public class ImageExtractor {
 
     public static Bitmap cropBitmap(Bitmap bitmap, Bitmap sample) {
         return cropBitmap(bitmap, sample, null);
+    }
+
+    private static Bitmap rotate(Bitmap bitmap, int degrees) {
+        if (degrees <= 0) {
+            return bitmap;
+        }
+        final Matrix matrix = new Matrix();
+        matrix.postRotate(degrees);
+        final Bitmap rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+        bitmap.recycle();
+        return rotated;
     }
 
     /**
@@ -535,62 +547,46 @@ public class ImageExtractor {
 
         rectF = new RectF(0, 0, 1f, 1f);
 
-        if (isNeedDisableMagicInPDFDjvu) {
-            //bitmapRef = pageCodec.renderBitmapSimple(width, height, rectF);
-            //bitmapRef = pageCodec.renderBitmap(width, height, rectF, false);
-        } else {
-
-        }
-        bitmapRef = pageCodec.renderBitmap(width, height, rectF, false);
-
-        bitmap = bitmapRef.getBitmap();
-
-        if (pageUrl.getRotate() > 0) {
-            final Matrix matrix = new Matrix();
-            matrix.postRotate(pageUrl.getRotate());
-            final Bitmap bitmap1 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-            bitmap.recycle();
-            bitmap = bitmap1;
-        }
-
-        if (pageUrl.getNumber() == 0) {
-            //do nothing
-        } else if (pageUrl.getNumber() == 1) {
-            final Bitmap bitmap1 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth() / 2, bitmap.getHeight());
-            bitmap.recycle();
-            bitmap = bitmap1;
-        } else if (pageUrl.getNumber() == 2) {
-            final Bitmap bitmap1 = Bitmap.createBitmap(bitmap, bitmap.getWidth() / 2, 0, bitmap.getWidth() / 2, bitmap.getHeight());
-            bitmap.recycle();
-            bitmap = bitmap1;
-        }
-
         if (pageUrl.isCrop()) {
+            // The part of the page (or of its half, for split pages) to keep is found first, on
+            // a plain render of it (CropPlans: the book's margins, the same on every page), and
+            // only that part is rendered, at the pixel size the whole page or half would have
+            // had: sharp, rather than a cut of the full render stretched to the screen.
+            final RectF half = pageUrl.getNumber() == 1 ? new RectF(0, 0, 0.5f, 1)
+                    : pageUrl.getNumber() == 2 ? new RectF(0.5f, 0, 1, 1) : rectF;
+            final RectF kept = CropPlans.get().box(codeCache, path, page, half, pageCodec);
+            final float fit = Math.min(half.width() / kept.width(), half.height() / kept.height());
+            final int keptWidth = Math.max(1, Math.round(width * kept.width() * fit));
+            final int keptHeight = Math.max(1, Math.round(height * kept.height() * fit));
+            bitmapRef = pageCodec.renderBitmap(keptWidth, keptHeight, kept, false);
+            bitmap = rotate(bitmapRef.getBitmap(), pageUrl.getRotate());
+
             // Only a plain, unrotated single-page render has a crop rectangle that can be
-            // mapped back onto full-page text coordinates. For split/double pages the crop is
-            // measured against a half bitmap and for rotated pages the axes no longer match,
-            // so no rectangle is published and text selection stays disabled for those.
-            // Restricted to isDoText() renders (the reading page) so a thumbnail or cover
-            // render, which measures the crop on a much smaller bitmap, cannot replace the
+            // mapped back onto full-page text coordinates; for split and rotated pages none is
+            // published and text selection stays disabled for those. Restricted to isDoText()
+            // renders (the reading page) so a thumbnail or cover render cannot replace the
             // rectangle belonging to the page text stored below.
-            final boolean mappable = pageUrl.isDoText() && pageUrl.getNumber() == 0 && pageUrl.getRotate() == 0;
-            final RectF appliedCrop = mappable ? new RectF() : null;
+            if (pageUrl.isDoText() && pageUrl.getNumber() == 0 && pageUrl.getRotate() == 0) {
+                PageImageState.get().putPageCrop(pageUrl.getPage(), kept);
+            }
+        } else {
+            bitmapRef = pageCodec.renderBitmap(width, height, rectF, false);
+            bitmap = rotate(bitmapRef.getBitmap(), pageUrl.getRotate());
 
-            if (BookType.DJVU.is(pageUrl.getPath())) {
-                Bitmap sample = pageCodec.renderBitmapSimple(PageCropper.MAX_WIDTH, PageCropper.MAX_HEIGHT, rectF).getBitmap();
-                bitmap = cropBitmap(bitmap, sample, appliedCrop);
-                sample.recycle();
-                sample = null;
-            } else {
-                bitmap = cropBitmap(bitmap, bitmap, appliedCrop);
+            if (pageUrl.getNumber() == 1) {
+                final Bitmap bitmap1 = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth() / 2, bitmap.getHeight());
+                bitmap.recycle();
+                bitmap = bitmap1;
+            } else if (pageUrl.getNumber() == 2) {
+                final Bitmap bitmap1 = Bitmap.createBitmap(bitmap, bitmap.getWidth() / 2, 0, bitmap.getWidth() / 2, bitmap.getHeight());
+                bitmap.recycle();
+                bitmap = bitmap1;
             }
 
-            if (mappable) {
-                PageImageState.get().putPageCrop(pageUrl.getPage(), appliedCrop);
+            if (pageUrl.isDoText()) {
+                // Drop any rectangle left over from an earlier cropped render of this page.
+                PageImageState.get().putPageCrop(pageUrl.getPage(), null);
             }
-        } else if (pageUrl.isDoText()) {
-            // Drop any rectangle left over from an earlier cropped render of this page.
-            PageImageState.get().putPageCrop(pageUrl.getPage(), null);
         }
 
         if (AppSP.get().isSmartReflow) {

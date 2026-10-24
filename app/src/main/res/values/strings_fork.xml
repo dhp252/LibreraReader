@@ -363,4 +363,6 @@
     <string name="stats_book_looking">Looking at the page: %1$d%% of Eye mode time</string>
 
     <string name="bg_fills_screen">Background fills the screen</string>
+    <string name="crop_same_margins">Same margins on every page</string>
+    <string name="crop_headers">Crop page numbers and headers</string>
 </resources>

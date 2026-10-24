@@ -443,6 +443,9 @@ public class AppState {
     public int cropBottom = 0;
     public int cropLeft = 0;
     public int cropRigth = 0;
+    // crop: one set of margins for the book (odd/even), page numbers and running headers left out (CropPlan)
+    public boolean isCropSameMargins = true;
+    public boolean isCropHeaders = true;
 
     @IgnoreHashCode public boolean isCropNotification = true;
 

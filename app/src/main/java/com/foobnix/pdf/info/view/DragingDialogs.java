@@ -614,6 +614,21 @@ public class DragingDialogs {
                     }
                 });
 
+                // the book's margins on every page, and its page numbers and running headers
+                // left out (CropPlan); a change measures the book again
+                CheckBox isCropSameMargins = inflate.findViewById(R.id.isCropSameMargins);
+                isCropSameMargins.setChecked(AppState.get().isCropSameMargins);
+                isCropSameMargins.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    AppState.get().isCropSameMargins = isChecked;
+                    onCropChange.run();
+                });
+                CheckBox isCropHeaders = inflate.findViewById(R.id.isCropHeaders);
+                isCropHeaders.setChecked(AppState.get().isCropHeaders);
+                isCropHeaders.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    AppState.get().isCropHeaders = isChecked;
+                    onCropChange.run();
+                });
+
                 CheckBox isCropNotification = inflate.findViewById(R.id.isCropNotification);
                 isCropNotification.setChecked(AppState.get().isCropNotification);
                 isCropNotification.setOnCheckedChangeListener(new OnCheckedChangeListener() {

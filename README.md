@@ -183,6 +183,7 @@ The fork's tests all pass.
 | `com.foobnix.ai` | quote matching, per-book AI store, TOC chapters, prompts, Claude/OpenAI request and stream parsing |
 | `com.foobnix.sys` | the crash marks that keep a book which crashed a codec from crashing the app again |
 | `com.foobnix.annotation` | stylus rules; marks found again after an EPUB re-layout; the marks file; Markdown export; color names |
+| `com.foobnix.crop` | what is printed on a page (paper tone, scanner borders, specks, page numbers and headers); one set of margins per book (odd/even, outliers, wide pages) |
 | `com.foobnix.study` | study chapters (long parts split), the skim sent at opt-in, preview and check answers, chapter cards, time per chapter, the study file, quotes found in the chapter, the outline (Markdown and mind map) |
 
 `WebDavServerTest` runs against a real WebDAV server and is skipped when there is none. To run
@@ -327,6 +328,18 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   texture is one picture across the screen, not one copy per page. The clock and battery stay
   readable (dark on light paper). A page curl shows the texture too. Turn the option off: the old
   look comes back, with the "Foreground" color in the color dialog again.
+- **Crop** (a text PDF with page numbers and a running header, a grey or yellowed scan with a dark
+  edge, a two-column book; crop on by long-pressing the crop button or in its dialog):
+  - Book mode: every page shows the same text size, odd and even pages alike (each keeps its own
+    side margin); page numbers and the running header are gone; text is sharp, not soft; nothing
+    is cut at the edges. A chapter title at the top of a page stays. A page with a wide table or
+    picture is shown wider than the others.
+  - Two pages per screen: both pages the same height.
+  - Scroll mode: once the first page shows, pages do not change size while you scroll.
+  - The first opening of a big book with crop on may take a second longer; the next ones not.
+  - Crop dialog: "Same margins on every page" off: each page cropped to its own text; "Crop page
+    numbers and headers" off: they stay. The margin sliders still leave out what they cover.
+  - Split pages (two-page scans) with crop, in both modes: each half cropped on its own.
 - **Page turn** (use the release APK; debug builds make animations stutter): in book mode, open
   the page flipping dialog or the advanced preferences and pick each "Page turn" style:
   - Slide, Cover, Page curl: turn forward and back by tap, volume key and swipe. A slow, short

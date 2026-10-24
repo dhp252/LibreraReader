@@ -11,6 +11,7 @@ import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.ResultResponse;
 import com.foobnix.android.utils.Safe;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.crop.CropPlans;
 import com.foobnix.pdf.info.AppsConfig;
 import com.foobnix.pdf.info.model.AnnotationType;
 import com.foobnix.pdf.info.model.BookCSS;
@@ -30,9 +31,10 @@ import org.ebookdroid.core.codec.CodecPageHolder;
 import org.ebookdroid.core.codec.CodecPageInfo;
 import org.ebookdroid.core.codec.OutlineLink;
 import org.ebookdroid.core.codec.PageLink;
-import org.ebookdroid.core.crop.PageCropper;
+import org.ebookdroid.core.models.DocumentModel;
 import org.ebookdroid.droids.mupdf.codec.TextWord;
 import org.ebookdroid.ui.viewer.IView;
+import org.ebookdroid.ui.viewer.IViewController;
 import org.ebookdroid.ui.viewer.IViewController.InvalidateSizeReason;
 import org.emdev.utils.LengthUtils;
 import org.emdev.utils.MathUtils;
@@ -57,6 +59,8 @@ public class DecodeServiceBase implements DecodeService {
     // for the previous crop state can be recognised as obsolete and dropped
     // instead of publishing stale cropped/uncropped geometry or bitmaps.
     final java.util.concurrent.atomic.AtomicInteger cropStamp = new java.util.concurrent.atomic.AtomicInteger();
+    /** The crop stamp the book's margins were last given to every page for (cropEveryPage). */
+    final java.util.concurrent.atomic.AtomicInteger plannedStamp = new java.util.concurrent.atomic.AtomicInteger(-1);
 
     final CodecContext codecContext;
     final AtomicBoolean isRecycled = new AtomicBoolean();
@@ -443,32 +447,16 @@ public class DecodeServiceBase implements DecodeService {
         if (task.viewState.book == null || !task.viewState.book.cp) {
             return null;
         }
-        // Checks if page has been cropped before
-        if (task.node.croppedBounds != null) {
-            // Page size is actuall now
-            return null;
-        }
 
         RectF croppedPageBounds = null;
-
-        // Checks if page root node has been cropped before
         final PageTreeNode root = task.node.page.nodes.root;
-        if (root.croppedBounds == null) {
-            final Rect rootRect = new Rect(0, 0, Math.min(PageCropper.MAX_WIDTH, vuPage.getWidth()), Math.min(PageCropper.MAX_HEIGHT, vuPage.getHeight()));
-            // final Rect rootRect = new Rect(0, 0, rootRect.width(), rootRect.height());
 
-            // TempHolder.lock.lock();
-            LOG.d("DJVU1-1", rootRect.width(), rootRect.height());
-            final BitmapRef rootBitmap = vuPage.renderBitmapSimple(rootRect.width(), rootRect.height(), new RectF(0, 0, 1f, 1f));
-            // TempHolder.lock.unlock();
-
-            LOG.d("DJVU1-1a", vuPage.getWidth(), vuPage.getHeight());
-            LOG.d("DJVU1-1b", rootBitmap.getBitmap().getWidth(), rootBitmap.getBitmap().getHeight());
-
-            final RectF cropBounds = PageCropper.getCropBounds(rootBitmap.getBitmap(), rootRect, new RectF(0, 0, 1f, 1f));
-            LOG.d("DJVU1-2", cropBounds.width(), cropBounds.height());
-
-            BitmapManager.release(rootBitmap);
+        // The page's crop, once: the book's margins (the same on every page, see CropPlans),
+        // widened by the page's own matter outside them. Measured within the root's slice, so
+        // each half of a split page crops itself.
+        if (!root.cropChecked) {
+            final RectF box = CropPlans.get().box(codecDocument, task.viewState.book.path,
+                                                  task.node.page.index.docIndex, root.pageSliceBounds, vuPage);
 
             // The crop detection above is slow; re-check right before publishing
             // (with no slow work in between) that cropping is still enabled and
@@ -480,31 +468,91 @@ public class DecodeServiceBase implements DecodeService {
                 return null;
             }
 
-            root.croppedBounds = cropBounds;
+            final boolean changed;
+            synchronized (task.node.page.nodes) {
+                changed = !box.equals(root.croppedBounds);
+                root.croppedBounds = box;
+                root.cropChecked = true;
+            }
+            if (changed) {
+                root.page.setAspectRatio(vuPage.getWidth() * box.width(), vuPage.getHeight() * box.height());
+                task.viewState.ctrl.invalidatePageSizes(InvalidateSizeReason.PAGE_LOADED, task.node.page);
+                croppedPageBounds = root.page.getBounds(task.viewState.zoom);
+            }
 
-            final ViewState viewState = task.viewState;
-            final float pageWidth = vuPage.getWidth() * root.croppedBounds.width();
-            final float pageHeight = vuPage.getHeight() * root.croppedBounds.height();
-
-            LOG.d("DJVU1-3", pageWidth, pageHeight);
-
-            final PageIndex currentPage = viewState.book.getCurrentPage(codecDocument.getPageCount());
-            final float offsetX = viewState.book.x;
-            final float offsetY = viewState.book.y;
-
-            root.page.setAspectRatio(pageWidth, pageHeight);
-            viewState.ctrl.invalidatePageSizes(InvalidateSizeReason.PAGE_LOADED, task.node.page);
-
-            croppedPageBounds = root.page.getBounds(task.viewState.zoom);
-
-
+            cropEveryPage(task);
         }
 
         if (task.node != root) {
-            task.node.croppedBounds = PageTreeNode.evaluateCroppedPageSliceBounds(task.node.pageSliceBounds, task.node.parent);
+            task.node.croppedBounds = croppedSlice(task.node.pageSliceBounds, root);
         }
 
         return croppedPageBounds;
+    }
+
+    /**
+     * Once per crop setting: the pages not decoded yet get the book's margins at once, so they
+     * keep their size while scrolling rather than changing as each one is decoded. They are laid
+     * out again on the UI thread, which stays on the place in view.
+     */
+    private void cropEveryPage(final DecodeTask task) {
+        final int stamp = cropStamp.get();
+        if (task.cropStamp != stamp || plannedStamp.getAndSet(stamp) == stamp || task.viewState.model == null) {
+            return;
+        }
+        final String path = task.viewState.book.path;
+        final List<Pair<Page, RectF>> boxes = new ArrayList<Pair<Page, RectF>>();
+        for (final Page page : task.viewState.model.getPages()) {
+            if (page != null && !page.nodes.root.cropChecked) {
+                final RectF box = CropPlans.get().planned(path, page.index.docIndex, page.nodes.root.pageSliceBounds);
+                if (box != null) {
+                    boxes.add(new Pair<Page, RectF>(page, box));
+                }
+            }
+        }
+        final IViewController ctrl = task.viewState.ctrl;
+        final IView view = ctrl.getView();
+        if (boxes.isEmpty() || view == null) {
+            return;
+        }
+        view.getView().post(new Runnable() {
+            @Override
+            public void run() {
+                if (cropStamp.get() != stamp) {
+                    return;
+                }
+                final DocumentModel model = task.viewState.model;
+                final Page current = model.getCurrentPageObject();
+                final PointF at = current != null ? new ViewState(ctrl).getPositionOnPage(current) : null;
+                for (final Pair<Page, RectF> b : boxes) {
+                    final Page page = b.first;
+                    synchronized (page.nodes) {
+                        if (page.nodes.root.cropChecked) {
+                            continue;
+                        }
+                        page.nodes.root.croppedBounds = b.second;
+                    }
+                    page.setAspectRatio(page.cpi.width * b.second.width(), page.cpi.height * b.second.height());
+                }
+                ctrl.invalidatePageSizes(InvalidateSizeReason.PAGE_LOADED, null);
+                if (current != null) {
+                    ctrl.goToPage(current.index.viewIndex, at.x, at.y);
+                }
+            }
+        });
+    }
+
+    /** A node's slice as the page is cropped: its place in the root's slice, put in the root's crop. */
+    static RectF croppedSlice(final RectF slice, final PageTreeNode root) {
+        final RectF r = root.pageSliceBounds;
+        final RectF c = root.croppedBounds;
+        if (c == null) {
+            return null;
+        }
+        return new RectF(c.left + (slice.left - r.left) / r.width() * c.width(),
+                         c.top + (slice.top - r.top) / r.height() * c.height(),
+                         c.left + (slice.right - r.left) / r.width() * c.width(),
+                         c.top + (slice.bottom - r.top) / r.height() * c.height());
     }
 
     Rect getScaledSize(final PageTreeNode node, final float zoom, final RectF croppedPageBounds, final CodecPage vuPage) {

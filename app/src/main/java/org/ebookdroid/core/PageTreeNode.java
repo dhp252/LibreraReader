@@ -39,6 +39,8 @@ public class PageTreeNode implements DecodeService.DecodeCallback {
 
     float bitmapZoom = 1;
     RectF croppedBounds = null;
+    /** The root only: its crop was measured on the page itself, not just given the book's margins. */
+    volatile boolean cropChecked;
 
     PageTreeNode(final Page page) {
         this.page = page;
