@@ -42,6 +42,11 @@ public final class CropPlan {
     static final float SAME = 0.02f;
     /** Head or foot lines of the samples within this of each other are the same line. */
     static final float BAND = 0.02f;
+    /**
+     * A page's padded content up to this much bigger than its slot's box still only moves the
+     * box: it gives up a little of its {@link #PAD}, not the book's size.
+     */
+    static final float FIT = 0.005f;
 
     final float[][] slots = new float[SLOTS][];
     float[] headBand, footBand;
@@ -119,7 +124,11 @@ public final class CropPlan {
         return plan;
     }
 
-    /** What a page shows: its slot's box, widened by its own content outside it. */
+    /**
+     * What a page shows: its slot's box, moved over its own content where that sticks out but
+     * fits in the box's size (a scan shifted on the glass, a figure off to one side), so the page
+     * keeps the book's size and zoom; widened only by content bigger than the box (a wide table).
+     */
     public float[] box(int slot, CropFinder.Measure own, boolean dropHeaders) {
         final float[] planned = slots[slot];
         if (planned == null) {
@@ -128,7 +137,30 @@ public final class CropPlan {
         if (own == null) {
             return planned.clone();
         }
-        return kept(union(planned, pad(content(own, dropHeaders))));
+        final float[] c = pad(content(own, dropHeaders));
+        final float[] box = planned.clone();
+        cover(box, c, 0);
+        cover(box, c, 1);
+        return kept(box);
+    }
+
+    /** One axis ({@code a} 0 = across, 1 = down) of {@code box} made to hold {@code content}. */
+    static void cover(float[] box, float[] content, int a) {
+        final int lo = a, hi = a + 2;
+        final float size = box[hi] - box[lo];
+        if (content[lo] >= box[lo] && content[hi] <= box[hi]) {
+            return;
+        }
+        if (content[hi] - content[lo] > size + FIT) {
+            box[lo] = Math.min(box[lo], content[lo]);
+            box[hi] = Math.max(box[hi], content[hi]);
+        } else if (content[lo] < box[lo]) {
+            box[lo] = content[lo];
+            box[hi] = content[lo] + size;
+        } else {
+            box[hi] = content[hi];
+            box[lo] = content[hi] - size;
+        }
     }
 
     /** What a page shows with no plan: its own content, head and foot lines judged alone. */

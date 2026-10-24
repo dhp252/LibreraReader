@@ -120,6 +120,8 @@ public class PageImaveView extends View {
     private boolean isIgronerClick = false;
     private int isMoveNextPrev = 0;
     private int pageNumber;
+    /** The fit of this page alone ({@link #drawMatrix}). */
+    private final Matrix ownFit = new Matrix();
 
     public PageImaveView(final Context context, final AttributeSet attrs) {
         super(context, attrs);
@@ -644,7 +646,8 @@ public class PageImaveView extends View {
             final int saveCount = canvas.getSaveCount();
             canvas.save();
 
-            canvas.concat(imageMatrix());
+            final Matrix matrix = drawMatrix();
+            canvas.concat(matrix);
 
             if (imageDrawable != null) {
                 imageDrawable.draw(canvas);
@@ -656,7 +659,7 @@ public class PageImaveView extends View {
                 canvas.restoreToCount(saveCount);
                 ReadingSurface.overlay(canvas, this, pager());
                 canvas.save();
-                canvas.concat(imageMatrix());
+                canvas.concat(matrix);
             }
 
             if (PageImageState.get().isShowCuttingLine && AppSP.get().isCut == false) {
@@ -723,7 +726,11 @@ public class PageImaveView extends View {
         drawableWidth = bitmap.getWidth();
         imageDrawable.setBounds(0, 0, drawableWidth, drawableHeight);
 
-        autoFit();
+        // only the page shown sets the matrix every page shares: a page beside it arriving
+        // later would change the zoom of the page being read (with crop pages differ in size)
+        if (pageNumber == PageImageState.currentPage) {
+            autoFit();
+        }
         invalidate();
 
         LOG.d("addBitmap", bitmap.getWidth(), bitmap.getHeight(), "Real WH:", getWidth(), getHeight());
@@ -753,22 +760,39 @@ public class PageImaveView extends View {
         if (!PageImageState.get().isAutoFit) {
             return;
         }
+        fit(imageMatrix());
+    }
 
+    /** Sets {@code m} to show the whole page in this view, centred. */
+    private void fit(Matrix m) {
         final int w = getWidth();
         final int h = getHeight();
         final float scaleH = (float) h / drawableHeight;
         final float scaleW = (float) w / drawableWidth;
 
-        imageMatrix().reset();
+        m.reset();
         if (scaleH < scaleW) {
-            LOG.d("image pre scale scaleH", scaleH);
-            imageMatrix().preScale(scaleH, scaleH);
-            imageMatrix().postTranslate(Math.abs(getWidth() - drawableWidth * scaleH) / 2, 0);
+            m.preScale(scaleH, scaleH);
+            m.postTranslate(Math.abs(getWidth() - drawableWidth * scaleH) / 2, 0);
         } else {
-            LOG.d("image pre scale scaleW", scaleW);
-            imageMatrix().preScale(scaleW, scaleW);
-            imageMatrix().postTranslate(0, Math.abs(getHeight() - drawableHeight * scaleW) / 2);
+            m.preScale(scaleW, scaleW);
+            m.postTranslate(0, Math.abs(getHeight() - drawableHeight * scaleW) / 2);
         }
+    }
+
+    /**
+     * What this page is drawn with: the matrix every page shares, so a zoom carries over to the
+     * next page. While pages fit the screen, a page beside the shown one fits its own size
+     * instead: that shared matrix is the shown page's, and a cropped page differs a little in
+     * size, so a page coming in would change its zoom once it is the shown one (F-011).
+     */
+    private Matrix drawMatrix() {
+        if (!PageImageState.get().isAutoFit || pageNumber == PageImageState.currentPage
+                || drawableWidth <= 0 || drawableHeight <= 0) {
+            return imageMatrix();
+        }
+        fit(ownFit);
+        return ownFit;
     }
 
     private float centerX(final MotionEvent event) {

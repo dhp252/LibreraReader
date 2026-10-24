@@ -333,7 +333,9 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   - Book mode: every page shows the same text size, odd and even pages alike (each keeps its own
     side margin); page numbers and the running header are gone; text is sharp, not soft; nothing
     is cut at the edges. A chapter title at the top of a page stays. A page with a wide table or
-    picture is shown wider than the others.
+    picture is shown wider than the others; a page whose text only sits a little off (a shifted
+    scan, a figure to one side) keeps the same size. Turning to the next page, or waiting on a
+    page while the ones beside it load, never changes its zoom (no small jump as a page settles).
   - Two pages per screen: both pages the same height.
   - Scroll mode: once the first page shows, pages do not change size while you scroll.
   - The first opening of a big book with crop on may take a second longer; the next ones not.

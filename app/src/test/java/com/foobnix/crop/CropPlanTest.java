@@ -127,6 +127,28 @@ public class CropPlanTest {
     }
 
     @Test
+    public void aShiftedPageKeepsTheBooksSize() {
+        final CropPlan plan = CropPlan.build(book(false), true);
+        final float[] planned = plan.planned(CropPlan.EVEN);
+        // scanned a little to the right and down: the box moves over it, the same size
+        final CropFinder.Measure shifted = page(0.14f, 0.15f, 0.84f, 0.89f, null, null);
+        final float[] box = plan.box(CropPlan.EVEN, shifted, true);
+        assertBox(new float[]{0.14f - P, 0.15f - P, 0.84f + P, 0.89f + P}, box);
+        assertEquals(planned[2] - planned[0], box[2] - box[0], E);
+        assertEquals(planned[3] - planned[1], box[3] - box[1], E);
+        // a figure off to the left on a short page: moved, not widened
+        final CropFinder.Measure figure = page(0.04f, 0.30f, 0.70f, 0.60f, null, null);
+        final float[] left = plan.box(CropPlan.EVEN, figure, true);
+        assertEquals(0.04f - P, left[0], E);
+        assertEquals(planned[2] - planned[0], left[2] - left[0], E);
+        assertBox(new float[]{planned[1], planned[3]}, new float[]{left[1], left[3]});
+        // a hair wider than the box: still the book's size
+        final CropFinder.Measure wider = page(0.099f, 0.12f, 0.802f, 0.86f, null, null);
+        final float[] hair = plan.box(CropPlan.EVEN, wider, true);
+        assertEquals(planned[2] - planned[0], hair[2] - hair[0], E);
+    }
+
+    @Test
     public void closeEvenAndOddBoxesAreOne() {
         final List<CropPlan.Sample> samples = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
