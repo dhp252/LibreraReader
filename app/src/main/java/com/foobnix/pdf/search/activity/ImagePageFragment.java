@@ -177,6 +177,23 @@ public class ImagePageFragment extends Fragment {
     }
 
     /**
+     * The page made again from {@code path} (a setting it is drawn with changed): the page shown
+     * at once, the pages beside it after it, as when they were first made.
+     */
+    public void reload(String path) {
+        getArguments().putString(PAGE_PATH, path);
+        if (image == null) {
+            return;
+        }
+        handler.removeCallbacks(callback);
+        if (0 == getPriority()) {
+            loadImageGlide();
+        } else {
+            handler.postDelayed(callback, getPriority() * 200);
+        }
+    }
+
+    /**
      * @param fresh render the page again even though Glide holds it: the bitmap on screen is an
      *              active resource, which clearMemoryCache leaves, so an annotation just added
      *              would not show
@@ -188,6 +205,11 @@ public class ImagePageFragment extends Fragment {
         target = new CustomTarget<Bitmap>() {
             @Override
             public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                if (target != this) {
+                    // an older load done after a newer one: crop turned on (slow, the book is
+                    // measured) then off at once (the page still held, given back at once)
+                    return;
+                }
                 text.setVisibility(View.GONE);
                 if (resource != null && image != null) {
                     image.addBitmap(resource);

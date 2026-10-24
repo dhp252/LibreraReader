@@ -258,23 +258,15 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         public void run() {
             ViewBinder.updateBrightness(onBC);
             IMG.clearMemoryCache();
-            int position = viewPager.getCurrentItem();
-            ImagePageFragment
-                    f2 =
-                    (ImagePageFragment) getSupportFragmentManager().findFragmentByTag("f" + (viewPager.getCurrentItem()));
-            LOG.d("reloadDocBrigntness", f2);
-            if (f2 != null) {
-
-                final Bundle b = new Bundle();
-                b.putInt(ImagePageFragment.POS, position);
-                b.putBoolean(ImagePageFragment.IS_TEXTFORMAT, dc.isTextFormat());
-                b.putString(ImagePageFragment.PAGE_PATH, dc.getPageUrl(position).toString());
-
-                f2.setArguments(b);
-
-                f2.loadImageGlide();
+            // every page the pager holds, not only the one shown: the pages beside it were made
+            // with the old settings and showed them when turned to (crop seemed to need toggling
+            // again and again)
+            for (Fragment f : getSupportFragmentManager().getFragments()) {
+                if (f instanceof ImagePageFragment) {
+                    final int position = f.getArguments().getInt(ImagePageFragment.POS);
+                    ((ImagePageFragment) f).reload(dc.getPageUrl(position).toString());
+                }
             }
-            return;
         }
     };
     Runnable closeRunnable = new Runnable() {
