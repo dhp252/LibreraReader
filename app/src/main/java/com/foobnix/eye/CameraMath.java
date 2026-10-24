@@ -28,6 +28,24 @@ public final class CameraMath {
         return best;
     }
 
+    /**
+     * The focal length in pixels of a {@code w} × {@code h} frame (either way round) from a sensor
+     * of {@code sensorW} × {@code sensorH} mm and a lens of {@code focalMm}: the frame is the
+     * sensor scaled, cut to its shape along the sensor's longer side when their shapes differ
+     * (a 4:3 frame from a 16:9 sensor keeps the sensor's short side). 0 when something is unknown.
+     */
+    public static float focalPx(float focalMm, float sensorW, float sensorH, int w, int h) {
+        if (focalMm <= 0 || sensorW <= 0 || sensorH <= 0 || w <= 0 || h <= 0) {
+            return 0;
+        }
+        final float sensorLong = Math.max(sensorW, sensorH);
+        final float sensorShort = Math.min(sensorW, sensorH);
+        final int frameLong = Math.max(w, h);
+        final int frameShort = Math.min(w, h);
+        final boolean sensorWider = sensorLong / sensorShort > (float) frameLong / frameShort;
+        return sensorWider ? focalMm / sensorShort * frameShort : focalMm / sensorLong * frameLong;
+    }
+
     /** Width and height of a {@code w} × {@code h} frame turned by {@code rotation} degrees. */
     public static int[] upright(int w, int h, int rotation) {
         return rotation % 180 == 0 ? new int[]{w, h} : new int[]{h, w};

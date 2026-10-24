@@ -377,20 +377,26 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
     read-aloud plays or a dialog is open. Record a trace with a few long blinks and a few looks
     down, in a lit room and in bed.
   - Gaze (M3): the first time a gaze feature applies (book mode: "Gaze page turn"; scroll mode:
-    "Gaze auto-scroll speed"), Eye mode offers to calibrate: a dark screen, a dot in 7 places
-    (about 12 s), follow it with your eyes, then "Now close your eyes until you feel a tick"
-    (about 3 s); back or Cancel stops it. "Calibrated: about ±N% of the screen" and whether your
+    "Gaze auto-scroll speed"), Eye mode offers to calibrate: a dark screen, a dot in 9 places
+    (3 × 3, about 15 s), follow it with your eyes; then a dot in the middle: keep your eyes on it
+    and slowly turn your head left, right, up and down (about 6 s); then "Now close your eyes until
+    you feel a tick" (about 3 s); back or Cancel stops it. The message also says "Head turns count
+    ×A across, ×B up/down": about 1 is expected; about -1 means the head angles were taken the
+    wrong way round (now measured, D-134); 1.0 exactly means the head did not turn enough. "Calibrated: about ±N% of the screen, from your eye
+    movements / irises / eye movements and irises" (which signal fit you best, D-131) and whether your
     closed eyes were learned (long blink then uses your own limit: reading the bottom lines must
     not count as closed eyes, a real long blink must).
     The settings show "Calibrate this orientation (calibrated / not calibrated)"; turn the phone:
     that orientation is offered once too. With "Show what the camera sees", an orange ring shows
     where Eye mode thinks you look, with two lines (book mode: top zone and last lines; scroll
     mode: the quarters). Does the ring follow you down the page?
-  - Gaze from the eyes alone (D-130): calibrations made before it read "not calibrated" and are
-    offered again (long blink keeps your learned eyes). Calibrate moving only your eyes, head
-    still. Is the ring closer to where you read than before? A head move that the eyes make up
-    for (eyes kept on one line) now moves the ring: tap the eye in the status bar to re-centre.
-    Turning the head away from the book still pauses (looking or away keeps the head).
+  - Gaze through the head's geometry (D-131, D-133): calibrations made before it read "not
+    calibrated" and are offered again (long blink keeps your learned eyes). Calibrate moving only
+    your eyes, head still. Then, eyes kept on one line: nod a little, tilt your head to the side,
+    slide the phone a centimetre up or sideways, bring it nearer. The ring should stay on that
+    line (it may swing for half a second while the head moves). Also with the phone off to the
+    side (beside a laptop): calibrate there, then the ring should not lean to one side. Turning
+    the head away from the book still pauses.
   - Book mode: read to the last lines, rest there a moment, look up to the top: next page (tick).
     A glance at the clock or the title soon after a page came, or reading back up slowly: no
     turn. Tap the eye in the status bar: one dot in the middle, "Gaze re-centred".

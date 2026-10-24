@@ -47,6 +47,22 @@ public final class EyeRules {
     public static final float POSE_FOLLOW = 0.03f;
     /** Weight of a new frame in the smoothed pose numbers. */
     public static final float POSE_SMOOTH = 0.5f;
+    /**
+     * Weight of a new frame in the smoothed head (place, distance, turn) the gaze point is put
+     * through (D-133): MediaPipe's head angles jitter by a degree or two, and heads move slower
+     * than eyes.
+     */
+    public static final float HEAD_SMOOTH = 0.35f;
+    /**
+     * The calibration's head step (D-134): read the hint, then the frames that count while the
+     * eyes stay on the dot and the head turns; the head must turn this many degrees (10th to 90th
+     * percentile) for its weight to be measured, and a weight outside these sizes is not believed.
+     */
+    public static final long CAL_HEAD_SETTLE_MS = 1_500L;
+    public static final long CAL_HEAD_COLLECT_MS = 4_500L;
+    public static final float HEAD_STEP_MIN_DEG = 6f;
+    public static final float HEAD_GAIN_MIN = 0.25f;
+    public static final float HEAD_GAIN_MAX = 3f;
     /** A touch re-learns the pose from a frame at most this old. */
     public static final long TOUCH_FRAME_MS = 600L;
 
@@ -106,11 +122,13 @@ public final class EyeRules {
     public static final long REZERO_COLLECT_MS = 800L;
     /** Frames a dot needs to count, and dots a calibration needs. */
     public static final int CAL_MIN_FRAMES = 4;
-    public static final int CAL_MIN_DOTS = 5;
-    /** A good calibration: the dots fit the line to this share of the screen ... */
+    public static final int CAL_MIN_DOTS = 6;
+    /**
+     * A good calibration places a dot up/down within this share of the screen (expected error:
+     * left-out dots and frame scatter, {@link GazeModel}). Eyes that did not move give no line or
+     * a steep one whose scatter fails this.
+     */
     public static final float CAL_RMS = 0.12f;
-    /** ... and the gaze moved at least this many degrees between the top and bottom dots. */
-    public static final float CAL_MIN_SPREAD = 4f;
     /** Book mode: screen y of the bottom zone (the last lines) and of the top zone. */
     public static final float BOTTOM_ZONE = 0.72f;
     public static final float TOP_ZONE = 0.35f;

@@ -30,16 +30,18 @@ public final class FaceSignals {
     }
 
     /**
-     * Where the iris sits in an eye: {along, across}. Along runs 0 at the outer corner to 1 at the
-     * inner one (about 0.5 looking straight); across is the distance below the middle of the lids,
-     * in eye widths (+ = down). Both stay the same when the face is nearer, farther or tilted.
+     * Where the iris sits in an eye: {along, across, drop}. Along runs 0 at the outer corner to 1
+     * at the inner one (about 0.5 looking straight); across is the distance below the middle of the
+     * lids, drop the distance below the line through the corners, both in eye widths (+ = down).
+     * The lids follow the eye up and down, the corners do not, so drop moves more with the gaze.
+     * All stay the same when the face is nearer, farther or tilted.
      */
     public static float[] iris(float[] x, float[] y, int outer, int inner, int upper, int lower, int iris) {
         final float ax = x[inner] - x[outer];
         final float ay = y[inner] - y[outer];
         final float len2 = ax * ax + ay * ay;
         if (len2 <= 0) {
-            return new float[]{0.5f, 0};
+            return new float[]{0.5f, 0, 0};
         }
         final float len = (float) Math.sqrt(len2);
         final float cx = x[iris] - x[outer];
@@ -56,7 +58,8 @@ public final class FaceSignals {
         final float mx = (x[upper] + x[lower]) / 2;
         final float my = (y[upper] + y[lower]) / 2;
         final float across = ((x[iris] - mx) * nx + (y[iris] - my) * ny) / len;
-        return new float[]{along, across};
+        final float drop = (cx * nx + cy * ny) / len;
+        return new float[]{along, across, drop};
     }
 
     /**
@@ -82,8 +85,10 @@ public final class FaceSignals {
             final float[] r = iris(x, y, R_OUTER, R_INNER, R_UPPER, R_LOWER, R_IRIS);
             f.irisLX = l[0];
             f.irisLY = l[1];
+            f.irisLD = l[2];
             f.irisRX = r[0];
             f.irisRY = r[1];
+            f.irisRD = r[2];
         }
         final float lx = (x[L_OUTER] + x[L_INNER]) / 2;
         final float ly = (y[L_OUTER] + y[L_INNER]) / 2;
@@ -94,6 +99,8 @@ public final class FaceSignals {
             f.faceY = (ly + ry) / 2 / f.h;
             f.faceSize = (float) Math.hypot(lx - rx, ly - ry) / f.w;
         }
+        // from the eye on the frame's left to the one on its right
+        f.tilt = (float) Math.toDegrees(lx >= rx ? Math.atan2(ly - ry, lx - rx) : Math.atan2(ry - ly, rx - lx));
     }
 
     /** A blendshape by its MediaPipe name, as name/score pairs; 0 when missing. */

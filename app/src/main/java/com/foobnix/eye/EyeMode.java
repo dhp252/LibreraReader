@@ -310,7 +310,7 @@ public final class EyeMode implements EyeCamera.Listener {
     /** For the settings: whether the current orientation has a good calibration. */
     static boolean isCalibratedNow(Activity a) {
         if (current != null && current.host.activity() == a) {
-            if (current.gaze.rotation(current.rotationNow())) {
+            if (current.syncRotation()) {
                 current.blink.setProfile(current.gaze.profile());
             }
             return current.gaze.hasModel();
@@ -532,7 +532,7 @@ public final class EyeMode implements EyeCamera.Listener {
         }
         lastFrameAt = f.t;
 
-        if (gaze.rotation(rotationNow())) {
+        if (syncRotation()) {
             blink.setProfile(gaze.profile());
         }
         final State before = presence.state();
@@ -634,6 +634,25 @@ public final class EyeMode implements EyeCamera.Listener {
 
     // ---------------------------------------------------------------- calibrated gaze (M3)
 
+    /** Loads the calibration and screen geometry of the display rotation now. @return whether it changed */
+    private boolean syncRotation() {
+        final int r = rotationNow();
+        return r != gaze.rotation() && gaze.rotation(r, screenMm());
+    }
+
+    /** The screen's size in mm as shown now (D-133). */
+    private float[] screenMm() {
+        try {
+            final android.util.DisplayMetrics m = new android.util.DisplayMetrics();
+            host.activity().getWindowManager().getDefaultDisplay().getRealMetrics(m);
+            return GazeGeometry.screenMm(m.widthPixels, m.heightPixels, m.xdpi, m.ydpi, m.densityDpi);
+        } catch (Exception e) {
+            LOG.e(e);
+            // a phone's size: only how far head moves carry is a little off
+            return new float[]{68, 150};
+        }
+    }
+
     private int rotationNow() {
         try {
             return host.activity().getWindowManager().getDefaultDisplay().getRotation();
@@ -729,11 +748,15 @@ public final class EyeMode implements EyeCamera.Listener {
         }
         final Activity a = host.activity();
         try {
+            if (syncRotation()) {
+                blink.setProfile(gaze.profile());
+            }
             if (host.isAutoRunning()) {
                 host.pauseAuto();
                 pausedForCalibration = true;
             }
-            calibrating = rezero ? Calibration.rezero(SystemClock.uptimeMillis()) : Calibration.full(SystemClock.uptimeMillis());
+            calibrating = rezero ? Calibration.rezero(SystemClock.uptimeMillis(), gaze.geometry())
+                    : Calibration.full(SystemClock.uptimeMillis(), gaze.geometry());
             calibrationView = new EyeCalibrationView(a, calibrating, this::calibrationDone);
             a.addContentView(calibrationView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
@@ -752,7 +775,7 @@ public final class EyeMode implements EyeCamera.Listener {
             }
             if (trace != null) {
                 trace.event(SystemClock.uptimeMillis(), rezero ? "rezero" : "calibration", "start", calibrating.start(),
-                        "settle", calibrating.settleMs(), "collect", calibrating.collectMs());
+                        "settle", calibrating.settleMs(), "collect", calibrating.collectMs(), "dots", calibrating.dotCount());
             }
         } catch (Exception e) {
             LOG.e(e);
@@ -769,22 +792,28 @@ public final class EyeMode implements EyeCamera.Listener {
         endCalibration(false);
         if (trace != null) {
             trace.event(SystemClock.uptimeMillis(), "calibrated", "result", r.name(), "dots", c.goodDots(),
-                    "rms", c.model() == null ? -1 : c.model().rmsY());
+                    "rms", c.model() == null ? -1 : c.model().rmsY(),
+                    "ySig", c.model() == null ? "" : c.model().signal(true),
+                    "xSig", c.model() == null ? "" : c.model().signal(false),
+                    "kYaw", c.model() == null ? 1 : c.model().kYaw,
+                    "kPitch", c.model() == null ? 1 : c.model().kPitch);
         }
         int note;
         switch (r) {
             case OK:
                 if (c.isRezero()) {
-                    final float[] g = c.rezeroGaze();
-                    if (gaze.model() != null && g != null) {
-                        gaze.model().rezero(0.5f, 0.5f, g[0], g[1]);
+                    final GazeModel.Dot d = c.rezeroDot();
+                    if (gaze.model() != null && d != null) {
+                        gaze.model().rezero(0.5f, 0.5f, d.median, d.head, c.geometry());
                         gaze.saveModel();
                     }
                     note = R.string.eye_rezeroed;
                 } else {
                     gaze.setModel(c.model());
                     blink.setProfile(c.profile());
-                    Toast.makeText(a, a.getString(R.string.eye_cal_ok, Math.round(100 * c.model().rmsY())) + "\n"
+                    Toast.makeText(a, a.getString(R.string.eye_cal_ok, Math.round(100 * c.model().rmsY()),
+                            a.getString(signalName(c.model().signal(true)))) + "\n"
+                            + a.getString(R.string.eye_cal_head, c.model().kYaw, c.model().kPitch) + "\n"
                             + a.getString(eyesNote(c.profile())), Toast.LENGTH_LONG).show();
                     note = 0;
                 }
@@ -809,6 +838,18 @@ public final class EyeMode implements EyeCamera.Listener {
         }
         if (note != 0) {
             Toast.makeText(a, note, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /** The eye signal the calibration picked for up/down (D-131), for its message. */
+    private static int signalName(String signal) {
+        switch (signal) {
+            case "iris":
+                return R.string.eye_signal_iris;
+            case "both":
+                return R.string.eye_signal_both;
+            default:
+                return R.string.eye_signal_scores;
         }
     }
 

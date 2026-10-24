@@ -6,36 +6,50 @@ import java.util.List;
 
 /**
  * A calibration run: the reader follows a dot through {@link #SPOTS} (or one centre dot for a
- * re-zero); for each the median gaze of the face frames after it settled (a blink is a few frames
- * the median does not see). A full run then asks the reader to close the eyes until a tick
- * (D-106): with the bottom dots that gives their own {@link EyeProfile}. Pure: the view asks what
- * to show, Eye mode feeds the frames.
+ * re-zero); for each the eye signals of the face frames after it settled, which
+ * {@link GazeModel#fit} turns into the gaze (medians: a blink is a few frames they do not see). A
+ * full run then asks the reader to close the eyes until a tick (D-106): with the bottom row that
+ * gives their own {@link EyeProfile}. Pure: the view asks what to show, Eye mode feeds the frames.
  */
 public final class Calibration {
 
     public enum Result {RUNNING, OK, POOR, NO_FACE, TOO_DARK, CANCELLED}
 
-    /** What the view shows at a time. */
-    public enum Phase {DOT, PROMPT, CLOSE, DONE}
+    /** What the view shows at a time: the dots, the head step (D-134), the closing step. */
+    public enum Phase {DOT, HEAD, PROMPT, CLOSE, DONE}
 
-    /** Screen fractions (x, y): the centre column top to bottom, then left and right of the middle. */
+    /**
+     * Screen fractions (x, y): a 3 × 3 grid, row by row in a snake (each dot next to the last), so
+     * both axes see the eyes at three places along the other (D-131).
+     */
     static final float[][] SPOTS = {
-            {0.5f, 0.08f}, {0.5f, 0.29f}, {0.5f, 0.5f}, {0.5f, 0.71f}, {0.5f, 0.92f},
-            {0.12f, 0.5f}, {0.88f, 0.5f}};
+            {0.12f, 0.08f}, {0.5f, 0.08f}, {0.88f, 0.08f},
+            {0.88f, 0.5f}, {0.5f, 0.5f}, {0.12f, 0.5f},
+            {0.12f, 0.92f}, {0.5f, 0.92f}, {0.88f, 0.92f}};
     static final float[][] CENTRE = {{0.5f, 0.5f}};
-    /** The dot whose eyes are the bottom gaze. */
-    static final int LOW_DOT = 4;
+    /** Dots from this screen y on are the bottom gaze (the eyes' own profile). */
+    static final float LOW_Y = 0.9f;
 
     private final float[][] spots;
     private final long settleMs;
     private final long collectMs;
     private final long start;
     private final boolean closeStep;
-    /** Frames of the current dot: gaze across, up/down, eye aspect ratio left, right. */
+    private final GazeGeometry geometry;
+    /**
+     * Frames of the current dot: {@link GazeModel#features}, {@link GazeGeometry#head}, and eye
+     * aspect ratio left, right.
+     */
     private final List<float[]> current = new ArrayList<>();
-    /** Per good dot: screen x, y, then the medians of {@link #current}'s columns, then the spot index. */
-    private final List<float[]> dots = new ArrayList<>();
+    private final List<float[]> currentHeads = new ArrayList<>();
+    private final List<float[]> currentEars = new ArrayList<>();
+    /** Good dots, and per good dot its screen y and median eye aspect ratio left, right. */
+    private final List<GazeModel.Dot> dots = new ArrayList<>();
+    private final List<float[]> ears = new ArrayList<>();
     private final List<float[]> closedFrames = new ArrayList<>();
+    /** The head step's frames: {@link GazeModel#features}, {@link GazeGeometry#head}. */
+    private final List<float[]> headFrames = new ArrayList<>();
+    private final List<float[]> headHeads = new ArrayList<>();
     private int index;
     private Result result = Result.RUNNING;
     private GazeModel model;
@@ -43,25 +57,30 @@ public final class Calibration {
     private int darkFrames;
     private int frames;
 
-    private Calibration(float[][] spots, long settleMs, long collectMs, long start, boolean closeStep) {
+    private Calibration(float[][] spots, long settleMs, long collectMs, long start, boolean closeStep, GazeGeometry geometry) {
         this.spots = spots;
         this.settleMs = settleMs;
         this.collectMs = collectMs;
         this.start = start;
         this.closeStep = closeStep;
+        this.geometry = geometry;
     }
 
     /** The first dot shows {@link EyeRules#CAL_LEAD_MS} longer (its time starts that much later). */
-    public static Calibration full(long start) {
-        return new Calibration(SPOTS, EyeRules.CAL_SETTLE_MS, EyeRules.CAL_COLLECT_MS, start + EyeRules.CAL_LEAD_MS, true);
+    public static Calibration full(long start, GazeGeometry geometry) {
+        return new Calibration(SPOTS, EyeRules.CAL_SETTLE_MS, EyeRules.CAL_COLLECT_MS, start + EyeRules.CAL_LEAD_MS, true, geometry);
     }
 
-    public static Calibration rezero(long start) {
-        return new Calibration(CENTRE, EyeRules.REZERO_SETTLE_MS, EyeRules.REZERO_COLLECT_MS, start, false);
+    public static Calibration rezero(long start, GazeGeometry geometry) {
+        return new Calibration(CENTRE, EyeRules.REZERO_SETTLE_MS, EyeRules.REZERO_COLLECT_MS, start, false, geometry);
     }
 
     public boolean isRezero() {
         return spots == CENTRE;
+    }
+
+    public int dotCount() {
+        return spots.length;
     }
 
     public long settleMs() {
@@ -81,8 +100,12 @@ public final class Calibration {
         return start + spots.length * (settleMs + collectMs);
     }
 
+    private long headEnd() {
+        return dotsEnd() + EyeRules.CAL_HEAD_SETTLE_MS + EyeRules.CAL_HEAD_COLLECT_MS;
+    }
+
     private long promptEnd() {
-        return dotsEnd() + EyeRules.CAL_CLOSE_PROMPT_MS;
+        return headEnd() + EyeRules.CAL_CLOSE_PROMPT_MS;
     }
 
     private long closeEnd() {
@@ -99,15 +122,22 @@ public final class Calibration {
         if (!closeStep) {
             return Phase.DONE;
         }
+        if (t < headEnd()) {
+            return Phase.HEAD;
+        }
         if (t < promptEnd()) {
             return Phase.PROMPT;
         }
         return t < closeEnd() ? Phase.CLOSE : Phase.DONE;
     }
 
-    /** The dot to show at {@code t}, null outside the dots. */
+    /** The dot to show at {@code t} (the head step's in the middle), null outside the dots. */
     public float[] spotAt(long t) {
-        if (phase(t) != Phase.DOT) {
+        final Phase p = phase(t);
+        if (p == Phase.HEAD) {
+            return CENTRE[0];
+        }
+        if (p != Phase.DOT) {
             return null;
         }
         final int i = t < start ? 0 : (int) ((t - start) / (settleMs + collectMs));
@@ -118,6 +148,9 @@ public final class Calibration {
     public float progress(long t) {
         if (t < start) {
             return 0;
+        }
+        if (phase(t) == Phase.HEAD) {
+            return Math.min(1, (t - dotsEnd()) / (float) (headEnd() - dotsEnd()));
         }
         final long per = settleMs + collectMs;
         return Math.max(0, Math.min(1, ((t - start) % per) / (float) per));
@@ -132,14 +165,20 @@ public final class Calibration {
         if (dark) {
             darkFrames++;
         }
-        if (!f.face) {
+        final float[] head = GazeGeometry.head(f);
+        if (head == null) {
             return result;
         }
         if (f.t < dotsEnd()) {
             final long in = (f.t - start) % (settleMs + collectMs);
             if (in >= settleMs) {
-                current.add(new float[]{GazeModel.eyesH(f), GazeModel.eyesV(f), f.earL, f.earR});
+                current.add(GazeModel.features(f));
+                currentHeads.add(head);
+                currentEars.add(new float[]{f.earL, f.earR});
             }
+        } else if (f.t >= dotsEnd() + EyeRules.CAL_HEAD_SETTLE_MS && f.t < headEnd()) {
+            headFrames.add(GazeModel.features(f));
+            headHeads.add(head);
         } else if (f.t >= promptEnd() + EyeRules.CAL_CLOSE_SETTLE_MS && f.t < closeEnd()) {
             closedFrames.add(new float[]{f.earL, f.earR});
         }
@@ -168,10 +207,12 @@ public final class Calibration {
 
     private void closeDot() {
         if (current.size() >= EyeRules.CAL_MIN_FRAMES) {
-            dots.add(new float[]{spots[index][0], spots[index][1], median(current, 0), median(current, 1),
-                    median(current, 2), median(current, 3), index});
+            dots.add(new GazeModel.Dot(spots[index][0], spots[index][1], current, currentHeads, geometry));
+            ears.add(new float[]{spots[index][1], median(currentEars, 0), median(currentEars, 1)});
         }
         current.clear();
+        currentHeads.clear();
+        currentEars.clear();
         index++;
     }
 
@@ -184,7 +225,8 @@ public final class Calibration {
             result = darkFrames * 2 > frames ? Result.TOO_DARK : Result.NO_FACE;
             return;
         }
-        model = GazeModel.fit(dots);
+        model = GazeModel.fit(dots, headFrames.size() >= EyeRules.CAL_MIN_FRAMES
+                ? new GazeModel.Dot(CENTRE[0][0], CENTRE[0][1], headFrames, headHeads, geometry) : null);
         if (model != null) {
             profile = eyes();
             model.eyes = profile;
@@ -197,19 +239,19 @@ public final class Calibration {
         if (closedFrames.size() < EyeRules.CAL_MIN_FRAMES) {
             return null;
         }
-        float[] low = null;
+        final List<float[]> low = new ArrayList<>();
         final List<float[]> open = new ArrayList<>();
-        for (float[] d : dots) {
-            if ((int) d[6] == LOW_DOT) {
-                low = d;
-            } else if (d[1] <= 0.5f) {
-                open.add(new float[]{d[4], d[5]});
+        for (float[] e : ears) {
+            if (e[0] >= LOW_Y) {
+                low.add(e);
+            } else if (e[0] <= 0.5f) {
+                open.add(e);
             }
         }
-        if (low == null || open.isEmpty()) {
+        if (low.isEmpty() || open.isEmpty()) {
             return null;
         }
-        return new EyeProfile(median(open, 0), median(open, 1), low[4], low[5],
+        return new EyeProfile(median(open, 1), median(open, 2), median(low, 1), median(low, 2),
                 median(closedFrames, 0), median(closedFrames, 1));
     }
 
@@ -227,9 +269,13 @@ public final class Calibration {
         return profile;
     }
 
-    /** The re-zero's gaze {across, up/down}, null when it failed. */
-    public float[] rezeroGaze() {
-        return isRezero() && !dots.isEmpty() ? new float[]{dots.get(0)[2], dots.get(0)[3]} : null;
+    /** The re-zero's dot (its eye signals and head), null when it failed. */
+    public GazeModel.Dot rezeroDot() {
+        return isRezero() && !dots.isEmpty() ? dots.get(0) : null;
+    }
+
+    public GazeGeometry geometry() {
+        return geometry;
     }
 
     public int goodDots() {

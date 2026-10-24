@@ -13,6 +13,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Range;
 import android.util.Size;
+import android.util.SizeF;
 import android.view.Display;
 import android.view.Surface;
 import android.view.WindowManager;
@@ -86,6 +87,10 @@ final class EyeCamera {
     private final Matrix turn = new Matrix();
 
     private volatile int fps = EyeRules.PRESENCE_FPS;
+    /** The front camera's lens and sensor, mm ({@link CameraMath#focalPx}); 0 when not known. */
+    private volatile float focalMm;
+    private volatile float sensorW;
+    private volatile float sensorH;
     private volatile boolean preview;
 
     EyeCamera(Context context, Listener listener) {
@@ -206,6 +211,7 @@ final class EyeCamera {
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .setTargetRotation(rotation());
         final Range<Integer> range = fpsRange();
+        readLens();
         if (range != null) {
             new Camera2Interop.Extender<>(builder).setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, range);
         }
@@ -271,6 +277,27 @@ final class EyeCamera {
         }
     }
 
+    /** The front camera's focal length and sensor size, for how far the reader is (D-133). */
+    @OptIn(markerClass = ExperimentalCamera2Interop.class)
+    private void readLens() {
+        try {
+            final List<CameraInfo> front = CameraSelector.DEFAULT_FRONT_CAMERA.filter(provider.getAvailableCameraInfos());
+            if (front.isEmpty()) {
+                return;
+            }
+            final Camera2CameraInfo info = Camera2CameraInfo.from(front.get(0));
+            final float[] focal = info.getCameraCharacteristic(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+            final SizeF sensor = info.getCameraCharacteristic(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+            if (focal != null && focal.length > 0 && sensor != null) {
+                focalMm = focal[0];
+                sensorW = sensor.getWidth();
+                sensorH = sensor.getHeight();
+            }
+        } catch (Exception e) {
+            LOG.e(e);
+        }
+    }
+
     private void onCameraState(CameraState state) {
         final CameraState.StateError error = state.getError();
         if (error != null && running) {
@@ -302,6 +329,7 @@ final class EyeCamera {
             final FaceFrame f = engine.detect(upright, now);
             f.luma = luma;
             f.rot = rot;
+            f.focal = CameraMath.focalPx(focalMm, sensorW, sensorH, w, h);
             final Bitmap small = preview
                     ? Bitmap.createScaledBitmap(upright, EyeRules.PREVIEW_W, EyeRules.PREVIEW_W * upright.getHeight() / upright.getWidth(), true)
                     : null;

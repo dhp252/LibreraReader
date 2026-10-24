@@ -10,7 +10,8 @@ import java.util.List;
 
 /**
  * The gaze side of an Eye mode session (M3): the calibration of the current display rotation
- * ({@link GazeModel}, kept in {@link AppSP#eyeCalibration}, D-91), the smoothed screen point,
+ * ({@link GazeModel}, kept in {@link AppSP#eyeCalibration}, D-91) and the screen's
+ * {@link GazeGeometry}, the smoothed head and screen point,
  * book mode's {@link BottomTopTurn} with the re-zero from page turns, and scroll mode's
  * {@link ScrollZones}. Eye mode turns its answers into actions.
  */
@@ -18,6 +19,9 @@ final class EyeGaze {
 
     private int rotation = -1;
     private GazeModel model;
+    private GazeGeometry geometry;
+    /** The head the point is put through, smoothed ({@link EyeRules#HEAD_SMOOTH}); null when lost. */
+    private float[] head;
     private final BottomTopTurn turn = new BottomTopTurn();
     private final ScrollZones zones = new ScrollZones();
     private float sx = Float.NaN;
@@ -28,13 +32,18 @@ final class EyeGaze {
     private final List<float[]> pageStart = new ArrayList<>();
     private boolean nudged = true;
 
-    /** The display rotation now (0..3); a change loads that rotation's calibration. @return whether it changed */
-    boolean rotation(int r) {
+    /**
+     * The display rotation now (0..3) and the screen's size in mm then; a change loads that
+     * rotation's calibration. @return whether it changed
+     */
+    boolean rotation(int r, float[] screenMm) {
         if (r == rotation) {
             return false;
         }
         rotation = r;
         model = load(r);
+        geometry = GazeGeometry.of(screenMm[0], screenMm[1], r);
+        head = null;
         sx = Float.NaN;
         sy = Float.NaN;
         turn.pageShown(-1, -1);
@@ -49,6 +58,10 @@ final class EyeGaze {
 
     int rotation() {
         return rotation;
+    }
+
+    GazeGeometry geometry() {
+        return geometry;
     }
 
     boolean hasModel() {
@@ -76,13 +89,24 @@ final class EyeGaze {
     float[] predict(FaceFrame f, boolean usable) {
         final long dt = lastT < 0 ? 0 : f.t - lastT;
         lastT = f.t;
-        if (!hasModel() || !usable) {
+        final float[] now = usable ? GazeGeometry.head(f) : null;
+        if (!hasModel() || now == null || geometry == null) {
+            head = null;
             sx = Float.NaN;
             sy = Float.NaN;
             return new float[]{sx, sy};
         }
-        final float x = model.x(GazeModel.eyesH(f));
-        final float y = model.y(GazeModel.eyesV(f));
+        if (head == null) {
+            head = now;
+        } else {
+            final float h = EyeRules.alpha(EyeRules.HEAD_SMOOTH, dt);
+            for (int i = 0; i < head.length; i++) {
+                head[i] += h * (now[i] - head[i]);
+            }
+        }
+        final float[] p = model.point(GazeModel.features(f), head, geometry);
+        final float x = p[0];
+        final float y = p[1];
         if (Float.isNaN(sy)) {
             sx = x;
             sy = y;

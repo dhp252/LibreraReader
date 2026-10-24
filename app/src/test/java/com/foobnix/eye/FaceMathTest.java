@@ -59,6 +59,17 @@ public class FaceMathTest {
     }
 
     @Test
+    public void irisDropIsFromTheCornerLineNotTheLids() {
+        // the lids followed the eye down by 1: across sees half the move, drop all of it
+        final float[] x = {0, 10, 5, 5, 5};
+        final float[] y = {0, 0, -1, 3, 2};
+        final float[] iris = FaceSignals.iris(x, y, 0, 1, 2, 3, 4);
+        assertEquals(0.1f, iris[1], E);
+        assertEquals(0.2f, iris[2], E);
+        assertEquals(eye(3, 1)[2], eye(3, 1, 2.5f, 25, 100, 40)[2], E);
+    }
+
+    @Test
     public void irisDownIsPositiveForBothEyes() {
         // the other eye: corners in the opposite order (outer on the right)
         final float[] x = {10, 0, 5, 5, 5};
@@ -275,7 +286,10 @@ public class FaceMathTest {
         f.pitch = 4.25f;
         f.irisLX = 0.48f;
         f.irisRY = -0.03f;
+        f.irisLD = 0.07f;
         f.faceSize = 0.21f;
+        f.tilt = -4.5f;
+        f.focal = 487.5f;
         f.eyesH = -0.4f;
         f.eyesV = 0.1f;
         f.lx = new float[]{1, 2};
@@ -294,6 +308,9 @@ public class FaceMathTest {
         assertEquals(-12.5f, back.yaw, E);
         assertEquals(0.48f, back.irisLX, E);
         assertEquals(-0.03f, back.irisRY, E);
+        assertEquals(0.07f, back.irisLD, E);
+        assertEquals(-4.5f, back.tilt, E);
+        assertEquals(487.5f, back.focal, E);
         assertEquals(0.21f, back.faceSize, E);
         assertEquals(-0.4f, back.eyesH, E);
         assertEquals(0.1f, back.eyesV, E);

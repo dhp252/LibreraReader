@@ -30,6 +30,7 @@ final class EyeCalibrationView extends View {
     private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final float density;
     private final String hint;
+    private final String headHint;
     private final String closePrompt;
     private final String cancel;
     private boolean finished;
@@ -45,6 +46,7 @@ final class EyeCalibrationView extends View {
         text.setTextAlign(Paint.Align.CENTER);
         text.setTextSize(16 * density);
         hint = c.getString(calibration.isRezero() ? R.string.eye_look_dot : R.string.eye_follow_dot);
+        headHint = c.getString(R.string.eye_head_hint);
         closePrompt = c.getString(R.string.eye_close_prompt);
         cancel = c.getString(android.R.string.cancel);
         setClickable(true);
@@ -100,6 +102,16 @@ final class EyeCalibrationView extends View {
         if (spot != null) {
             final float r = density * (14 - 8 * calibration.progress(now));
             canvas.drawCircle(spot[0] * w, spot[1] * h, r, dot);
+        }
+        if (shown == Calibration.Phase.HEAD) {
+            // above the dot, a line at a time
+            final String[] lines = headHint.split("\n");
+            for (int i = 0; i < lines.length; i++) {
+                canvas.drawText(lines[i], w / 2f, h * 0.3f + i * 22 * density, text);
+            }
+            canvas.drawText(cancel, w / 2f, h - 32 * density, text);
+            postInvalidateOnAnimation();
+            return;
         }
         final boolean spotLow = spot != null && spot[1] > 0.4f && spot[1] < 0.6f && spot[0] == 0.5f;
         canvas.drawText(hint, w / 2f, h * (spotLow ? 0.4f : 0.5f), text);
