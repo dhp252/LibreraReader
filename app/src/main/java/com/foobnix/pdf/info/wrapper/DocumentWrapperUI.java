@@ -1557,7 +1557,7 @@ public class DocumentWrapperUI {
         TintUtil.setTintImageWithAlpha(batteryIcon, textColor).setImageAlpha(200);
 
         //int titleColor = AppState.get().isDayNotInvert ? MagicHelper.otherColor(AppState.get().colorDayBg, -0.05f) : MagicHelper.otherColor(AppState.get().colorNigthBg, 0.05f);
-        titleBar.setBackgroundColor(TintUtil.color);
+        paintTitleBar(AppState.get().isEditMode);
 
         int progressColor = TintUtil.color;
 
@@ -1975,9 +1975,19 @@ public class DocumentWrapperUI {
         ttsActive.setVisibility(TxtUtils.visibleIf(!TTSEngine.get().isShutdown() && AppState.get().isEditMode));
     }
 
+    /** The status line stands on the paper while the menu is away, on the menu's colour with it. */
+    private void paintTitleBar(boolean menuUp) {
+        if (!menuUp && ReadingSurface.isOn()) {
+            titleBar.setBackground(new ReadingSurface.Paper(titleBar));
+        } else {
+            titleBar.setBackgroundColor(TintUtil.color);
+        }
+    }
+
     public void hide() {
         menuLayout.setVisibility(View.GONE);
         bottomBar.setVisibility(View.GONE);
+        paintTitleBar(false);
         //adFrame.setVisibility(View.GONE);
         // adFrame.setClickable(false);
         imageMenuArrow.setImageResource(android.R.drawable.arrow_down_float);
@@ -2007,6 +2017,7 @@ public class DocumentWrapperUI {
         menuLayout.setVisibility(View.VISIBLE);
 
         titleBar.setVisibility(View.VISIBLE);
+        paintTitleBar(true);
 
         updateLock();
 

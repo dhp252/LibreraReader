@@ -19,6 +19,7 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.pdf.info.wrapper.ReadingSurface;
 import com.foobnix.ai.AiHighlights;
 import com.foobnix.tts.TTSHighlight;
 
@@ -88,9 +89,15 @@ public class EventDraw implements IEvent {
 //            } else {
 //                viewState.paint.backgroundFillPaint.setColor(MagicHelper.ligtherColor(MagicHelper.getBgColor()));
 //            }
-            viewState.paint.backgroundFillPaint.setColor(MagicHelper.getForegroundColor());
-            if (canvas != null) {
-                canvas.drawRect(canvas.getClipBounds(), viewState.paint.backgroundFillPaint);
+            if (canvas != null && ReadingSurface.isOn()) {
+                // the gaps between the pages, the room beside a zoomed-out page and past either
+                // end are the page's own paper
+                ReadingSurface.fill(canvas, viewState.ctrl.getView().getView());
+            } else {
+                viewState.paint.backgroundFillPaint.setColor(MagicHelper.getForegroundColor());
+                if (canvas != null) {
+                    canvas.drawRect(canvas.getClipBounds(), viewState.paint.backgroundFillPaint);
+                }
             }
 
             viewState.ctrl.drawView(this);
@@ -108,7 +115,13 @@ public class EventDraw implements IEvent {
 
         final boolean res = process(page.nodes);
 
-        if (MagicHelper.isNeedBookBackgroundImage()) {
+        if (MagicHelper.isNeedBookBackgroundImage() && ReadingSurface.isOn()) {
+            // the texture round the page, cut to the page: one sheet with no seam between pages
+            canvas.save();
+            canvas.clipRect(fixedPageBounds);
+            ReadingSurface.overlay(canvas, viewState.ctrl.getView().getView());
+            canvas.restore();
+        } else if (MagicHelper.isNeedBookBackgroundImage()) {
 
 
             Bitmap bgBitmap = MagicHelper.getBackgroundImage();

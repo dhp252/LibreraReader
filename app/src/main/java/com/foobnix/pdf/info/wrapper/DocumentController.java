@@ -29,6 +29,7 @@ import androidx.activity.SystemBarStyle;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.foobnix.android.utils.Apps;
@@ -450,6 +451,12 @@ public abstract class DocumentController {
                                                   EdgeToEdge.getDefaultDarkScrim(),
                                                   resources -> true));
         }
+        // The reader's paper runs under the bars and round the camera as well (ReadingSurface):
+        // the window itself is painted with it, and every strip kept clear shows it through.
+        final boolean paper = isReader(a) && ReadingSurface.isOn();
+        if (paper) {
+            a.getWindow().setBackgroundDrawable(new ReadingSurface.Paper(a.getWindow().getDecorView()));
+        }
         View parentParent = a.findViewById(R.id.parentParent);
         View statusBarHack = a.findViewById(R.id.systemBarHack);
 
@@ -478,7 +485,11 @@ public abstract class DocumentController {
                     }
                     // With the status bar put away, all the strip still keeps clear of is the
                     // camera, and that is boxed off in black the way the system used to do it.
-                    statusBarHack.setBackgroundColor(barsShown(a, windowInsets).top > 0 ? barColor : Color.BLACK);
+                    if (paper) {
+                        statusBarHack.setBackgroundColor(Color.TRANSPARENT);
+                    } else {
+                        statusBarHack.setBackgroundColor(barsShown(a, windowInsets).top > 0 ? barColor : Color.BLACK);
+                    }
                 }
 
                 if (isReader(a)) {
@@ -495,6 +506,13 @@ public abstract class DocumentController {
                     }
                     padUnderBars(top, over.left, over.top, over.right, 0);
                     padUnderBars(bottomPanel, over.left, 0, over.right, over.bottom);
+
+                    if (paper) {
+                        // The clock and the battery stand on the paper, unless a panel is under
+                        // them: dark on light paper, light otherwise.
+                        WindowCompat.getInsetsController(a.getWindow(), a.getWindow().getDecorView())
+                                    .setAppearanceLightStatusBars(over.top == 0 && ReadingSurface.isLight());
+                    }
 
                     // No scrim over the buttons at the foot while the panel is under them, so
                     // they stand on the panel's colour; the scrim is back once they go.

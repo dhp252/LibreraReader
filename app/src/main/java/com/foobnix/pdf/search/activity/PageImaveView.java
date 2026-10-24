@@ -17,9 +17,12 @@ import android.util.Pair;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewParent;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.Scroller;
 import android.widget.Toast;
+
+import androidx.viewpager.widget.ViewPager;
 
 import com.foobnix.LibreraApp;
 import com.foobnix.android.utils.Apps;
@@ -33,6 +36,7 @@ import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.view.BrightnessHelper;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.pdf.info.wrapper.ReadingSurface;
 import com.foobnix.pdf.search.activity.msg.InvalidateMessage;
 import com.foobnix.pdf.search.activity.msg.MessageAutoFit;
 import com.foobnix.pdf.search.activity.msg.MessageCenterHorizontally;
@@ -634,7 +638,8 @@ public class PageImaveView extends View {
 //            } else {
 //                canvas.drawColor(MagicHelper.ligtherColor(MagicHelper.getBgColor()));
 //            }
-            canvas.drawColor(MagicHelper.getForegroundColor());
+            final boolean paper = ReadingSurface.isOn();
+            canvas.drawColor(paper ? MagicHelper.getBgColor() : MagicHelper.getForegroundColor());
 
             final int saveCount = canvas.getSaveCount();
             canvas.save();
@@ -643,6 +648,15 @@ public class PageImaveView extends View {
 
             if (imageDrawable != null) {
                 imageDrawable.draw(canvas);
+            }
+
+            if (paper) {
+                // The texture over the page and the room round it in one piece (the page comes
+                // without it, see ImageExtractor), under the marks drawn next.
+                canvas.restoreToCount(saveCount);
+                ReadingSurface.overlay(canvas, this, pager());
+                canvas.save();
+                canvas.concat(imageMatrix());
             }
 
             if (PageImageState.get().isShowCuttingLine && AppSP.get().isCut == false) {
@@ -691,6 +705,16 @@ public class PageImaveView extends View {
         } catch (Exception e) {
             LOG.e(e);
         }
+    }
+
+    /** Where the page lies once it has turned: the pager's place (see ReadingSurface.overlay). */
+    private View pager() {
+        for (ViewParent p = getParent(); p instanceof View; p = p.getParent()) {
+            if (p instanceof ViewPager) {
+                return (View) p;
+            }
+        }
+        return this;
     }
 
     public void addBitmap(Bitmap bitmap) {

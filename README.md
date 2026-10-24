@@ -319,6 +319,14 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
 
   The key stays on the device and is never synced or backed up. Book text is sent only when
   you use an AI action.
+- **Background fills the screen** (on by default; reader Preferences, under the day/night colors):
+  pick a texture, then a plain color, in book and scroll mode, day and night, a PDF and an EPUB.
+  The paper runs unbroken round a PDF page (the strips above and below it), between pages while
+  scrolling, beside a zoomed-out page, under the status line of scroll mode (while the menu is
+  hidden), under the clock and battery, round the camera and over the navigation-bar margin. The
+  texture is one picture across the screen, not one copy per page. The clock and battery stay
+  readable (dark on light paper). A page curl shows the texture too. Turn the option off: the old
+  look comes back, with the "Foreground" color in the color dialog again.
 - **Page turn** (use the release APK; debug builds make animations stutter): in book mode, open
   the page flipping dialog or the advanced preferences and pick each "Page turn" style:
   - Slide, Cover, Page curl: turn forward and back by tap, volume key and swipe. A slow, short

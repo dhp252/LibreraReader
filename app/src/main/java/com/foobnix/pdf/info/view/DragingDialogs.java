@@ -5677,6 +5677,11 @@ public class DragingDialogs {
 
                 // Colors
 
+                // the paper round the page too, not just under it (ReadingSurface)
+                final CheckBox isBgFullScreen = inflate.findViewById(R.id.isBgFullScreen);
+                isBgFullScreen.setChecked(AppState.get().isBgFullScreen);
+                isBgFullScreen.setOnCheckedChangeListener((buttonView, isChecked) -> AppState.get().isBgFullScreen = isChecked);
+
                 TextView textCustomizeFontBGColor = inflate.findViewById(R.id.textCustomizeFontBGColor);
                 if (AppState.get().isCustomizeBgAndColors || controller.isTextFormat()) {
                     textCustomizeFontBGColor.setText(R.string.customize_font_background_colors);

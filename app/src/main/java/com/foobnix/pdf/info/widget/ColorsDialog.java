@@ -37,6 +37,7 @@ import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.view.CustomSeek;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.pdf.info.wrapper.ReadingSurface;
 
 public class ColorsDialog {
     int colorTextChoose, colorBgChoose, colorForegroundChoose;
@@ -111,6 +112,11 @@ public class ColorsDialog {
         TintUtil.roundCorners(hsvValueSliderForeground, Dips.dpToPx(8));
 
         foregroundLayout = view.findViewById(R.id.foregroundLayout);
+        if (ReadingSurface.isOn()) {
+            // the room round the page is the page's own paper: no colour of its own to pick
+            ((View) fontRGBForeground.getParent()).setVisibility(View.GONE);
+            hsvValueSliderForeground.setVisibility(View.GONE);
+        }
 
         imageTransparency = (CustomSeek) view.findViewById(R.id.bgTransparency);
         imageTransparency.init(10, 255, isDayMode ? AppState.get().bgImageDayTransparency : AppState.get().bgImageNightTransparency);

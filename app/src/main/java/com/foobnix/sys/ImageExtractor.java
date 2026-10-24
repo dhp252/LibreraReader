@@ -48,6 +48,7 @@ import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.pdf.info.wrapper.ReadingSurface;
 import com.foobnix.pdf.search.activity.PageImageState;
 import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.FileMetaCore;
@@ -640,7 +641,10 @@ public class ImageExtractor {
             codeCache.recycle();
         }
 
-        if (!isNeedDisableMagicInPDFDjvu && MagicHelper.isNeedBookBackgroundImage()) {
+        // A reading page with the paper on gets its texture from the page view, in one piece
+        // with the room round the page (ReadingSurface); thumbnails keep theirs baked in.
+        if (!isNeedDisableMagicInPDFDjvu && MagicHelper.isNeedBookBackgroundImage()
+                && !(pageUrl.isDoText() && ReadingSurface.isOn())) {
             bitmap = MagicHelper.updateWithBackground(bitmap);
         }
 

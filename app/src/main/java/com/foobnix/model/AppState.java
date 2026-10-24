@@ -455,6 +455,8 @@ public class AppState {
     public String bgImageNightPath = MagicHelper.IMAGE_BG_1;
     public int bgImageDayTransparency = DAY_TRANSPARENCY;
     public int bgImageNightTransparency = NIGHT_TRANSPARENCY;
+    // the background colour and texture fill the screen, not just the page (ReadingSurface)
+    public boolean isBgFullScreen = true;
     public String appLang = AppState.MY_SYSTEM_LANG;
     public boolean isPrefFormatMode = false;
     public String prefScrollMode = PREF_SCROLL_MODE;
