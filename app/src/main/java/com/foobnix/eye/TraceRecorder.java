@@ -65,6 +65,8 @@ final class TraceRecorder {
         try {
             head.put("ev", "start");
             head.put("v", 1);
+            // gx / gy come from the eyes alone (D-130)
+            head.put("gaze", "eyes");
             head.put("model", Build.MANUFACTURER + " " + Build.MODEL);
             head.put("sdk", Build.VERSION.SDK_INT);
         } catch (JSONException e) {

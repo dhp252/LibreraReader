@@ -384,6 +384,11 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
     that orientation is offered once too. With "Show what the camera sees", an orange ring shows
     where Eye mode thinks you look, with two lines (book mode: top zone and last lines; scroll
     mode: the quarters). Does the ring follow you down the page?
+  - Gaze from the eyes alone (D-130): calibrations made before it read "not calibrated" and are
+    offered again (long blink keeps your learned eyes). Calibrate moving only your eyes, head
+    still. Is the ring closer to where you read than before? A head move that the eyes make up
+    for (eyes kept on one line) now moves the ring: tap the eye in the status bar to re-centre.
+    Turning the head away from the book still pauses (looking or away keeps the head).
   - Book mode: read to the last lines, rest there a moment, look up to the top: next page (tick).
     A glance at the clock or the title soon after a page came, or reading back up slowly: no
     turn. Tap the eye in the status bar: one dot in the middle, "Gaze re-centred".

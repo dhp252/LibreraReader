@@ -138,7 +138,7 @@ public final class Calibration {
         if (f.t < dotsEnd()) {
             final long in = (f.t - start) % (settleMs + collectMs);
             if (in >= settleMs) {
-                current.add(new float[]{ReadingPose.gazeH(f), ReadingPose.gazeV(f), f.earL, f.earR});
+                current.add(new float[]{GazeModel.eyesH(f), GazeModel.eyesV(f), f.earL, f.earR});
             }
         } else if (f.t >= promptEnd() + EyeRules.CAL_CLOSE_SETTLE_MS && f.t < closeEnd()) {
             closedFrames.add(new float[]{f.earL, f.earR});

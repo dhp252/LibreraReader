@@ -31,7 +31,7 @@ public final class EyeRules {
     /**
      * Degrees of gaze per unit of eye direction (eyeLook blendshapes), across and up/down
      * ({@link ReadingPose}, D-102): fitted on the owner's trace, where the eyes turned back as
-     * the head turned while reading.
+     * the head turned while reading. {@link GazeModel} uses the eye part alone (D-130).
      */
     public static final float EYE_DEG_H = 27f;
     public static final float EYE_DEG_V = 40f;

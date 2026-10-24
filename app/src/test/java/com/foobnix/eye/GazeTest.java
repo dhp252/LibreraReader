@@ -26,13 +26,15 @@ public class GazeTest {
         return -10 + 20 * x;
     }
 
-    /** A frame whose head pose alone gives the wanted gaze (eyes straight). */
+    /** A frame whose eyes give the wanted gaze; the head turns and nods with the noise. */
     static FaceFrame looking(long t, float x, float y, float noise) {
         final FaceFrame f = new FaceFrame();
         f.t = t;
         f.face = true;
-        f.yaw = gazeHAt(x) + noise;
-        f.pitch = gazeVAt(y) - noise;
+        f.eyesH = gazeHAt(x) / EyeRules.EYE_DEG_H;
+        f.eyesV = -gazeVAt(y) / EyeRules.EYE_DEG_V;
+        f.yaw = 10 * noise;
+        f.pitch = -10 * noise;
         return f;
     }
 
@@ -87,6 +89,31 @@ public class GazeTest {
         final GazeModel back = GazeModel.fromJson(m.toJson());
         assertEquals(m.y(3), back.y(3), E);
         assertEquals(m.x(3), back.x(3), E);
+    }
+
+    @Test
+    public void theHeadDoesNotMoveTheGaze() {
+        final FaceFrame still = looking(0, 0.3f, 0.7f, 0);
+        final FaceFrame turned = looking(0, 0.3f, 0.7f, 1.5f);
+        assertEquals(GazeModel.eyesH(still), GazeModel.eyesH(turned), E);
+        assertEquals(GazeModel.eyesV(still), GazeModel.eyesV(turned), E);
+        assertEquals(gazeVAt(0.7f), GazeModel.eyesV(still), E);
+        // looking or away still takes the head
+        assertTrue(Math.abs(ReadingPose.gazeH(still) - ReadingPose.gazeH(turned)) > 10);
+    }
+
+    @Test
+    public void aLineFittedWithTheHeadIsNotReused() throws Exception {
+        final org.json.JSONObject o = new org.json.JSONObject();
+        o.put("aY", 0.5).put("bY", -0.025).put("aX", 0.5).put("bX", 0.05).put("rmsY", 0.03).put("spreadV", 20);
+        o.put("eyes", new EyeProfile(0.22f, 0.2f, 0.10f, 0.07f, 0.05f, 0.03f).toJson());
+        final GazeModel old = GazeModel.fromJson(o);
+        assertNotNull(old);
+        assertFalse(old.isGood());
+        // the reader's eyes stay for long blink
+        assertNotNull(old.eyes);
+        o.put("v", GazeModel.VERSION);
+        assertTrue(GazeModel.fromJson(o).isGood());
     }
 
     // ------------------------------------------------------------------ calibration

@@ -9,6 +9,9 @@ package com.foobnix.eye;
  * way by 0.33, and the gaze did not move. So gaze across = yaw + {@link EyeRules#EYE_DEG_H} ×
  * eyesH and up/down = pitch − {@link EyeRules#EYE_DEG_V} × eyesV (degrees; the factors came out
  * of that trace and fit how far eyes turn).
+ * <p>
+ * Only looking or away uses this gaze. Where on the screen ({@link GazeModel}: calibration, page
+ * turn, scroll speed) takes the eyes alone (D-130).
  * <ul>
  *     <li>The first {@link EyeRules#POSE_LEARN_MS} of face frames are taken as reading and set it.</li>
  *     <li>While the gaze stays well inside the limits it follows slowly ({@link EyeRules#POSE_FOLLOW}):

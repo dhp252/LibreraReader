@@ -6,11 +6,18 @@ import org.json.JSONObject;
 import java.util.List;
 
 /**
- * Where on the screen the reader looks (M3, D-90): the gaze of {@link ReadingPose} (degrees)
- * mapped linearly to screen fractions, 0 at the top / left, 1 at the bottom / right. Fitted per
- * display rotation from the calibration dots; a re-zero moves it as a whole. Pure.
+ * Where on the screen the reader looks (M3, D-90): the eyes' own direction ({@link #eyesH},
+ * {@link #eyesV}, degrees) mapped linearly to screen fractions, 0 at the top / left, 1 at the
+ * bottom / right. Fitted per display rotation from the calibration dots; a re-zero moves it as a
+ * whole. Pure.
  */
 public final class GazeModel {
+
+    /**
+     * What the stored lines were fitted on: 2 = the eyes alone (D-130). Version 1 (no "v") took
+     * the head pose too; its line does not fit the eyes alone.
+     */
+    static final int VERSION = 2;
 
     final float aY;
     final float bY;
@@ -30,6 +37,20 @@ public final class GazeModel {
         this.bX = bX;
         this.rmsY = rmsY;
         this.spreadV = spreadV;
+    }
+
+    /**
+     * The gaze across that calibration, gaze, page turn and scroll speed use: the eyes alone, in
+     * the degrees of {@link ReadingPose}'s eye part. No head pose (D-130): it made the screen point
+     * worse; only looking or away ({@link ReadingPose}) takes it.
+     */
+    public static float eyesH(FaceFrame f) {
+        return EyeRules.EYE_DEG_H * f.eyesH;
+    }
+
+    /** The eyes' gaze up (+) / down, degrees, as {@link #eyesH}. */
+    public static float eyesV(FaceFrame f) {
+        return -EyeRules.EYE_DEG_V * f.eyesV;
     }
 
     /**
@@ -115,6 +136,7 @@ public final class GazeModel {
     public JSONObject toJson() {
         try {
             final JSONObject o = new JSONObject();
+            o.put("v", VERSION);
             o.put("aY", aY);
             o.put("bY", bY);
             o.put("aX", aX);
@@ -132,10 +154,16 @@ public final class GazeModel {
         }
     }
 
-    /** @return null for a damaged entry */
+    /** @return null for a damaged entry; an entry fitted on the head pose too comes back not good, with its eyes */
     public static GazeModel fromJson(JSONObject o) {
         if (o == null || !o.has("bY")) {
             return null;
+        }
+        if (o.optInt("v", 1) < VERSION) {
+            // the line is no use any more (calibrate again); the reader's eyes still are, for long blink
+            final GazeModel old = new GazeModel(0, 0, 0.5f, 0, 1, 0);
+            old.eyes = EyeProfile.fromJson(o.optJSONObject("eyes"));
+            return old;
         }
         final GazeModel m = new GazeModel((float) o.optDouble("aY", 0), (float) o.optDouble("bY", 0),
                 (float) o.optDouble("aX", 0.5), (float) o.optDouble("bX", 0),

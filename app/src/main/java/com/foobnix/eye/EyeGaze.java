@@ -81,8 +81,8 @@ final class EyeGaze {
             sy = Float.NaN;
             return new float[]{sx, sy};
         }
-        final float x = model.x(ReadingPose.gazeH(f));
-        final float y = model.y(ReadingPose.gazeV(f));
+        final float x = model.x(GazeModel.eyesH(f));
+        final float y = model.y(GazeModel.eyesV(f));
         if (Float.isNaN(sy)) {
             sx = x;
             sy = y;
