@@ -372,7 +372,6 @@ public class DocumentWrapperUI {
     ImageView anchorX, anchorY;
     DrawView drawView;
     AnnotationSession annotationSession;
-    ImageView aiTop;
     ProgressDraw progressDraw;
     public View.OnClickListener onHideShowToolBar = new View.OnClickListener() {
 
@@ -1290,6 +1289,9 @@ public class DocumentWrapperUI {
         onTextReplacement = a.findViewById(R.id.onTextReplacement);
         onTextReplacement.setOnClickListener(v -> DragingDialogs.dialogTextReplaces(anchor, dc));
 
+        // the AI menu sits in the same place as in book mode
+        a.findViewById(R.id.onAi).setOnClickListener(v -> AiMenu.show(a, v, dc));
+
         View onLibrary = a.findViewById(R.id.onLibrary);
         if (onLibrary != null) {
             TintUtil.setRingColor(onLibrary, MagicHelper.getTextOrIconColor());
@@ -1343,9 +1345,6 @@ public class DocumentWrapperUI {
 
         textToSpeachTop = (ImageView) a.findViewById(R.id.textToSpeachTop);
         textToSpeachTop.setOnClickListener(onTextToSpeach);
-
-        aiTop = (ImageView) a.findViewById(R.id.aiTop);
-        aiTop.setOnClickListener(v -> AiMenu.show(a, v, dc));
 
         ttsActive = a.findViewById(R.id.ttsActive);
         ttsActive.setDC(dc);
@@ -1541,7 +1540,6 @@ public class DocumentWrapperUI {
 
         TintUtil.setTintText(bookName, textColor);
         TintUtil.setTintImageWithAlpha(textToSpeachTop, textColor);
-        TintUtil.setTintImageWithAlpha(aiTop, textColor);
         TintUtil.setTintImageWithAlpha(lockUnlockTop, textColor);
         TintUtil.setTintImageWithAlpha(nextScreenType, textColor);
         TintUtil.setTintText(pagesCountIndicator, textColor);
@@ -1579,7 +1577,6 @@ public class DocumentWrapperUI {
         int iconSize = Dips.spToPx(AppState.get().statusBarTextSizeAdv);
 
         textToSpeachTop.getLayoutParams().height = textToSpeachTop.getLayoutParams().width = iconSize;
-        aiTop.getLayoutParams().height = aiTop.getLayoutParams().width = iconSize;
         lockUnlockTop.getLayoutParams().height = lockUnlockTop.getLayoutParams().width = iconSize;
         nextScreenType.getLayoutParams().height = nextScreenType.getLayoutParams().width = iconSize;
         goToPage1Top.getLayoutParams().height = goToPage1Top.getLayoutParams().width = iconSize;

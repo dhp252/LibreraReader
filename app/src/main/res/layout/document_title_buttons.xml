@@ -134,6 +134,15 @@
                 android:src="@drawable/my_glyphicons_pen" />
 
             <ImageView
+                android:id="@+id/onAi"
+                style="@style/buttonWhite"
+                android:layout_width="@dimen/wh_button"
+                android:layout_height="@dimen/wh_button"
+                android:layout_weight="0"
+                android:contentDescription="@string/ai"
+                android:src="@drawable/ic_ai_sparkle" />
+
+            <ImageView
                 android:id="@+id/prefTop"
                 style="@style/buttonWhite"
                 android:layout_width="@dimen/wh_button"

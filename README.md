@@ -306,7 +306,7 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   folder on the server from a computer: it keeps its cover.
 - **Back in a book**: back closes the book and shows the library, also for a book opened from a
   file manager or another app. A long press of back still shows the close menu.
-- **AI**: tap ✦ in the top bar, then AI settings:
+- **AI**: tap ✦ in the top bar (book and scroll mode: the same place, by the cog), then AI settings:
   - Claude: an API key (model `claude-opus-5-5` by default).
   - OpenAI-compatible: server URL, model, and a key if the server needs one.
   - Tap Test.
