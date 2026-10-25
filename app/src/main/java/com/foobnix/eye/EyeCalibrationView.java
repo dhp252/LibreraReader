@@ -12,8 +12,8 @@ import android.view.View;
 import com.foobnix.pdf.info.R;
 
 /**
- * The calibration screen (design 5.1): a dark full-screen layer over the reader with one dot at a
- * time, shrinking while its frames count, and "Follow the dot". A re-zero is the same with one
+ * The calibration screen (design 5.1): a light full-screen layer over the reader (it lights the
+ * face in a dark room, D-172) with one dot at a time, shrinking while its frames count, and "Follow the dot". A re-zero is the same with one
  * centre dot. Cancel at the bottom. Eye mode feeds the frames to the {@link Calibration}; this
  * view only draws it and moves it on with the clock.
  */
@@ -41,8 +41,8 @@ final class EyeCalibrationView extends View {
         this.calibration = calibration;
         this.done = done;
         density = c.getResources().getDisplayMetrics().density;
-        dot.setColor(0xFFFFC107);
-        text.setColor(0xCCFFFFFF);
+        dot.setColor(0xFFD84315);
+        text.setColor(0xDD212121);
         text.setTextAlign(Paint.Align.CENTER);
         text.setTextSize(16 * density);
         hint = c.getString(calibration.isRezero() ? R.string.eye_look_dot : R.string.eye_follow_dot);
@@ -52,7 +52,7 @@ final class EyeCalibrationView extends View {
         setClickable(true);
         setFocusable(true);
         setFocusableInTouchMode(true);
-        setBackgroundColor(Color.argb(240, 0, 0, 0));
+        setBackgroundColor(Color.rgb(0xEE, 0xEE, 0xEE));
     }
 
     @Override

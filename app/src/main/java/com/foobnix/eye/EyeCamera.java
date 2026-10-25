@@ -87,6 +87,8 @@ final class EyeCamera {
     private final Matrix turn = new Matrix();
 
     private volatile int fps = EyeRules.PRESENCE_FPS;
+    /** The frames analysed a second now, at most {@link #fps} (D-171). */
+    private volatile int rate = EyeRules.PRESENCE_FPS;
     /** The front camera's lens and sensor, mm ({@link CameraMath#focalPx}); 0 when not known. */
     private volatile float focalMm;
     private volatile float sensorW;
@@ -107,9 +109,17 @@ final class EyeCamera {
         return fps;
     }
 
-    /** Takes effect at the next {@link #start}: the exposure range is picked when the camera binds. */
+    /**
+     * The highest rate frames may be analysed at. Takes effect at the next {@link #start}: the
+     * exposure range is picked when the camera binds.
+     */
     void setFps(int fps) {
         this.fps = fps;
+    }
+
+    /** The frames to analyse a second from now on, up to {@link #fps}; no new binding needed. */
+    void setRate(int rate) {
+        this.rate = rate;
     }
 
     boolean isRunning() {
@@ -313,7 +323,7 @@ final class EyeCamera {
                 return;
             }
             final long now = SystemClock.uptimeMillis();
-            if (now - lastFrame < 1000 / Math.max(1, fps) - 15) {
+            if (now - lastFrame < 1000 / Math.max(1, Math.min(rate, fps)) - 15) {
                 return;
             }
             lastFrame = now;

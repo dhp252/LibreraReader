@@ -26,6 +26,19 @@ public class CameraMathTest {
     }
 
     @Test
+    public void presenceRateUnlessTheGazeOrABlinkIsFollowed() {
+        // focus, away, eyes shut: the low rate, seen or not
+        assertEquals(EyeRules.PRESENCE_FPS, EyeRules.frameRate(false, true, false, false));
+        assertEquals(EyeRules.PRESENCE_FPS, EyeRules.frameRate(false, false, false, false));
+        // the gaze followed, but nobody seen: nothing to follow
+        assertEquals(EyeRules.PRESENCE_FPS, EyeRules.frameRate(false, false, true, false));
+        assertEquals(EyeRules.FULL_FPS, EyeRules.frameRate(false, true, true, false));
+        // a closure timed for long blink, and the calibration, whatever else
+        assertEquals(EyeRules.FULL_FPS, EyeRules.frameRate(false, true, false, true));
+        assertEquals(EyeRules.FULL_FPS, EyeRules.frameRate(true, false, false, false));
+    }
+
+    @Test
     public void uprightSize() {
         assertArrayEquals(new int[]{640, 480}, CameraMath.upright(640, 480, 0));
         assertArrayEquals(new int[]{480, 640}, CameraMath.upright(640, 480, 270));

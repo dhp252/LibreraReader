@@ -14,6 +14,8 @@ public final class EyeRules {
     public static final long DIM_AFTER_MS = 30_000L;
     /** Window brightness while dimmed (0 turns some screens off). */
     public static final float DIM_BRIGHTNESS = 0.01f;
+    /** At least this window brightness while calibrating: the light screen lights the face (D-172). */
+    public static final float CAL_BRIGHTNESS = 0.7f;
 
     /** Mean frame luminance (0..1) below which the room is too dark to tell "away" from "can't see". */
     public static final float DARK_LUMA = 0.08f;
@@ -72,10 +74,13 @@ public final class EyeRules {
     /** Blendshape score (eyeBlinkLeft/Right) from which an eye counts as closed. */
     public static final float CLOSED = 0.6f;
 
-    /** Frames analysed per second while only the presence features are on. */
+    /** Frames analysed per second for the presence features: focus, away, eyes shut (D-171). */
     public static final int PRESENCE_FPS = 5;
-    /** ...and while long blink is on: a 0.6 s closure is 6 frames, a natural blink 1–3. */
-    public static final int LONG_BLINK_FPS = 10;
+    /**
+     * ...and while the gaze is followed or a closure is timed: a 0.6 s closure is 6 frames, a
+     * natural blink 1–3. The camera is bound for this rate when long blink or a gaze feature is on.
+     */
+    public static final int FULL_FPS = 10;
 
     // long blink (M2, design 5.1 feature 3, D-103)
     /** eyeBlink of both eyes from which a frame may be closed. */
@@ -153,6 +158,15 @@ public final class EyeRules {
     public static final float SCROLL_MAX_FACTOR = 2f;
     /** The gaze must stay in the top zone this long before the scroll waits (a glance up re-reads). */
     public static final long SCROLL_TOP_DWELL_MS = 600L;
+
+    /**
+     * Frames to analyse a second now (D-171): {@link #PRESENCE_FPS} covers focus, away and the
+     * eyes shut; the full rate only while calibrating, while the gaze is followed
+     * ({@code tracking}, with the reader seen) or while a closure is timed for long blink.
+     */
+    public static int frameRate(boolean calibrating, boolean seen, boolean tracking, boolean closing) {
+        return calibrating || closing || (seen && tracking) ? FULL_FPS : PRESENCE_FPS;
+    }
 
     /**
      * A smoothing weight given per frame at {@link #PRESENCE_FPS}, for a frame {@code dtMs} after

@@ -418,7 +418,8 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
     read-aloud plays or a dialog is open. Record a trace with a few long blinks and a few looks
     down, in a lit room and in bed.
   - Gaze (M3): the first time a gaze feature applies (book mode: "Gaze page turn"; scroll mode:
-    "Gaze auto-scroll speed"), Eye mode offers to calibrate: a dark screen, a dot in 9 places
+    "Gaze auto-scroll speed"), Eye mode offers to calibrate: a light grey screen (the screen goes brighter for it, then
+    back), a dot in 9 places
     (3 × 3, about 15 s), follow it with your eyes; then a dot in the middle: keep your eyes on it
     and slowly turn your head left, right, up and down (about 6 s); then "Now close your eyes until
     you feel a tick" (about 3 s); back or Cancel stops it. The message also says "Head turns count
@@ -438,6 +439,13 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
     line (it may swing for half a second while the head moves). Also with the phone off to the
     side (beside a laptop): calibrate there, then the ring should not lean to one side. Turning
     the head away from the book still pauses.
+  - Calibration in the dark (D-172): in bed at night, calibrate: the light screen should let the
+    camera find your face (no "too dark"), brightness back to yours afterwards, also after Cancel.
+  - Frame rate (D-171), corner panel "N fps": about 5 while you only read with the presence
+    features, look away, or between pages in book mode; about 10 during the calibration, with
+    the gaze speed in scroll mode while auto-scroll runs, in book mode near a page's end (from
+    half its expected time), and for a moment while you close your eyes with long blink on.
+    Long blinks of about a second still turn the page.
   - Book mode: read to the last lines, rest there a moment, look up to the top: next page (tick).
     A glance at the clock or the title soon after a page came, or reading back up slowly: no
     turn. Tap the eye in the status bar: one dot in the middle, "Gaze re-centred".

@@ -144,6 +144,14 @@ final class EyeGaze {
     }
 
     /**
+     * Book mode: whether the gaze matters now (D-171): the page's first lines still to nudge, or
+     * a turn that may come (the guard passed, or armed).
+     */
+    boolean watching(long t) {
+        return (!nudged && pageAt >= 0) || turn.isArmed() || turn.guardPassed(t);
+    }
+
+    /**
      * Book mode re-zero from page turns (D-90): 0.3–1.5 s after a page came the reader is on its
      * first lines; their gaze nudges the offset a step toward them.
      * @return whether the offset moved (to save it)

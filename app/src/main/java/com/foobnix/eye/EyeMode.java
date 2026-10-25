@@ -113,6 +113,9 @@ public final class EyeMode implements EyeCamera.Listener {
     private EyeDebugView debug;
     private long lastFrameAt;
     private float fps;
+    private int rate = EyeRules.PRESENCE_FPS;
+    /** The window brightness before the calibration lit the screen, NaN when it did not. */
+    private float brightnessBeforeCalibration = Float.NaN;
     private int tracedPage = -1;
     private String lastAction;
     private long lastActionAt;
@@ -365,6 +368,7 @@ public final class EyeMode implements EyeCamera.Listener {
 
     private void begin() {
         camera = new EyeCamera(host.activity(), this);
+        rate = EyeRules.PRESENCE_FPS;
         applySettings();
         host.showEyeButton(true);
         host.showEyeState(State.CANT_SEE);
@@ -450,7 +454,7 @@ public final class EyeMode implements EyeCamera.Listener {
         final AppSP sp = AppSP.get();
         if (camera != null) {
             camera.setPreview(sp.eyePreview);
-            final int fps = sp.eyeLongBlink || sp.eyeGazeTurn || sp.eyeGazeScroll ? EyeRules.LONG_BLINK_FPS : EyeRules.PRESENCE_FPS;
+            final int fps = sp.eyeLongBlink || sp.eyeGazeTurn || sp.eyeGazeScroll ? EyeRules.FULL_FPS : EyeRules.PRESENCE_FPS;
             if (camera.fps() != fps) {
                 camera.setFps(fps);
                 if (camera.isRunning()) {
@@ -564,8 +568,29 @@ public final class EyeMode implements EyeCamera.Listener {
         if (state == State.SEES && AppSP.get().eyeScreen) {
             keepScreenOn();
         }
+        setRate(f.t, EyeRules.frameRate(calibrating != null, state == State.SEES, tracking(f.t),
+                AppSP.get().eyeLongBlink && blink.isClosing()));
         if (state != before) {
             changed(before, state);
+        }
+    }
+
+    /** Whether the gaze is followed now: scroll mode's speed while auto-scroll runs, book mode's turn. */
+    private boolean tracking(long t) {
+        if (!gazeUsed() || !gaze.hasModel()) {
+            return false;
+        }
+        return host.isScrollMode() ? host.isAutoRunning() : gaze.watching(t);
+    }
+
+    private void setRate(long t, int r) {
+        if (camera == null || r == rate) {
+            return;
+        }
+        rate = r;
+        camera.setRate(r);
+        if (trace != null) {
+            trace.event(t, "rate", "fps", r);
         }
     }
 
@@ -757,6 +782,8 @@ public final class EyeMode implements EyeCamera.Listener {
             }
             calibrating = rezero ? Calibration.rezero(SystemClock.uptimeMillis(), gaze.geometry())
                     : Calibration.full(SystemClock.uptimeMillis(), gaze.geometry());
+            setRate(SystemClock.uptimeMillis(), EyeRules.FULL_FPS);
+            lightForCalibration();
             calibrationView = new EyeCalibrationView(a, calibrating, this::calibrationDone);
             a.addContentView(calibrationView, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
@@ -879,6 +906,39 @@ public final class EyeMode implements EyeCamera.Listener {
             pausedForCalibration = false;
             host.resumeAuto();
         }
+        if (!Float.isNaN(brightnessBeforeCalibration)) {
+            final Window w = host.activity().getWindow();
+            final WindowManager.LayoutParams lp = w.getAttributes();
+            lp.screenBrightness = brightnessBeforeCalibration;
+            w.setAttributes(lp);
+            brightnessBeforeCalibration = Float.NaN;
+        }
+    }
+
+    /**
+     * The calibration's light screen lights the face in a dark room (D-172): the window goes up to
+     * {@link EyeRules#CAL_BRIGHTNESS} unless it is already that bright, back when it ends.
+     */
+    private void lightForCalibration() {
+        undim();
+        final Window w = host.activity().getWindow();
+        final WindowManager.LayoutParams lp = w.getAttributes();
+        float now = lp.screenBrightness;
+        if (now < 0) {
+            // the system's level: 0..255 (a rough share on screens with a curved slider)
+            try {
+                now = Settings.System.getInt(host.activity().getContentResolver(),
+                        Settings.System.SCREEN_BRIGHTNESS) / 255f;
+            } catch (Exception e) {
+                now = 0;
+            }
+        }
+        if (now >= EyeRules.CAL_BRIGHTNESS) {
+            return;
+        }
+        brightnessBeforeCalibration = lp.screenBrightness;
+        lp.screenBrightness = EyeRules.CAL_BRIGHTNESS;
+        w.setAttributes(lp);
     }
 
     /** A closure of the eyes ended: a long blink turns the page when nothing speaks against it. */
@@ -974,7 +1034,7 @@ public final class EyeMode implements EyeCamera.Listener {
     }
 
     private void dim() {
-        if (dimmed || presence.state() != State.AWAY || !AppSP.get().eyeScreen) {
+        if (dimmed || calibrating != null || presence.state() != State.AWAY || !AppSP.get().eyeScreen) {
             return;
         }
         final Window w = host.activity().getWindow();
