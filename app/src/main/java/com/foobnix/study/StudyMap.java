@@ -106,6 +106,7 @@ public final class StudyMap {
 
         dialog.setContentView(page);
         dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        com.foobnix.android.utils.SafeArea.fit(dialog, page, dark);
         dialog.setOnDismissListener(d -> {
             if (recallJob != null) {
                 recallJob.cancel();
