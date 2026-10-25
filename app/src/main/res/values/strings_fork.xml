@@ -427,4 +427,6 @@
     <string name="study_redo_confirm">This book already has its Study preview. Make a new one? The AI reads the whole book again.</string>
     <string name="map_rebuild_confirm">The map is built. Rebuild its threads from the saved chapters? The AI is asked again for the whole book.</string>
     <string name="ai_retrying">The connection failed. Asking again…</string>
+    <string name="portrait_auto">Portrait (auto)</string>
+    <string name="landscape_auto">Landscape (auto)</string>
 </resources>

@@ -95,18 +95,22 @@ public abstract class DocumentController {
             ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, //
             ActivityInfo.SCREEN_ORIENTATION_SENSOR, //
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE, //onCrop
-            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, //
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE, //
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE, //
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT//
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, //
+            ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT, //
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT// done by AutoPortrait: phones refuse it upside down
                                                                     );
 
     public final static List<Integer> orientationTexts = Arrays.asList(//
             R.string.system, //
             R.string.automatic, //
             R.string.landscape, //
-            R.string.portrait, //
             R.string.landscape_180, //
-            R.string.portrait_180);
+            R.string.landscape_auto, //
+            R.string.portrait, //
+            R.string.portrait_180, //
+            R.string.portrait_auto);
 
     protected final Activity activity;
     private final LinkedList<Integer> linkHistory = new LinkedList<Integer>();
@@ -166,7 +170,8 @@ public abstract class DocumentController {
     }
 
     public static int getRotationText() {
-        return orientationTexts.get(orientationIds.indexOf(AppState.get().orientation));
+        int i = orientationIds.indexOf(AppState.get().orientation);
+        return orientationTexts.get(i < 0 ? 0 : i);
     }
 
     public static boolean isEinkOrMode(Context c) {
@@ -593,7 +598,7 @@ public abstract class DocumentController {
             // LOG.d("isSystemAutoRotation isSystemAutoRotation",
             // Dips.isSystemAutoRotation(a));
             // LOG.d("isSystemAutoRotation geUserRotation", Dips.geUserRotation(a));
-            a.setRequestedOrientation(AppState.get().orientation);
+            AutoPortrait.apply(a, AppState.get().orientation);
         } catch (Exception e) {
             LOG.e(e);
         }
