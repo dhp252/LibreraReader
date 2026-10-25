@@ -158,6 +158,10 @@ public class AiStore {
         public String goal;
         public final List<Summary> summaries = new ArrayList<>();
         public final List<Chapter> highlights = new ArrayList<>();
+        /** The chapters of the whole book, as the last key passages run counted them. */
+        public final List<String> chapterKeys = new ArrayList<>();
+        /** Chapters with nothing to mark (no text, or the AI found no idea): done as well. */
+        public final List<String> emptyKeys = new ArrayList<>();
 
         public Summary summary(String key) {
             for (Summary s : summaries) {
@@ -185,6 +189,26 @@ public class AiStore {
         public void putChapter(Chapter chapter) {
             removeByKey(highlights, chapter.key);
             highlights.add(chapter);
+            emptyKeys.remove(chapter.key);
+        }
+
+        /** Whether a chapter needs no key passages run: marked by ideas, or nothing to mark. */
+        public boolean isDone(String key) {
+            final Chapter c = chapter(key);
+            return c != null && !c.ideas.isEmpty() || emptyKeys.contains(key);
+        }
+
+        /** Every chapter of the book has its key passages (the menu's ✓). */
+        public boolean allMarked() {
+            if (chapterKeys.isEmpty()) {
+                return false;
+            }
+            for (String key : chapterKeys) {
+                if (!isDone(key)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public boolean removeChapter(String key) {
@@ -274,6 +298,12 @@ public class AiStore {
                 h.put(c);
             }
             root.put("highlights", h);
+            if (!chapterKeys.isEmpty()) {
+                root.put("chapterKeys", new JSONArray(chapterKeys));
+            }
+            if (!emptyKeys.isEmpty()) {
+                root.put("emptyKeys", new JSONArray(emptyKeys));
+            }
             return root.toString();
         }
 
@@ -306,7 +336,15 @@ public class AiStore {
                         o.optString("model", ""), o.optLong("time", 0), quotes(o.optJSONArray("quotes")),
                         ideas, quotes(o.optJSONArray("paragraphs")), o.optBoolean("incomplete", false)));
             }
+            strings(root.optJSONArray("chapterKeys"), book.chapterKeys);
+            strings(root.optJSONArray("emptyKeys"), book.emptyKeys);
             return book;
+        }
+
+        private static void strings(JSONArray a, List<String> into) {
+            for (int i = 0; a != null && i < a.length(); i++) {
+                into.add(a.optString(i, ""));
+            }
         }
 
         private static JSONObject quoteJson(Quote q) throws JSONException {

@@ -60,6 +60,7 @@ public final class BookMapView {
     private FrameLayout content;
     private TextView status;
     private TextView action;
+    private TextView close;
     private ProgressBar progress;
     private WebView web;
     private boolean pageLoaded;
@@ -168,7 +169,7 @@ public final class BookMapView {
         ripple(more);
         more.setOnClickListener(this::more);
         bar.addView(more);
-        final TextView close = text("✕", 20, false);
+        close = text("✕", 20, false);
         close.setPadding(pad, Dips.dpToPx(6), pad, Dips.dpToPx(6));
         close.setContentDescription(a.getString(R.string.close));
         ripple(close);
@@ -217,6 +218,10 @@ public final class BookMapView {
     /** The bar and the content for where the map stands. */
     private void refresh(String message) {
         progress.setVisibility(building ? View.VISIBLE : View.GONE);
+        // while it builds, closing hides it: the build goes on
+        close.setText(building ? a.getString(R.string.ai_task_hide) : "✕");
+        close.setTextSize(building ? 15 : 20);
+        close.setContentDescription(a.getString(building ? R.string.ai_task_hide : R.string.close));
         final int mapped = mapped();
         final boolean needsUpdate = MapData.needsUpdate(book);
         String line = message;
@@ -288,7 +293,13 @@ public final class BookMapView {
             menu.getMenu(R.drawable.ic_book_map, R.string.map_continue, () -> build(false));
         }
         if (idle && mapped() > 0) {
-            menu.getMenu(R.drawable.glyphicons_82_refresh, R.string.map_rebuild, () -> build(true));
+            menu.getMenu(R.drawable.glyphicons_82_refresh, R.string.map_rebuild, () -> {
+                if (book.hasBook()) {
+                    com.foobnix.ai.AiMenu.confirmRedo(a, R.string.map_rebuild_confirm, () -> build(true));
+                } else {
+                    build(true);
+                }
+            });
         }
         if (idle && !book.isEmpty()) {
             menu.getMenu(R.drawable.glyphicons_17_bin, R.string.map_delete, this::delete);

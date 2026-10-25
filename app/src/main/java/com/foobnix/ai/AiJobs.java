@@ -103,6 +103,21 @@ public final class AiJobs {
         return BookChapters.chapterAt(known.toc, t.page, known.pages, BookChapters.BLOCK_PAGES);
     }
 
+    /** The chapter at the reader's page; reads the book's TOC when this layout is not known yet. Off the main thread. */
+    public static BookChapters.Range chapterAt(Target t) {
+        final BookChapters.Range known = knownChapter(t);
+        if (known != null) {
+            return known;
+        }
+        try (BookText text = BookText.open(t.path, t.width, t.height, t.fontSize)) {
+            return text == null ? null
+                    : BookChapters.chapterAt(toc(t, text), t.page, text.pageCount(), BookChapters.BLOCK_PAGES);
+        } catch (Exception e) {
+            LOG.e(e);
+            return null;
+        }
+    }
+
     /** The TOC of the book, kept for {@link #knownChapter}. */
     public static List<BookChapters.Entry> toc(Target t, BookText text) {
         final List<BookChapters.Entry> toc = text.toc();
@@ -746,6 +761,8 @@ public final class AiJobs {
         private volatile String status = "";
         /** A chapter given by the caller (a study chapter), else the one at the reader's page. */
         private final BookChapters.Range given;
+        /** Whole book done again: chapters marked before this time are redone; 0 = only those not done. */
+        private final long redoBefore;
 
         public HighlightJob(Activity activity, Target target, boolean wholeBook, HighlightScreen screen) {
             this(activity, target, wholeBook, screen, null);
@@ -757,13 +774,16 @@ public final class AiJobs {
             this.wholeBook = wholeBook;
             this.screen = screen;
             this.given = given;
+            this.redoBefore = 0;
         }
 
         /** The task of a key passages run (design-2026-10-25.md). */
-        public HighlightJob(android.content.Context context, Target target, boolean wholeBook, BookChapters.Range given) {
+        public HighlightJob(android.content.Context context, Target target, boolean wholeBook, BookChapters.Range given,
+                            long redoBefore) {
             super(context, target);
             this.wholeBook = wholeBook;
             this.given = given;
+            this.redoBefore = redoBefore;
         }
 
         public String getStatus() {
@@ -838,12 +858,14 @@ public final class AiJobs {
                 final int pages = text.pageCount();
                 final List<BookChapters.Entry> toc = toc(target, text);
                 final List<BookChapters.Range> todo = new ArrayList<>();
+                final List<BookChapters.Range> all = BookChapters.chaptersOrBlocks(toc, pages, BookChapters.BLOCK_PAGES);
+                final AiStore.Book saved = rememberChapters(all);
                 if (wholeBook) {
-                    final AiStore.Book done = AiStore.get().load(target.name);
-                    for (BookChapters.Range chapter : BookChapters.chaptersOrBlocks(toc, pages, BookChapters.BLOCK_PAGES)) {
-                        // key passages from before ideas are done again
-                        final AiStore.Chapter had = done.chapter(chapter.key);
-                        if (had == null || had.ideas.isEmpty()) {
+                    for (BookChapters.Range chapter : all) {
+                        // key passages from before ideas are done again; on a redo, all done before it
+                        final AiStore.Chapter had = saved.chapter(chapter.key);
+                        final boolean redo = redoBefore > 0 && (had == null || had.time < redoBefore);
+                        if (redo || !saved.isDone(chapter.key)) {
                             todo.add(chapter);
                         }
                     }
@@ -886,6 +908,7 @@ public final class AiJobs {
                     }
                     if (BookChapters.length(lengths, chapter.from, chapter.to) == 0) {
                         withoutText++;
+                        nothingToMark(chapter);
                         continue;
                     }
 
@@ -928,6 +951,9 @@ public final class AiJobs {
                     }
                     if (ideas.isEmpty()) {
                         anyCutOff |= cutOff;
+                        if (!cutOff) {
+                            nothingToMark(chapter);
+                        }
                         continue;
                     }
                     checkCancelled();
@@ -956,6 +982,34 @@ public final class AiJobs {
                 finished(message.toString());
             }
         }
+
+        /** The book's chapters as this layout counts them, for "every chapter is done" (the menu's ✓). */
+        private AiStore.Book rememberChapters(List<BookChapters.Range> all) throws IOException {
+            final List<String> keys = new ArrayList<>();
+            for (BookChapters.Range r : all) {
+                keys.add(r.key);
+            }
+            final AiStore.Book book = AiStore.get().load(target.name);
+            if (book.chapterKeys.equals(keys)) {
+                return book;
+            }
+            final AiStore.Book changed = AiStore.get().update(target.name, b -> {
+                b.chapterKeys.clear();
+                b.chapterKeys.addAll(keys);
+            });
+            AiHighlights.get().set(target.name, changed);
+            return changed;
+        }
+
+        /** A chapter without text, or without an idea: a whole-book run passes it from now on. */
+        private void nothingToMark(BookChapters.Range chapter) throws IOException {
+            final AiStore.Book book = AiStore.get().update(target.name, b -> {
+                if (!b.emptyKeys.contains(chapter.key)) {
+                    b.emptyKeys.add(chapter.key);
+                }
+            });
+            AiHighlights.get().set(target.name, book);
+        }
     }
 
     // --- removing, saving into the PDF ---
@@ -978,13 +1032,19 @@ public final class AiJobs {
         protected void work() throws Exception {
             final AiStore.Book book;
             if (wholeBook) {
-                book = AiStore.get().update(target.name, b -> b.highlights.clear());
+                book = AiStore.get().update(target.name, b -> {
+                    b.highlights.clear();
+                    b.emptyKeys.clear();
+                });
             } else {
                 final String key;
                 try (BookText text = open()) {
                     key = BookChapters.chapterAt(toc(target, text), target.page, text.pageCount(), BookChapters.BLOCK_PAGES).key;
                 }
-                book = AiStore.get().update(target.name, b -> b.removeChapter(key));
+                book = AiStore.get().update(target.name, b -> {
+                    b.removeChapter(key);
+                    b.emptyKeys.remove(key);
+                });
             }
             AiHighlights.get().set(target.name, book);
             toast(string(R.string.ai_removed));

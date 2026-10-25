@@ -9,6 +9,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.Dips;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.wrapper.DocumentController;
@@ -73,21 +74,44 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen, AiProgress.Tas
             return;
         }
         final AiJobs.Target target = AiJobs.Target.of(dc);
-        // the first run on a book asks what the reader wants from it ("apply" is judged against it)
         new Thread(() -> {
-            final String goal = AiStore.get().load(target.name).goal;
+            final AiStore.Book saved = AiStore.get().load(target.name);
+            // done already: asked before the AI is paid again
+            final boolean bookDone = wholeBook && saved.allMarked();
+            boolean chapterDone = false;
+            if (!wholeBook && !saved.highlights.isEmpty()) {
+                final BookChapters.Range at = chapter != null ? chapter : AiJobs.chapterAt(target);
+                final AiStore.Chapter had = at == null ? null : saved.chapter(at.key);
+                chapterDone = had != null && !had.ideas.isEmpty();
+            }
+            final boolean done = chapterDone;
             activity.runOnUiThread(() -> {
-                if (goal == null) {
-                    AiLegend.askGoal(activity, target.name, null, () -> run(activity, target, wholeBook, chapter));
+                if (Apps.isDestroyedActivity(activity)) {
+                    return;
+                }
+                if (bookDone) {
+                    AiMenu.confirmRedo(activity, R.string.ai_redo_book_highlights,
+                            () -> withGoal(activity, saved.goal, AiTask.highlightsAgain(target)));
+                } else if (done) {
+                    AiMenu.confirmRedo(activity, R.string.ai_redo_chapter_highlights,
+                            () -> withGoal(activity, saved.goal, AiTask.highlights(target, false, chapter)));
                 } else {
-                    run(activity, target, wholeBook, chapter);
+                    withGoal(activity, saved.goal, AiTask.highlights(target, wholeBook, chapter));
                 }
             });
         }, "@T AI goal").start();
     }
 
-    private static void run(Activity activity, AiJobs.Target target, boolean wholeBook, BookChapters.Range chapter) {
-        final AiTask task = AiTask.highlights(target, wholeBook, chapter);
+    /** The first run on a book asks what the reader wants from it ("apply" is judged against it). */
+    private static void withGoal(Activity activity, String goal, AiTask task) {
+        if (goal == null) {
+            AiLegend.askGoal(activity, AiHighlights.bookName(task.path), null, () -> run(activity, task));
+        } else {
+            run(activity, task);
+        }
+    }
+
+    private static void run(Activity activity, AiTask task) {
         AiWork.enqueue(activity, task);
         open(activity, task.key());
     }
@@ -116,7 +140,7 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen, AiProgress.Tas
         row.addView(status, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         view.addView(row);
         final TextView note = new TextView(activity);
-        note.setText(R.string.ai_task_background);
+        note.setText(R.string.ai_task_background_hide);
         note.setAlpha(0.7f);
         note.setPadding(0, pad / 2, 0, 0);
         view.addView(note);
@@ -124,7 +148,7 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen, AiProgress.Tas
         dialog = new AlertDialog.Builder(activity)
                 .setTitle(R.string.ai_key_passages)
                 .setView(view)
-                .setPositiveButton(R.string.close, (d, w) -> AiProgress.detach(key, this))
+                .setPositiveButton(R.string.ai_task_hide, (d, w) -> AiProgress.detach(key, this))
                 .setNegativeButton(R.string.cancel, (d, w) -> {
                     AiProgress.detach(key, this);
                     AiWork.cancel(activity, key);
@@ -172,6 +196,9 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen, AiProgress.Tas
         status.setText(message);
         if (dialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null) {
             dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setVisibility(View.GONE);
+        }
+        if (dialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setText(R.string.close);
         }
     }
 

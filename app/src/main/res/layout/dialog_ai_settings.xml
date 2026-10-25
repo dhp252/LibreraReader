@@ -9,6 +9,43 @@
         android:orientation="vertical"
         android:padding="8dip">
 
+        <!-- how the AI highlights are drawn, in every book (the ✦ menu keeps Show) -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="4dip"
+            android:text="@string/ai_highlights_head"
+            android:textAllCaps="true"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <CheckBox
+            android:id="@+id/aiBars"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ai_show_bars" />
+
+        <CheckBox
+            android:id="@+id/aiSentences"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/ai_show_sentences" />
+
+        <TextView
+            android:id="@+id/aiColors"
+            style="@style/textLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="8dip"
+            android:text="@string/ai_colors_button" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dip"
+            android:layout_marginTop="4dip"
+            android:layout_marginBottom="4dip"
+            android:background="@color/lt_grey_alpha" />
+
         <RadioGroup
             android:id="@+id/aiProvider"
             android:layout_width="match_parent"

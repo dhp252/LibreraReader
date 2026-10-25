@@ -1291,6 +1291,7 @@ public class DocumentWrapperUI {
 
         // the AI menu sits in the same place as in book mode
         a.findViewById(R.id.onAi).setOnClickListener(v -> AiMenu.show(a, v, dc));
+        com.foobnix.ai.AiBusyButton.attach(a, a.findViewById(R.id.onAi), dc);
 
         View onLibrary = a.findViewById(R.id.onLibrary);
         if (onLibrary != null) {

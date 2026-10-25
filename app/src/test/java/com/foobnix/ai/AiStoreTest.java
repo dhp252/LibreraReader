@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -149,5 +150,35 @@ public class AiStoreTest {
         assertTrue(read.ideas.isEmpty());
         assertTrue(read.paragraphs.isEmpty());
         assertEquals(0, read.notLocated());
+    }
+
+    @Test
+    public void everyChapterDoneOnlyWhenEachIsMarkedOrHasNothingToMark() throws Exception {
+        final AiStore.Book book = new AiStore.Book();
+        assertFalse("no chapter list yet", book.allMarked());
+        book.chapterKeys.addAll(Arrays.asList("one#0", "two#0", "cover#0"));
+        book.putChapter(new AiStore.Chapter("one#0", "One", "m", 6, Arrays.asList(new AiStore.Quote("Call me Ishmael.", 3, AiCategory.MAIN, 1)),
+                Arrays.asList(new AiStore.Idea(1, "The narrator goes to sea.", AiCategory.MAIN, -1, true, 3)),
+                new java.util.ArrayList<AiStore.Quote>(), false));
+        book.emptyKeys.add("cover#0");
+        assertFalse(book.allMarked());
+        assertTrue(book.isDone("cover#0"));
+        // key passages from before ideas are not done
+        book.putChapter(new AiStore.Chapter("two#0", "Two", "m", 7, Arrays.asList(new AiStore.Quote("Whale.", 9, AiCategory.MAIN))));
+        assertFalse(book.isDone("two#0"));
+        book.putChapter(new AiStore.Chapter("two#0", "Two", "m", 8, new java.util.ArrayList<AiStore.Quote>(),
+                Arrays.asList(new AiStore.Idea(1, "The whale.", AiCategory.MAIN, -1, true, 9)),
+                new java.util.ArrayList<AiStore.Quote>(), false));
+        assertTrue(book.allMarked());
+
+        final AiStore.Book read = AiStore.Book.fromJson(book.toJson());
+        assertEquals(Arrays.asList("one#0", "two#0", "cover#0"), read.chapterKeys);
+        assertEquals(Arrays.asList("cover#0"), read.emptyKeys);
+        assertTrue(read.allMarked());
+        read.removeChapter("one#0");
+        assertFalse(read.allMarked());
+        // a chapter marked later is no longer empty
+        read.putChapter(new AiStore.Chapter("cover#0", "Cover", "m", 9, new java.util.ArrayList<AiStore.Quote>()));
+        assertTrue(read.emptyKeys.isEmpty());
     }
 }

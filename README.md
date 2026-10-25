@@ -236,14 +236,14 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   marks under chapter headings, notes, bookmarks and AI passages. Export again: the file is replaced.
 - **Marks over WebDAV**: mark the same book on two devices before syncing: after a sync both
   devices show both sets. Erase one on a device: it goes on the other too.
-- **AI colors**: ✦ > Highlight key passages on a non-fiction chapter: the first time it asks what
-  you want from the book. Marks come in red, blue, purple, orange, green and grey, never yellow.
-  ✦ > Colors shows what each means. Messages of the pen toolbar now appear above it, not over it.
-- **AI ideas** (one EPUB and one PDF chapter, ideally a two-column PDF): ✦ > Highlight key
-  passages > This chapter. The result names the ideas marked and any "not located". Pages should
+- **AI colors**: ✦ > Key passages > Highlight this chapter on a non-fiction chapter: the first time
+  it asks what you want from the book. Marks come in red, blue, purple, orange, green and grey,
+  never yellow. AI settings > Colors… shows what each means. Messages of the pen toolbar now appear above it, not over it.
+- **AI ideas** (one EPUB and one PDF chapter, ideally a two-column PDF): ✦ > Key passages >
+  Highlight this chapter. The result names the ideas marked and any "not located". Pages should
   rarely be empty: key sentences filled, must-read paragraphs with a colored bar in the left
-  margin, also where a paragraph runs onto the next page (and into the next column). ✦ > Ideas of
-  this chapter: every idea, indented under the one it supports; does it miss anything you think
+  margin, also where a paragraph runs onto the next page (and into the next column). ✦ > Key passages >
+  Ideas of this chapter: every idea, indented under the one it supports; does it miss anything you think
   matters? Tap an idea: the book goes to it. Tap a sentence or a bar: its idea, Explain (an answer
   streams in), All ideas. ✦ > Paragraph bars / Key sentences hide each layer. Whole book, then
   Cancel: the chapters done stay.
@@ -287,7 +287,7 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
 - **AI in the background** (key passages for the whole book, the whole-book summary, Book map,
   Study this book): start one; a notification shows "Key passages · <book>", a progress bar and
   Cancel. Press Home, lock the phone for 5 minutes, unlock: it kept going (no "network error").
-  Close the book and reopen it, open the same dialog (✦ > Highlight key passages, or Book map):
+  Close the book and reopen it, open the same dialog (✦ > Key passages > Show progress, or Book map):
   the progress is back. Airplane mode mid-run: "Waiting for the network…", airplane mode off: it
   carries on from the last finished chapter. Swipe Librera away from recent apps; restart the
   phone: it carries on by itself (on HUAWEI allow Librera to run in the background: Settings >
@@ -295,7 +295,12 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   finished chapters stay. Start a second task (another book or kind) during the first: it says
   "Waiting for another AI task to finish…" and starts after it. A bad API key: "Stopped: …" with
   Continue. When done, the notification says so; a tap opens the book. Explain, Check and a chapter
-  summary work as before.
+  summary work as before. Hide on a running progress (the map's ✕ reads Hide): the ✦ button turns
+  and the ✦ menu says "… · running…" until it ends; a tap on that item shows the progress again.
+  After key passages for the whole book, ✦ shows "Key passages ✓"; after a Study preview,
+  "Study this book ✓". Ask again for key passages (whole book or a done chapter), Regenerate a
+  saved summary, Redo preview or Rebuild map: each asks first; "Do it again" on the whole book
+  redoes every chapter.
 - **Stylus** (a phone or tablet with an active pen): open a PDF without opening the toolbar and
   write with the pen: it draws at once, thinner or bolder with pressure, while a finger still turns
   pages. Rest your palm while writing: nothing happens. Set "Stylus draws with" to Highlighter
@@ -333,16 +338,26 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   folder on the server from a computer: it keeps its cover.
 - **Back in a book**: back closes the book and shows the library, also for a book opened from a
   file manager or another app. A long press of back still shows the close menu.
-- **AI**: tap ✦ in the top bar (book and scroll mode: the same place, by the cog), then AI settings:
+- **AI**: open AI settings from the cog in the top bar > Advanced Settings > AI (book and scroll
+  mode), or from the library's Preferences > AI:
   - Claude: an API key (model `claude-opus-5-5` by default).
   - OpenAI-compatible: server URL, model, and a key if the server needs one.
   - Tap Test.
   
   Then try:
-  - "Summary of this chapter": it streams in, and opening it again is instant.
-  - "Highlight key passages > This chapter": passages appear in their own color.
-  - Show/hide and Remove.
-  - On a PDF, "Save AI highlights into PDF".
+  - ✦ (in the top bar, by the cog) > "Summary of this chapter": it streams in, and opening it
+    again is instant.
+  - ✦ > Key passages > "Highlight this chapter": passages appear in their own color.
+  - ✦ > Key passages: Show AI highlights, and Remove (it asks first).
+  - On a PDF, ✦ > Key passages > "Save into PDF".
+- **AI menu** (design-2026-10-25-ai-menu.md): ✦ shows 5 rows (Study, Book map, the two summaries,
+  "Key passages ›") and fits in landscape without scrolling. Key passages opens a second popup:
+  Ideas of this chapter, Highlight this chapter / the whole book (✓ when done), Show AI highlights,
+  Reading goal…, and once the book has AI highlights, Remove from this chapter… / the whole book…
+  (each asks first) and, on a PDF, Save into PDF. While key passages run, the two Highlight rows
+  are one "Show progress · running…" row and Remove / Save are gone. AI settings starts with
+  Paragraph bars, Key sentences and Colors…: Save applies the switches at once, Cancel leaves them.
+  Check the popups in the e-ink theme too.
 
   The key stays on the device and is never synced or backed up. Book text is sent only when
   you use an AI action.

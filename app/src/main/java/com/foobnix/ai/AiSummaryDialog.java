@@ -94,6 +94,9 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen, AiProgress.TaskScr
                     // the whole book's task: Cancel stops it (Close only closes the dialog)
                     AiWork.cancel(activity, key);
                     onEnded(AiProgress.CANCELLED, activity.getString(R.string.ai_task_cancelled));
+                } else if (text.length() > 0) {
+                    // a summary is there: asked before the AI is paid again
+                    AiMenu.confirmRedo(activity, R.string.ai_redo_summary, () -> start(true));
                 } else {
                     start(true);
                 }
@@ -170,7 +173,8 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen, AiProgress.TaskScr
         final Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         final Button neutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
         if (positive != null) {
-            positive.setText(running && !attached ? R.string.cancel : R.string.close);
+            // the whole book's task goes on when hidden; a chapter's stops
+            positive.setText(!running ? R.string.close : attached ? R.string.ai_task_hide : R.string.cancel);
         }
         if (neutral != null) {
             neutral.setText(running && attached ? R.string.cancel : R.string.ai_regenerate);

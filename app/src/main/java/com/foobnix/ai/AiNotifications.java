@@ -72,6 +72,8 @@ public final class AiNotifications {
             final Object v = e.getValue();
             if (v instanceof Integer) {
                 again.putExtra(e.getKey(), (Integer) v);
+            } else if (v instanceof Long) {
+                again.putExtra(e.getKey(), (Long) v);
             } else if (v instanceof Boolean) {
                 again.putExtra(e.getKey(), (Boolean) v);
             } else {

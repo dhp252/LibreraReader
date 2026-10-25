@@ -112,4 +112,22 @@ public class AiProgressTest {
         assertEquals(-1, AiProgress.state(other));
         assertFalse(AiProgress.isRunning(other));
     }
+
+    @Test
+    public void listenersHearEveryChangeAndBusyMeansQueuedOrRunning() {
+        final List<String> heard = new ArrayList<>();
+        final AiProgress.Listener l = (key, state) -> heard.add(key + "=" + state);
+        AiProgress.listen(l);
+        assertFalse(AiProgress.isBusy(KEY));
+        AiProgress.queued(KEY);
+        assertTrue(AiProgress.isBusy(KEY));
+        AiProgress.started(KEY, new Job());
+        assertTrue(AiProgress.isBusy(KEY));
+        AiProgress.waiting(KEY, "network");
+        AiProgress.ended(KEY, AiProgress.DONE, "done");
+        assertFalse(AiProgress.isBusy(KEY));
+        AiProgress.unlisten(l);
+        AiProgress.queued(KEY);
+        assertEquals("[" + KEY + "=0, " + KEY + "=1, " + KEY + "=0, " + KEY + "=2]", heard.toString());
+    }
 }

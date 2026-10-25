@@ -149,7 +149,7 @@ public final class StudyStart {
             row.addView(status, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             view.addView(row);
             final TextView note = new TextView(activity);
-            note.setText(R.string.ai_task_background);
+            note.setText(R.string.ai_task_background_hide);
             note.setAlpha(0.7f);
             note.setPadding(0, pad / 2, 0, 0);
             view.addView(note);
@@ -157,7 +157,7 @@ public final class StudyStart {
             dialog = new AlertDialog.Builder(activity)
                     .setTitle(R.string.study_this_book)
                     .setView(view)
-                    .setPositiveButton(R.string.close, (d, w) -> AiProgress.detach(key, this))
+                    .setPositiveButton(R.string.ai_task_hide, (d, w) -> AiProgress.detach(key, this))
                     .setNegativeButton(R.string.cancel, (d, w) -> {
                         AiProgress.detach(key, this);
                         AiWork.cancel(activity, key);

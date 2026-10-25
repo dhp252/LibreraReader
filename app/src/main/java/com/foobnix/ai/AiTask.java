@@ -13,6 +13,8 @@ public final class AiTask {
     public static final String MAP = "map";
     public static final String BOOK_SUMMARY = "bookSummary";
     public static final String STUDY_PREVIEW = "studyPreview";
+    /** Every kind of long task. */
+    public static final String[] KINDS = {HIGHLIGHTS, MAP, BOOK_SUMMARY, STUDY_PREVIEW};
 
     public final String kind;
     public final String path;
@@ -29,9 +31,12 @@ public final class AiTask {
     public final boolean bookOnly;
     /** Summary: made again although one is saved. */
     public final boolean regenerate;
+    /** Key passages of the whole book done again: chapters marked before this time; 0 = not a redo. */
+    public final long redoBefore;
 
     private AiTask(String kind, String path, String title, int width, int height, int fontSize, int page,
-                   boolean wholeBook, BookChapters.Range chapter, boolean bookOnly, boolean regenerate) {
+                   boolean wholeBook, BookChapters.Range chapter, boolean bookOnly, boolean regenerate,
+                   long redoBefore) {
         this.kind = kind;
         this.path = path;
         this.title = title == null ? "" : title;
@@ -43,10 +48,17 @@ public final class AiTask {
         this.chapter = chapter;
         this.bookOnly = bookOnly;
         this.regenerate = regenerate;
+        this.redoBefore = redoBefore;
     }
 
     public static AiTask highlights(AiJobs.Target t, boolean wholeBook, BookChapters.Range chapter) {
         return of(HIGHLIGHTS, t, wholeBook, chapter, false, false);
+    }
+
+    /** Key passages of every chapter again, those marked before now included. */
+    public static AiTask highlightsAgain(AiJobs.Target t) {
+        return new AiTask(HIGHLIGHTS, t.path, t.title, t.width, t.height, t.fontSize, t.page, true, null, false, false,
+                System.currentTimeMillis());
     }
 
     public static AiTask map(AiJobs.Target t, boolean bookOnly) {
@@ -64,7 +76,7 @@ public final class AiTask {
     private static AiTask of(String kind, AiJobs.Target t, boolean wholeBook, BookChapters.Range chapter,
                              boolean bookOnly, boolean regenerate) {
         return new AiTask(kind, t.path, t.title, t.width, t.height, t.fontSize, t.page, wholeBook, chapter,
-                bookOnly, regenerate);
+                bookOnly, regenerate, 0);
     }
 
     public static boolean isKind(String kind) {
@@ -103,6 +115,9 @@ public final class AiTask {
         m.put("wholeBook", wholeBook);
         m.put("bookOnly", bookOnly);
         m.put("regenerate", regenerate);
+        if (redoBefore > 0) {
+            m.put("redoBefore", redoBefore);
+        }
         if (chapter != null) {
             m.put("chapterFrom", chapter.from);
             m.put("chapterTo", chapter.to);
@@ -129,7 +144,7 @@ public final class AiTask {
         }
         return new AiTask(kind, path, string(m.get("title")), number(m.get("width")), number(m.get("height")),
                 number(m.get("fontSize")), number(m.get("page")), bool(m.get("wholeBook")), chapter,
-                bool(m.get("bookOnly")), bool(m.get("regenerate")));
+                bool(m.get("bookOnly")), bool(m.get("regenerate")), longNumber(m.get("redoBefore")));
     }
 
     private static String string(Object o) {
@@ -138,6 +153,10 @@ public final class AiTask {
 
     private static int number(Object o) {
         return o instanceof Number ? ((Number) o).intValue() : 0;
+    }
+
+    private static long longNumber(Object o) {
+        return o instanceof Number ? ((Number) o).longValue() : 0;
     }
 
     private static boolean bool(Object o) {

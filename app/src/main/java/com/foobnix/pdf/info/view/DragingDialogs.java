@@ -4000,6 +4000,9 @@ public class DragingDialogs {
 
             @Override public View getContentView(final LayoutInflater inflater) {
                 View inflate = inflater.inflate(R.layout.dialog_adv_preferences, null, false);
+                // fork (F-004): AI settings for every book
+                com.foobnix.ai.AiSettingsDialog.bindPreferences(controller.getActivity(), inflate);
+                TxtUtils.underlineTextView(inflate.findViewById(R.id.aiPrefSettings));
 
                 CheckBox isLoopAutoplay = inflate.findViewById(R.id.isLoopAutoplay);
                 isLoopAutoplay.setChecked(AppState.get().isLoopAutoplay);

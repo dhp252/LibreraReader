@@ -7,7 +7,9 @@ import android.os.Looper;
 import com.foobnix.android.utils.Apps;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 
 /**
@@ -36,6 +38,11 @@ public final class AiProgress {
         void onEnded(int state, String message);
     }
 
+    /** Hears a task change state (queued, runs, waits, ended), on the main thread: the reader's ✦ button. */
+    public interface Listener {
+        void onChanged(String key, int state);
+    }
+
     private static final class Entry {
         int state = WAITING;
         String status = "";
@@ -49,6 +56,7 @@ public final class AiProgress {
     static volatile Executor main;
 
     private static final Map<String, Entry> entries = new HashMap<>();
+    private static final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private static volatile String running;
 
     private AiProgress() {
@@ -85,6 +93,7 @@ public final class AiProgress {
                 e.message = null;
             }
         }
+        changed(key);
     }
 
     /** The task's job runs: a screen waiting for it gets it. */
@@ -104,6 +113,7 @@ public final class AiProgress {
         if (screen != null) {
             job.attach(screen, owner);
         }
+        changed(key);
     }
 
     /** Between two runs (network, a restart): the screen hears why it waits. */
@@ -122,6 +132,7 @@ public final class AiProgress {
         if (screen instanceof TaskScreen) {
             main(() -> ((TaskScreen) screen).onWaiting(status));
         }
+        changed(key);
     }
 
     /** The task ended (done, failed, cancelled); the screen hears it when it wants to. */
@@ -140,6 +151,27 @@ public final class AiProgress {
         if (screen instanceof TaskScreen) {
             main(() -> ((TaskScreen) screen).onEnded(state, message));
         }
+        changed(key);
+    }
+
+    public static void listen(Listener l) {
+        listeners.add(l);
+    }
+
+    public static void unlisten(Listener l) {
+        listeners.remove(l);
+    }
+
+    private static void changed(String key) {
+        if (listeners.isEmpty()) {
+            return;
+        }
+        main(() -> {
+            final int state = state(key);
+            for (Listener l : listeners) {
+                l.onChanged(key, state);
+            }
+        });
     }
 
     // --- a screen's side ---
@@ -189,6 +221,12 @@ public final class AiProgress {
         }
     }
 
+    /** Whether the task is queued, waiting or running. */
+    public static boolean isBusy(String key) {
+        final int state = state(key);
+        return state == RUNNING || state == WAITING;
+    }
+
     /** Whether the task's job runs in this process now. */
     public static boolean isRunning(String key) {
         synchronized (entries) {
@@ -212,5 +250,6 @@ public final class AiProgress {
             entries.clear();
             running = null;
         }
+        listeners.clear();
     }
 }

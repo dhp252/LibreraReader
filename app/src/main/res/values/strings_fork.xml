@@ -63,9 +63,17 @@
     <string name="ai">AI</string>
     <string name="ai_summary_chapter">Summary of this chapter</string>
     <string name="ai_summary_book">Summary of the whole book</string>
-    <string name="ai_highlight">Highlight key passages…</string>
-    <string name="ai_this_chapter">This chapter</string>
-    <string name="ai_whole_book">Whole book</string>
+    <string name="ai_highlight_chapter">Highlight this chapter</string>
+    <string name="ai_highlight_book">Highlight the whole book</string>
+    <string name="ai_show_progress">Show progress</string>
+    <string name="ai_remove_chapter">Remove from this chapter…</string>
+    <string name="ai_remove_book">Remove from the whole book…</string>
+    <string name="ai_remove_chapter_confirm">Remove the AI highlights of this chapter? Getting them back costs new AI requests.</string>
+    <string name="ai_remove_book_confirm">Remove the AI highlights of the whole book? Getting them back costs new AI requests.</string>
+    <string name="ai_remove">Remove</string>
+    <string name="ai_save_into_pdf">Save into PDF</string>
+    <string name="ai_highlights_head">Highlights</string>
+    <string name="ai_colors_button">Colors…</string>
     <string name="ai_show_highlights">Show AI highlights</string>
     <string name="ai_colors">Colors</string>
     <string name="ai_goal">Reading goal…</string>
@@ -100,8 +108,6 @@
     <string name="ai_not_located">not located</string>
     <string name="ai_show_bars">Paragraph bars</string>
     <string name="ai_show_sentences">Key sentences</string>
-    <string name="ai_remove_highlights">Remove AI highlights…</string>
-    <string name="ai_save_into_pdf">Save AI highlights into PDF</string>
     <string name="ai_settings">AI settings</string>
     <string name="ai_key_passages">Key passages</string>
     <string name="ai_reading_book">Reading the book…</string>
@@ -393,7 +399,7 @@
     <string name="map_partial">%1$d chapters read. Continue building to finish the map.</string>
     <string name="map_needs_update">Chapters changed since the map was drawn.</string>
     <string name="map_no_webview">The map needs Android System WebView. Here are its key moments.</string>
-    <string name="map_hidden">The map keeps building. A message comes when it is done.</string>
+    <string name="map_hidden">The map keeps building: the ✦ button turns until it is done.</string>
 
     <!-- Long AI tasks in the background (F-004 design-2026-10-25) -->
     <string name="ai_task_channel">AI work</string>
@@ -411,5 +417,14 @@
     <string name="ai_task_background">It keeps going in the background, also with the book closed.</string>
     <string name="ai_task_needs_settings">Set up AI first: ✦ > AI settings.</string>
     <string name="ai_task_summary_done">The book\'s summary is ready.</string>
+    <string name="ai_task_hide">Hide</string>
+    <string name="ai_task_background_hide">Hide keeps it going in the background, also with the book closed: the ✦ button turns until it is done.</string>
+    <string name="ai_task_running">%1$s · running…</string>
+    <string name="ai_redo">Do it again</string>
+    <string name="ai_redo_chapter_highlights">This chapter already has its key passages. Do them again? The AI reads the chapter again.</string>
+    <string name="ai_redo_book_highlights">Every chapter already has its key passages. Do them all again? The AI reads the whole book again.</string>
+    <string name="ai_redo_summary">This summary is saved. Write a new one? The AI reads the text again.</string>
+    <string name="study_redo_confirm">This book already has its Study preview. Make a new one? The AI reads the whole book again.</string>
+    <string name="map_rebuild_confirm">The map is built. Rebuild its threads from the saved chapters? The AI is asked again for the whole book.</string>
     <string name="ai_retrying">The connection failed. Asking again…</string>
 </resources>

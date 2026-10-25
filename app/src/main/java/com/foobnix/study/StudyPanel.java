@@ -232,10 +232,11 @@ public final class StudyPanel {
             s.stopStudying();
             popup.closeDialog();
         });
-        menu.getMenu(R.drawable.ic_study, R.string.study_redo_preview, () -> {
-            popup.closeDialog();
-            StudyStart.begin(a, dc, true);
-        });
+        menu.getMenu(R.drawable.ic_study, R.string.study_redo_preview, () ->
+                com.foobnix.ai.AiMenu.confirmRedo(a, R.string.study_redo_confirm, () -> {
+                    popup.closeDialog();
+                    StudyStart.begin(a, dc, true);
+                }));
         menu.getMenu(R.drawable.glyphicons_578_share, R.string.study_export_notes,
                 () -> MarksExport.start(a, dc.getCurrentBook().getPath(), dc));
         final com.foobnix.ai.AiHighlights h = com.foobnix.ai.AiHighlights.get();

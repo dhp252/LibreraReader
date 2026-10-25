@@ -20,8 +20,9 @@ import java.util.Map;
 import okhttp3.HttpUrl;
 
 /**
- * Provider, server, key and model, the language of summaries and the master prompt (AI highlight
- * colors are fixed by category, AiCategory).
+ * How the AI highlights are drawn (bars, key sentences, the colors' legend), then provider, server,
+ * key and model, the language of summaries and the master prompt (AI highlight colors are fixed by
+ * category, AiCategory).
  * Everything here stays on the device ({@link AiSettings}); Test sends a tiny request.
  */
 public class AiSettingsDialog {
@@ -40,6 +41,8 @@ public class AiSettingsDialog {
     private EditText masterPrompt;
     private EditText maxChars;
     private CheckBox mapFromIdeas;
+    private CheckBox bars;
+    private CheckBox sentences;
     private TextView result;
 
     private AiSettingsDialog(Activity activity, Runnable onSaved) {
@@ -80,6 +83,10 @@ public class AiSettingsDialog {
         masterPrompt = view.findViewById(R.id.aiMasterPrompt);
         maxChars = view.findViewById(R.id.aiMaxChars);
         mapFromIdeas = view.findViewById(R.id.aiMapFromIdeas);
+        bars = view.findViewById(R.id.aiBars);
+        sentences = view.findViewById(R.id.aiSentences);
+        TxtUtils.underlineTextView(view.findViewById(R.id.aiColors));
+        view.findViewById(R.id.aiColors).setOnClickListener(v -> AiLegend.show(activity));
         result = view.findViewById(R.id.aiTestResult);
         final CheckBox showKey = view.findViewById(R.id.aiShowKey);
         showKey.setOnCheckedChangeListener((b, checked) -> {
@@ -123,6 +130,7 @@ public class AiSettingsDialog {
                     return;
                 }
                 settings.save(activity);
+                AiHighlights.get().setLayers(settings.barsVisible, settings.sentencesVisible);
                 dialog.dismiss();
                 if (onSaved != null) {
                     onSaved.run();
@@ -141,6 +149,8 @@ public class AiSettingsDialog {
         masterPrompt.setText(settings.masterPrompt);
         maxChars.setText(String.valueOf(settings.maxChars));
         mapFromIdeas.setChecked(settings.mapFromIdeas);
+        bars.setChecked(settings.barsVisible);
+        sentences.setChecked(settings.sentencesVisible);
         result.setVisibility(View.GONE);
     }
 
@@ -152,6 +162,8 @@ public class AiSettingsDialog {
         settings.answerLanguage = language.getText().toString().trim();
         settings.masterPrompt = masterPrompt.getText().toString().trim();
         settings.mapFromIdeas = mapFromIdeas.isChecked();
+        settings.barsVisible = bars.isChecked();
+        settings.sentencesVisible = sentences.isChecked();
         try {
             settings.maxChars = Math.max(2000, Integer.parseInt(maxChars.getText().toString().trim()));
         } catch (NumberFormatException e) {

@@ -2131,6 +2131,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
             return;
         }
         ai.setOnClickListener(v -> AiMenu.show(this, v, dc));
+        com.foobnix.ai.AiBusyButton.attach(this, ai, dc);
         AiHighlights.get().open(this, dc.getCurrentBook().getPath());
         com.foobnix.annotation.MarksLayer.get().open(this, dc.getCurrentBook().getPath(), dc.docPageCount());
         com.foobnix.webdav.BookSync.shown(dc);

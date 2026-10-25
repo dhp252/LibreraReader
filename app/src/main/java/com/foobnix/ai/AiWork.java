@@ -152,7 +152,7 @@ public final class AiWork extends Worker {
             case AiTask.STUDY_PREVIEW:
                 return new com.foobnix.study.StudyJobs.PreviewJob(app, task.target());
             default:
-                return new AiJobs.HighlightJob(app, task.target(), task.wholeBook, task.chapter);
+                return new AiJobs.HighlightJob(app, task.target(), task.wholeBook, task.chapter, task.redoBefore);
         }
     }
 

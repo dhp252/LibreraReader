@@ -77,4 +77,14 @@ public class AiTaskTest {
         assertNull(AiTask.fromMap(null));
         assertEquals("map:Book.pdf", AiTask.key("Book.pdf", AiTask.MAP));
     }
+
+    @Test
+    public void aWholeBookRedoKeepsItsTime() {
+        final Map<String, Object> m = stored(AiTask.HIGHLIGHTS);
+        assertEquals(0, AiTask.fromMap(AiTask.fromMap(m).toMap()).redoBefore);
+        m.put("redoBefore", 1_761_400_000_000L);
+        final AiTask again = AiTask.fromMap(AiTask.fromMap(m).toMap());
+        assertEquals(1_761_400_000_000L, again.redoBefore);
+        assertTrue(again.wholeBook);
+    }
 }
