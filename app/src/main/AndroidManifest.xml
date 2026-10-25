@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- long AI tasks (key passages, book map, book summary) keep going in the background -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -416,6 +418,16 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/recent_images_provider_3x1" />
         </receiver>
+
+        <!-- long AI tasks run as WorkManager work behind a foreground notification (F-004) -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync"
+            tools:node="merge" />
+
+        <receiver
+            android:name="com.foobnix.ai.AiWork$Continue"
+            android:exported="false" />
 
         <service
             android:name=".widget.StackGridWidgetService"

@@ -370,4 +370,46 @@
     <string name="bg_fills_screen">Background fills the screen</string>
     <string name="crop_same_margins">Same margins on every page</string>
     <string name="crop_headers">Crop page numbers and headers</string>
+
+    <!-- Book map (F-013) -->
+    <string name="book_map">Book map</string>
+    <string name="map_build">Build map</string>
+    <string name="map_continue">Continue building</string>
+    <string name="map_update">Update map</string>
+    <string name="map_rebuild">Rebuild map</string>
+    <string name="map_delete">Delete map</string>
+    <string name="map_deleted">Map deleted.</string>
+    <string name="map_from_ideas">Book map: use saved key passages instead of sending a chapter\'s text again</string>
+    <string name="map_progress">Chapter %1$d of %2$d · %3$d moments so far</string>
+    <string name="map_drawing">Drawing the threads…</string>
+    <string name="map_done">Book map ready: %1$d chapters read, %2$d moments.</string>
+    <string name="map_updated">Book map updated.</string>
+    <string name="map_dropped">%1$d moments were left out: their sentence was not found in the book.</string>
+    <string name="map_cut_off">An answer was cut off: a long chapter may miss some moments.</string>
+    <string name="map_none">No moments were found. The book may have no text.</string>
+    <string name="map_book_failed">The chapters are saved, but the last step failed. Tap Update map to try it again.</string>
+    <string name="map_intro">A map of the whole book: the threads it is built from (people, ideas, mysteries), where they meet, and what pays off what. Built once, then kept and synced.</string>
+    <string name="map_estimate">Reads the whole book once: about %1$d requests.</string>
+    <string name="map_partial">%1$d chapters read. Continue building to finish the map.</string>
+    <string name="map_needs_update">Chapters changed since the map was drawn.</string>
+    <string name="map_no_webview">The map needs Android System WebView. Here are its key moments.</string>
+    <string name="map_hidden">The map keeps building. A message comes when it is done.</string>
+
+    <!-- Long AI tasks in the background (F-004 design-2026-10-25) -->
+    <string name="ai_task_channel">AI work</string>
+    <string name="ai_task_highlights">Key passages</string>
+    <string name="ai_task_summary">Book summary</string>
+    <string name="ai_task_preview">Study preview</string>
+    <string name="ai_task_starting">Starting…</string>
+    <string name="ai_task_queued">Waiting to start…</string>
+    <string name="ai_task_waiting_turn">Waiting for another AI task to finish…</string>
+    <string name="ai_task_waiting_network">Waiting for the network. It goes on by itself.</string>
+    <string name="ai_task_paused">Paused by Android. It goes on by itself.</string>
+    <string name="ai_task_stopped">Stopped: %1$s</string>
+    <string name="ai_task_continue">Continue</string>
+    <string name="ai_task_cancelled">Cancelled. What was finished is kept.</string>
+    <string name="ai_task_background">It keeps going in the background, also with the book closed.</string>
+    <string name="ai_task_needs_settings">Set up AI first: ✦ > AI settings.</string>
+    <string name="ai_task_summary_done">The book\'s summary is ready.</string>
+    <string name="ai_retrying">The connection failed. Asking again…</string>
 </resources>

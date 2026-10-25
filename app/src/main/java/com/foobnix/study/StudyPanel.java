@@ -119,6 +119,10 @@ public final class StudyPanel {
             popup.closeDialog();
             StudyMap.show(a, s, false);
         }));
+        actions.addView(action(a.getString(R.string.book_map), () -> {
+            popup.closeDialog();
+            com.foobnix.bookmap.BookMapView.show(a, s.controller());
+        }));
         actions.addView(action(a.getString(R.string.study_more), this::more));
         list.addView(actions);
 

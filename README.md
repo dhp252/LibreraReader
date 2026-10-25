@@ -270,6 +270,32 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   first opens the map with the recall box. ⋮ > Stop studying hides everything; ✦ > Study this
   book brings it back without a new skim. A second device shows the same panel, answers and map
   after a sync, and a card seen on one is not shown on the other.
+- **Book map** (a novel you are part-way through, and a non-fiction book): ✦ > Book map. Before the
+  first build it says what the map is and about how many requests it takes; Build map: the bar
+  shows "Chapter N of M" and a spinner. Close the map during the build: a message says it keeps
+  going, and another comes when it is done; reopen: the progress is back. Cancel halfway, then
+  Continue building: only the chapters left are read. The map: chapters top to bottom, colored
+  lanes with letter badges, ○ ● ▲ ■ stations, capsules where threads meet; in a novel it starts
+  "Up to chapter N" with no premise and a "You are here" line (Whole book shows everything and
+  is remembered for that book); a book in Study mode opens on the whole book (also from the
+  Study panel's Book map). Every moment, a chapter's "+N more", a thread chip (the other lanes
+  fade): try each. Tap a moment: its sentence, its links (a curve in the left margin; a tap on a
+  link goes there) and Go to page, which closes the map on that sentence's page (in an EPUB also
+  after a font change). Night mode: the map is dark. ⋮ > Rebuild map (quick, no book text sent),
+  Delete map. AI settings > "Book map: use saved key passages": on a book with key passages, a
+  new map reads those chapters from their ideas. A second device shows the same map after a sync.
+- **AI in the background** (key passages for the whole book, the whole-book summary, Book map,
+  Study this book): start one; a notification shows "Key passages · <book>", a progress bar and
+  Cancel. Press Home, lock the phone for 5 minutes, unlock: it kept going (no "network error").
+  Close the book and reopen it, open the same dialog (✦ > Highlight key passages, or Book map):
+  the progress is back. Airplane mode mid-run: "Waiting for the network…", airplane mode off: it
+  carries on from the last finished chapter. Swipe Librera away from recent apps; restart the
+  phone: it carries on by itself (on HUAWEI allow Librera to run in the background: Settings >
+  Battery > App launch > Librera > manage manually). Cancel in the notification: it stops, the
+  finished chapters stay. Start a second task (another book or kind) during the first: it says
+  "Waiting for another AI task to finish…" and starts after it. A bad API key: "Stopped: …" with
+  Continue. When done, the notification says so; a tap opens the book. Explain, Check and a chapter
+  summary work as before.
 - **Stylus** (a phone or tablet with an active pen): open a PDF without opening the toolbar and
   write with the pen: it draws at once, thinner or bolder with pressure, while a finger still turns
   pages. Rest your palm while writing: nothing happens. Set "Stylus draws with" to Highlighter

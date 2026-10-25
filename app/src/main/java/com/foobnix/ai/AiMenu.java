@@ -51,10 +51,16 @@ public final class AiMenu {
                     AiSummaryDialog.show(a, dc, true);
                     return true;
                 });
+        // the book map (F-013), for every book
+        menu.getMenu().add(saved(a, R.string.book_map, com.foobnix.bookmap.MapStore.get().has(target.name)))
+                .setIcon(R.drawable.ic_book_map)
+                .setOnMenuItemClickListener(item -> {
+                    com.foobnix.bookmap.BookMapView.show(a, dc);
+                    return true;
+                });
         menu.getMenu(R.drawable.ic_ai_sparkle, R.string.ai_highlight, () -> {
-            final AiJobs.HighlightJob running = AiJobs.runningHighlights();
-            if (running != null) {
-                AiHighlightDialog.showRunning(a, running);
+            if (AiHighlightDialog.isBusy(dc)) {
+                AiHighlightDialog.showRunning(a, dc);
             } else {
                 chooseScope(a, anchor, wholeBook -> AiHighlightDialog.start(a, dc, wholeBook));
             }

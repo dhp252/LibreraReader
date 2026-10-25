@@ -49,6 +49,24 @@ public final class StudyJobs {
             this.screen = screen;
         }
 
+        /** The task of a preview (F-004 design-2026-10-25.md): it goes on with the book closed. */
+        public PreviewJob(android.content.Context context, AiJobs.Target target) {
+            super(context, target);
+        }
+
+        @Override
+        protected void setTaskScreen(Object screen) {
+            setScreen(screen instanceof Screen ? (Screen) screen : null);
+            if (this.screen != null && !status.isEmpty()) {
+                status(status);
+            }
+        }
+
+        @Override
+        protected void showStatus(String text) {
+            status(text);
+        }
+
         /** The progress is shown again (or hidden with null): the preview goes on either way. */
         public void setScreen(Screen screen) {
             this.screen = screen;
@@ -64,6 +82,7 @@ public final class StudyJobs {
 
         private void status(String text) {
             status = text;
+            step(text, 0, 0);
             ui(() -> {
                 final Screen s = screen;
                 if (s != null) {
@@ -79,7 +98,7 @@ public final class StudyJobs {
                 if (s != null) {
                     s.onError(message);
                 } else {
-                    android.widget.Toast.makeText(activity, message, android.widget.Toast.LENGTH_LONG).show();
+                    tell(message);
                 }
             });
         }
@@ -111,7 +130,7 @@ public final class StudyJobs {
                 final int[] lengths = new int[pages];
                 read(text, 0, pages, plain, lengths, this::status);
                 if (BookChapters.length(lengths, 0, pages) == 0) {
-                    failed(string(R.string.study_no_text));
+                    failWith(string(R.string.study_no_text));
                     return;
                 }
                 final Set<String> split = StudyChapters.longParts(toc, pages, lengths);
@@ -125,19 +144,20 @@ public final class StudyJobs {
                         StudyPrompts.preview(target.title, goal, pack), null);
                 final StudyPrompts.Preview preview = StudyPrompts.parsePreview(answer);
                 if (preview.chapters.isEmpty()) {
-                    failed(string(wasCutOff() ? R.string.ai_cut_off : R.string.study_preview_unreadable));
+                    failWith(string(wasCutOff() ? R.string.ai_cut_off : R.string.study_preview_unreadable));
                     return;
                 }
                 checkCancelled();
                 final StudyBook book = StudyStore.get().update(target.name,
                         b -> apply(b, preview, chapters, lengths, split, goal, settings.model));
                 StudySession.reloadIfOpen(target.name);
+                result = string(R.string.study_ready);
                 ui(() -> {
                     final Screen s = screen;
                     if (s != null) {
                         s.onDone(book);
                     } else {
-                        android.widget.Toast.makeText(activity, R.string.study_ready, android.widget.Toast.LENGTH_LONG).show();
+                        tell(string(R.string.study_ready));
                     }
                 });
             }

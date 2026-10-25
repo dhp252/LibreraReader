@@ -202,4 +202,23 @@ public class ProfileMergeTest {
                 "{\"c2\":{\"t\":4,\"a\":[\"earlier\"]}}"));
         assertEquals("later", merged.getJSONObject("c2").getJSONArray("a").getString(0));
     }
+
+    @Test
+    public void bookMapChaptersOfTwoDevicesBothStay() throws Exception {
+        assertTrue(ProfileMerge.handles("map/Book.epub.json"));
+        String base = "{\"c1\":{\"t\":1,\"n\":1}}";
+        // the phone built chapter 2, the tablet chapter 5 and switched the view to the whole book
+        String local = "{\"c1\":{\"t\":1,\"n\":1},\"c2\":{\"t\":4,\"n\":2}}";
+        String remote = "{\"c1\":{\"t\":1,\"n\":1},\"c5\":{\"t\":6,\"n\":5},\"@view\":{\"t\":7,\"whole\":true}}";
+        JSONObject merged = obj(ProfileMerge.merge("map/Book.epub.json", base, local, remote));
+        assertEquals(2, merged.getJSONObject("c2").getInt("n"));
+        assertEquals(5, merged.getJSONObject("c5").getInt("n"));
+        assertTrue(merged.getJSONObject("@view").getBoolean("whole"));
+        // the whole-book part on both: the newer; the view is merged on its own
+        merged = obj(ProfileMerge.merge("map/Book.epub.json", base,
+                "{\"@book\":{\"t\":9,\"premise\":\"later\"},\"@view\":{\"t\":2,\"whole\":false}}",
+                "{\"@book\":{\"t\":5,\"premise\":\"earlier\"},\"@view\":{\"t\":8,\"whole\":true}}"));
+        assertEquals("later", merged.getJSONObject("@book").getString("premise"));
+        assertTrue(merged.getJSONObject("@view").getBoolean("whole"));
+    }
 }

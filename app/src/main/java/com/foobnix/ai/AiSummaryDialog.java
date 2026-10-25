@@ -23,9 +23,10 @@ import java.util.Date;
 
 /**
  * A summary of the chapter at the reader's page or of the whole book: the saved one, or a new one
- * shown as the model writes it. Copy, share, and Regenerate to ask again.
+ * shown as the model writes it. Copy, share, and Regenerate to ask again. The whole book's is a
+ * task of its own (F-004 design-2026-10-25.md): it goes on with the dialog or the book closed.
  */
-public class AiSummaryDialog implements AiJobs.SummaryScreen {
+public class AiSummaryDialog implements AiJobs.SummaryScreen, AiProgress.TaskScreen {
 
     private final Activity activity;
     private final AiJobs.Target target;
@@ -41,12 +42,16 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
     private ImageView share;
     private AiJobs.SummaryJob job;
     private boolean running;
+    /** The whole book's summary task, when this dialog shows it. */
+    private final String key;
+    private boolean attached;
 
     private AiSummaryDialog(Activity activity, AiJobs.Target target, boolean wholeBook, BookChapters.Range chapter) {
         this.activity = activity;
         this.target = target;
         this.wholeBook = wholeBook;
         this.chapter = chapter;
+        this.key = wholeBook ? AiTask.key(target.name, AiTask.BOOK_SUMMARY) : null;
     }
 
     public static void show(Activity activity, DocumentController dc, boolean wholeBook) {
@@ -84,7 +89,15 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
                 .create();
         dialog.setOnShowListener(d -> {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> dialog.dismiss());
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> start(true));
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                if (running && attached) {
+                    // the whole book's task: Cancel stops it (Close only closes the dialog)
+                    AiWork.cancel(activity, key);
+                    onEnded(AiProgress.CANCELLED, activity.getString(R.string.ai_task_cancelled));
+                } else {
+                    start(true);
+                }
+            });
             updateButtons();
         });
         dialog.setOnDismissListener(d -> stop());
@@ -99,11 +112,54 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
         status.setText("");
         progress.setVisibility(View.VISIBLE);
         updateButtons();
+        if (wholeBook) {
+            startBook(regenerate);
+            return;
+        }
         job = new AiJobs.SummaryJob(activity, target, wholeBook, regenerate, this, chapter);
         job.start();
     }
 
+    /** The whole book: the saved summary, else its task (joined when it runs already). */
+    private void startBook(boolean regenerate) {
+        final int state = AiProgress.state(key);
+        if (state == AiProgress.RUNNING || state == AiProgress.WAITING) {
+            attach();
+            return;
+        }
+        new Thread(() -> {
+            final AiStore.Summary saved = regenerate ? null : AiStore.get().load(target.name).summary(AiStore.BOOK);
+            activity.runOnUiThread(() -> {
+                if (!dialog.isShowing()) {
+                    return;
+                }
+                if (saved != null) {
+                    onDone(saved, true, null);
+                } else if (!AiSettings.load(activity).isReady()) {
+                    onNeedSettings();
+                } else {
+                    AiWork.enqueue(activity, AiTask.bookSummary(target, regenerate));
+                    attach();
+                }
+            });
+        }, "@T AI summary").start();
+    }
+
+    private void attach() {
+        attached = true;
+        running = true;
+        final String now = AiProgress.status(key);
+        status.setText(!now.isEmpty() ? now : activity.getString(R.string.ai_task_queued));
+        updateButtons();
+        AiProgress.attach(key, activity, this);
+    }
+
     private void stop() {
+        if (attached) {
+            // the whole book's task goes on without the dialog
+            AiProgress.detach(key, this);
+            attached = false;
+        }
         if (job != null) {
             job.cancel();
             job = null;
@@ -114,10 +170,11 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
         final Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         final Button neutral = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
         if (positive != null) {
-            positive.setText(running ? R.string.cancel : R.string.close);
+            positive.setText(running && !attached ? R.string.cancel : R.string.close);
         }
         if (neutral != null) {
-            neutral.setEnabled(!running);
+            neutral.setText(running && attached ? R.string.cancel : R.string.ai_regenerate);
+            neutral.setEnabled(!running || attached);
         }
         final int tools = !running && text.length() > 0 ? View.VISIBLE : View.GONE;
         copy.setVisibility(tools);
@@ -163,7 +220,23 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
     }
 
     @Override
+    public void onWaiting(String message) {
+        status.setText(message);
+    }
+
+    @Override
+    public void onEnded(int state, String message) {
+        if (state == AiProgress.CANCELLED || (state == AiProgress.FAILED && running)) {
+            onError(message);
+        }
+    }
+
+    @Override
     public void onDone(AiStore.Summary summary, boolean fromStore, String note) {
+        if (attached) {
+            AiProgress.detach(key, this);
+            attached = false;
+        }
         running = false;
         progress.setVisibility(View.GONE);
         text.setText(summary.text);
@@ -178,6 +251,10 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen {
 
     @Override
     public void onError(String message) {
+        if (attached) {
+            AiProgress.detach(key, this);
+            attached = false;
+        }
         running = false;
         progress.setVisibility(View.GONE);
         // what streamed before a refusal or a broken connection is not an answer

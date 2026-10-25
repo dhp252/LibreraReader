@@ -91,6 +91,14 @@
             android:inputType="number"
             android:singleLine="true" />
 
+        <CheckBox
+            android:id="@+id/aiMapFromIdeas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dip"
+            android:paddingBottom="4dip"
+            android:text="@string/map_from_ideas" />
+
         <TextView
             android:id="@+id/aiTestResult"
             android:layout_width="match_parent"

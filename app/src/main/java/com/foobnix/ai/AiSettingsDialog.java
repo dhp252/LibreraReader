@@ -39,6 +39,7 @@ public class AiSettingsDialog {
     private EditText language;
     private EditText masterPrompt;
     private EditText maxChars;
+    private CheckBox mapFromIdeas;
     private TextView result;
 
     private AiSettingsDialog(Activity activity, Runnable onSaved) {
@@ -78,6 +79,7 @@ public class AiSettingsDialog {
         language = view.findViewById(R.id.aiLanguage);
         masterPrompt = view.findViewById(R.id.aiMasterPrompt);
         maxChars = view.findViewById(R.id.aiMaxChars);
+        mapFromIdeas = view.findViewById(R.id.aiMapFromIdeas);
         result = view.findViewById(R.id.aiTestResult);
         final CheckBox showKey = view.findViewById(R.id.aiShowKey);
         showKey.setOnCheckedChangeListener((b, checked) -> {
@@ -101,6 +103,7 @@ public class AiSettingsDialog {
                 other.highlightsVisible = settings.highlightsVisible;
                 other.barsVisible = settings.barsVisible;
                 other.sentencesVisible = settings.sentencesVisible;
+                other.mapFromIdeas = settings.mapFromIdeas;
                 settings = other;
                 fill();
             }
@@ -137,6 +140,7 @@ public class AiSettingsDialog {
         language.setText(settings.answerLanguage);
         masterPrompt.setText(settings.masterPrompt);
         maxChars.setText(String.valueOf(settings.maxChars));
+        mapFromIdeas.setChecked(settings.mapFromIdeas);
         result.setVisibility(View.GONE);
     }
 
@@ -147,6 +151,7 @@ public class AiSettingsDialog {
         settings.model = model.getText().toString().trim();
         settings.answerLanguage = language.getText().toString().trim();
         settings.masterPrompt = masterPrompt.getText().toString().trim();
+        settings.mapFromIdeas = mapFromIdeas.isChecked();
         try {
             settings.maxChars = Math.max(2000, Integer.parseInt(maxChars.getText().toString().trim()));
         } catch (NumberFormatException e) {

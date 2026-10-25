@@ -38,12 +38,14 @@ public class AiSettings {
     public boolean sentencesVisible = true;
     /** The user's own instructions, sent before Librera's for every AI action; empty: none. */
     public String masterPrompt = "";
+    /** Book map (F-013): a chapter with key-passage ideas sends those instead of its text. */
+    public boolean mapFromIdeas = false;
 
     /** Preference names shared between devices (WebDAV); {@code *.key} are the API keys. */
     public static final String[] SHARED = {"provider",
             CLAUDE + ".url", CLAUDE + ".model", CLAUDE + ".maxChars", CLAUDE + ".key",
             OPENAI + ".url", OPENAI + ".model", OPENAI + ".maxChars", OPENAI + ".key",
-            "answerLanguage", "highlightsVisible", "barsVisible", "sentencesVisible", "masterPrompt"};
+            "answerLanguage", "highlightsVisible", "barsVisible", "sentencesVisible", "masterPrompt", "mapFromIdeas"};
     private static final String MODIFIED = "modified";
 
     private static SharedPreferences prefs(Context c) {
@@ -69,6 +71,7 @@ public class AiSettings {
         s.barsVisible = p.getBoolean("barsVisible", true);
         s.sentencesVisible = p.getBoolean("sentencesVisible", true);
         s.masterPrompt = p.getString("masterPrompt", "");
+        s.mapFromIdeas = p.getBoolean("mapFromIdeas", false);
         return s;
     }
 
@@ -85,6 +88,7 @@ public class AiSettings {
                 .putBoolean("barsVisible", barsVisible)
                 .putBoolean("sentencesVisible", sentencesVisible)
                 .putString("masterPrompt", masterPrompt.trim())
+                .putBoolean("mapFromIdeas", mapFromIdeas)
                 .putLong(MODIFIED, System.currentTimeMillis())
                 .apply();
     }
@@ -116,7 +120,7 @@ public class AiSettings {
             try {
                 if (name.endsWith(".maxChars")) {
                     edit.putInt(name, Integer.parseInt(value));
-                } else if (name.endsWith("Visible")) {
+                } else if (name.endsWith("Visible") || "mapFromIdeas".equals(name)) {
                     edit.putBoolean(name, Boolean.parseBoolean(value));
                 } else {
                     for (String shared : SHARED) {

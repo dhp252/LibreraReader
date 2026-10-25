@@ -53,7 +53,7 @@ public final class ProfileMerge {
         final String name = nameOf(path);
         return PROGRESS.equals(name) || BOOKMARKS.equals(name) || RECENT.equals(name) || FAVORITE.equals(name)
                 || EXCLUDE.equals(name) || TAGS.equals(name) || MarksStore.isMarksFile(path)
-                || StudyStore.isStudyFile(path);
+                || StudyStore.isStudyFile(path) || com.foobnix.bookmap.MapStore.isMapFile(path);
     }
 
     /**
@@ -65,9 +65,9 @@ public final class ProfileMerge {
     public static String merge(String path, String base, String local, String remote) throws JSONException {
         final String name = nameOf(path);
         // a book's marks (F-008): {id: mark}, the newer change of one mark by its "t"; a book's
-        // study data (F-009): {"@book" | chapter key: object}, the same way
+        // study data (F-009) and a book's map (F-013): {"@book" | ... | chapter key: object}, the same way
         if (PROGRESS.equals(name) || BOOKMARKS.equals(name) || MarksStore.isMarksFile(path)
-                || StudyStore.isStudyFile(path)) {
+                || StudyStore.isStudyFile(path) || com.foobnix.bookmap.MapStore.isMapFile(path)) {
             return mergeObjects(base, local, remote, "t").toString();
         }
         if (RECENT.equals(name) || FAVORITE.equals(name) || EXCLUDE.equals(name)) {

@@ -3,6 +3,7 @@ package com.foobnix.ai;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -13,23 +14,25 @@ import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.wrapper.DocumentController;
 
 /**
- * Progress of a key passages run: Hide lets it go on in the background (the result comes as a
- * message), Cancel stops it. Chapters already marked keep their highlights either way.
+ * Progress of a key passages run, a task of its own (F-004 design-2026-10-25.md): it goes on with
+ * the dialog or the book closed and comes back when the dialog opens again; Cancel stops it.
+ * Chapters already marked keep their highlights either way.
  */
-public class AiHighlightDialog implements AiJobs.HighlightScreen {
+public class AiHighlightDialog implements AiJobs.HighlightScreen, AiProgress.TaskScreen {
 
     private final Activity activity;
-    private final AiJobs.HighlightJob job;
+    private final String key;
     private AlertDialog dialog;
     private TextView status;
     private ProgressBar progress;
+    private boolean ended;
 
-    private AiHighlightDialog(Activity activity, AiJobs.HighlightJob job) {
+    private AiHighlightDialog(Activity activity, String key) {
         this.activity = activity;
-        this.job = job;
+        this.key = key;
     }
 
-    /** Starts a run, or shows the one going on. */
+    /** Starts a run, or shows the one of this book going on. */
     public static void start(Activity activity, DocumentController dc, boolean wholeBook) {
         start(activity, dc, wholeBook, null);
     }
@@ -39,13 +42,34 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen {
         start(activity, dc, false, chapter);
     }
 
-    private static void start(Activity activity, DocumentController dc, boolean wholeBook, BookChapters.Range chapter) {
-        final AiJobs.HighlightJob runningJob = AiJobs.runningHighlights();
-        if (runningJob != null) {
-            showRunning(activity, runningJob);
+    /** Whether a key passages task of this book is queued or running (in this process). */
+    public static boolean isBusy(DocumentController dc) {
+        if (dc == null || dc.getCurrentBook() == null) {
+            return false;
+        }
+        final String key = AiTask.key(AiHighlights.bookName(dc.getCurrentBook().getPath()), AiTask.HIGHLIGHTS);
+        final int state = AiProgress.state(key);
+        return state == AiProgress.RUNNING || state == AiProgress.WAITING;
+    }
+
+    /** The progress of this book's run going on. */
+    public static void showRunning(Activity activity, DocumentController dc) {
+        if (dc == null || dc.getCurrentBook() == null) {
             return;
         }
+        open(activity, AiTask.key(AiHighlights.bookName(dc.getCurrentBook().getPath()), AiTask.HIGHLIGHTS));
+    }
+
+    private static void start(Activity activity, DocumentController dc, boolean wholeBook, BookChapters.Range chapter) {
         if (dc == null || dc.getCurrentBook() == null) {
+            return;
+        }
+        if (isBusy(dc)) {
+            showRunning(activity, dc);
+            return;
+        }
+        if (!AiSettings.load(activity).isReady()) {
+            AiSettingsDialog.show(activity, null);
             return;
         }
         final AiJobs.Target target = AiJobs.Target.of(dc);
@@ -63,54 +87,74 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen {
     }
 
     private static void run(Activity activity, AiJobs.Target target, boolean wholeBook, BookChapters.Range chapter) {
-        if (AiJobs.runningHighlights() != null) {
-            return;
-        }
-        final AiJobs.HighlightJob job = new AiJobs.HighlightJob(activity, target, wholeBook, null, chapter);
-        final AiHighlightDialog screen = new AiHighlightDialog(activity, job);
-        job.setScreen(screen);
-        screen.open();
-        job.start();
+        final AiTask task = AiTask.highlights(target, wholeBook, chapter);
+        AiWork.enqueue(activity, task);
+        open(activity, task.key());
     }
 
-    public static void showRunning(Activity activity, AiJobs.HighlightJob job) {
-        final AiHighlightDialog screen = new AiHighlightDialog(activity, job);
-        job.setScreen(screen);
-        screen.open();
-        screen.onStatus(job.getStatus());
+    private static void open(Activity activity, String key) {
+        final AiHighlightDialog screen = new AiHighlightDialog(activity, key);
+        screen.show();
+        AiProgress.attach(key, activity, screen);
     }
 
-    private void open() {
+    private void show() {
         final LinearLayout view = new LinearLayout(activity);
-        view.setOrientation(LinearLayout.HORIZONTAL);
-        view.setGravity(Gravity.CENTER_VERTICAL);
+        view.setOrientation(LinearLayout.VERTICAL);
         final int pad = Dips.dpToPx(16);
         view.setPadding(pad, pad, pad, pad / 2);
+        final LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
         progress = new ProgressBar(activity);
-        view.addView(progress, new LinearLayout.LayoutParams(Dips.dpToPx(32), Dips.dpToPx(32)));
+        row.addView(progress, new LinearLayout.LayoutParams(Dips.dpToPx(32), Dips.dpToPx(32)));
         status = new TextView(activity);
         status.setPadding(pad, 0, 0, 0);
-        view.addView(status, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        final String now = AiProgress.status(key);
+        status.setText(!now.isEmpty() ? now : activity.getString(AiProgress.isRunning(key)
+                ? R.string.ai_reading_book : R.string.ai_task_queued));
+        row.addView(status, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        view.addView(row);
+        final TextView note = new TextView(activity);
+        note.setText(R.string.ai_task_background);
+        note.setAlpha(0.7f);
+        note.setPadding(0, pad / 2, 0, 0);
+        view.addView(note);
 
         dialog = new AlertDialog.Builder(activity)
                 .setTitle(R.string.ai_key_passages)
                 .setView(view)
-                .setPositiveButton(R.string.ai_hide, (d, w) -> job.setScreen(null))
-                .setNegativeButton(R.string.cancel, (d, w) -> job.cancel())
+                .setPositiveButton(R.string.close, (d, w) -> AiProgress.detach(key, this))
+                .setNegativeButton(R.string.cancel, (d, w) -> {
+                    AiProgress.detach(key, this);
+                    AiWork.cancel(activity, key);
+                    Toast.makeText(activity, R.string.ai_task_cancelled, Toast.LENGTH_SHORT).show();
+                })
                 .create();
-        // back or a tap outside hides the progress; the run goes on
-        dialog.setOnCancelListener(d -> job.setScreen(null));
+        // back or a tap outside closes the progress; the run goes on
+        dialog.setOnCancelListener(d -> AiProgress.detach(key, this));
         dialog.show();
     }
 
     @Override
     public void onStatus(String message) {
-        status.setText(message);
+        if (!ended) {
+            status.setText(message);
+        }
+    }
+
+    @Override
+    public void onWaiting(String message) {
+        onStatus(message);
     }
 
     @Override
     public void onFinished(String message) {
-        job.setScreen(null);
+        if (ended) {
+            return;
+        }
+        ended = true;
+        AiProgress.detach(key, this);
         if (dialog.isShowing()) {
             dialog.dismiss();
         }
@@ -119,20 +163,31 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen {
 
     @Override
     public void onError(String message) {
-        job.setScreen(null);
-        progress.setVisibility(android.view.View.GONE);
+        if (ended) {
+            return;
+        }
+        ended = true;
+        AiProgress.detach(key, this);
+        progress.setVisibility(View.GONE);
         status.setText(message);
         if (dialog.getButton(AlertDialog.BUTTON_NEGATIVE) != null) {
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setVisibility(android.view.View.GONE);
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setVisibility(View.GONE);
         }
-        if (dialog.getButton(AlertDialog.BUTTON_POSITIVE) != null) {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setText(R.string.close);
+    }
+
+    @Override
+    public void onEnded(int state, String message) {
+        if (state == AiProgress.DONE && message != null) {
+            onFinished(message);
+        } else if (state == AiProgress.FAILED || state == AiProgress.CANCELLED) {
+            onError(message);
         }
     }
 
     @Override
     public void onNeedSettings() {
-        job.setScreen(null);
+        ended = true;
+        AiProgress.detach(key, this);
         dialog.dismiss();
         AiSettingsDialog.show(activity, null);
     }

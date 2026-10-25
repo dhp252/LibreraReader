@@ -1,6 +1,7 @@
 package com.foobnix.ai;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.RectF;
 import android.widget.Toast;
 
@@ -131,19 +132,47 @@ public final class AiJobs {
     public static class Cancelled extends Exception {
     }
 
-    /** A job on a thread of its own; its results go to the main thread while it is not cancelled. */
-    public abstract static class Job {
+    /**
+     * A job on a thread of its own; its results go to the main thread while it is not cancelled.
+     * Started from a reader screen it belongs to that screen; run as a task ({@link AiWork}) it
+     * has none, a screen may attach to it, and a request that fails for a passing reason is asked
+     * again ({@link AiRetry}).
+     */
+    public abstract static class Job implements AiProgress.Attachable {
+        /** The reader screen it was started from, or null for a task. */
         protected final Activity activity;
+        /** The application. */
+        protected final Context context;
         protected final Target target;
         protected final AiSettings settings;
+        /** Run as a task: no screen of its own. */
+        protected final boolean background;
         protected volatile boolean cancelled;
         private volatile AiClient client;
         protected String stopReason;
+        /** The activity of the screen attached to a task: its callbacks stop when it is gone. */
+        private volatile Activity screenOwner;
+        private volatile Steps steps;
+        /** What a task's done notification says. */
+        protected volatile String result;
+        /** A failure the job already reported itself (then the task stops without retrying). */
+        private volatile String reported;
 
         protected Job(Activity activity, Target target) {
             this.activity = activity;
+            this.context = activity.getApplicationContext();
             this.target = target;
             this.settings = AiSettings.load(activity);
+            this.background = false;
+        }
+
+        /** A task: run by {@link AiWork} with the application, no screen. */
+        protected Job(Context context, Target target) {
+            this.activity = null;
+            this.context = context.getApplicationContext();
+            this.target = target;
+            this.settings = AiSettings.load(this.context);
+            this.background = true;
         }
 
         public void start() {
@@ -164,6 +193,47 @@ public final class AiJobs {
             }, "@T AI").start();
         }
 
+        /** How a task's run ended. */
+        public static final class Outcome {
+            public static final int OK = 0;
+            public static final int CANCELLED = 1;
+            public static final int FAILED = 2;
+
+            public final int state;
+            public final String message;
+            public final boolean retryable;
+            /** The job already told its screen (a failure it found itself). */
+            public final boolean shown;
+
+            Outcome(int state, String message, boolean retryable, boolean shown) {
+                this.state = state;
+                this.message = message;
+                this.retryable = retryable;
+                this.shown = shown;
+            }
+        }
+
+        /** Runs the job in the caller's thread (a task's worker) and says how it ended. */
+        public Outcome runNow() {
+            running.add(this);
+            try {
+                work();
+                if (cancelled) {
+                    return new Outcome(Outcome.CANCELLED, null, false, false);
+                }
+                return reported != null ? new Outcome(Outcome.FAILED, reported, false, true)
+                        : new Outcome(Outcome.OK, result, false, false);
+            } catch (Cancelled e) {
+                return new Outcome(Outcome.CANCELLED, null, false, false);
+            } catch (Throwable e) {
+                LOG.e(e);
+                return cancelled ? new Outcome(Outcome.CANCELLED, null, false, false)
+                        : new Outcome(Outcome.FAILED, message(e), AiRetry.retryable(e), false);
+            } finally {
+                running.remove(this);
+            }
+        }
+
         public void cancel() {
             cancelled = true;
             final AiClient c = client;
@@ -172,26 +242,98 @@ public final class AiJobs {
             }
         }
 
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
         protected abstract void work() throws Exception;
 
         protected abstract void failed(String message);
 
+        /** A failure the job found itself (no text, an unreadable answer): shown, and a task stops. */
+        protected final void failWith(String message) {
+            reported = message;
+            failed(message);
+        }
+
+        /**
+         * A screen attaches to a task (or leaves it, with null). {@code owner} is its activity: when
+         * that is gone, the callbacks stop reaching it.
+         */
+        @Override
+        public void attach(Object screen, Activity owner) {
+            screenOwner = owner;
+            setTaskScreen(screen);
+        }
+
+        /** The job's own screen type, when {@code screen} is one (or null); tasks override this. */
+        protected void setTaskScreen(Object screen) {
+        }
+
+        /** What the screen shows while the job waits or retries; tasks override this. */
+        protected void showStatus(String status) {
+        }
+
+        /** A task's progress for its notification: what it does, step {@code step} of {@code steps} (0: unknown). */
+        public interface Steps {
+            void on(String status, int step, int steps);
+        }
+
+        public void setSteps(Steps steps) {
+            this.steps = steps;
+        }
+
+        protected void step(String status, int step, int total) {
+            final Steps s = steps;
+            if (s != null) {
+                s.on(status, step, total);
+            }
+        }
+
+        /** Before a request is asked again: the screen is told; a streamed answer starts over. */
+        protected void retrying(String status) {
+            showStatus(status);
+            step(status, 0, 0);
+        }
+
         protected void checkCancelled() throws Cancelled {
-            if (cancelled || Apps.isDestroyedActivity(activity)) {
+            if (cancelled || (activity != null && Apps.isDestroyedActivity(activity))) {
                 throw new Cancelled();
             }
         }
 
-        /** One request; {@code output} gets the answer as it streams, or null. */
+        /**
+         * One request; {@code output} gets the answer as it streams, or null. A task asks again
+         * after a failure that may pass (the network, a busy server), twice, with waits between.
+         */
         protected String ask(String system, String user, AiClient.Output output) throws IOException, Cancelled {
+            for (int failures = 1; ; failures++) {
+                try {
+                    return askOnce(system, user, output);
+                } catch (AiClient.AiException e) {
+                    final long wait = background ? AiRetry.inTaskWait(e, failures) : -1;
+                    if (wait < 0) {
+                        throw e;
+                    }
+                    LOG.d("AI task: asking again in", wait, "ms after", e.getMessage());
+                    retrying(string(R.string.ai_retrying));
+                    pause(wait);
+                }
+            }
+        }
+
+        private String askOnce(String system, String user, AiClient.Output output) throws IOException, Cancelled {
             checkCancelled();
             final AiClient c = new AiClient(settings);
             client = c;
             try {
                 final String answer = c.complete(system, user, output);
                 stopReason = c.getStopReason();
+                if (c.getUsage() != null) {
+                    LOG.d("AI usage:", c.getUsage());
+                }
                 if ("content_filter".equals(stopReason)) {
-                    throw new AiClient.AiException(activity.getString(R.string.ai_declined), true);
+                    throw new AiClient.AiException(string(R.string.ai_declined), true);
                 }
                 return answer;
             } catch (AiClient.AiException e) {
@@ -201,9 +343,22 @@ public final class AiJobs {
                 // no answer at all: the server was not reached, or the connection broke
                 checkCancelled();
                 throw new AiClient.AiException(string(R.string.ai_network,
-                        TxtUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : e.getClass().getSimpleName()));
+                        TxtUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : e.getClass().getSimpleName()), false, true);
             } finally {
                 client = null;
+            }
+        }
+
+        /** Waits, but stops at once when cancelled. */
+        private void pause(long millis) throws Cancelled {
+            final long until = System.currentTimeMillis() + millis;
+            while (System.currentTimeMillis() < until) {
+                checkCancelled();
+                try {
+                    Thread.sleep(Math.min(250, Math.max(1, until - System.currentTimeMillis())));
+                } catch (InterruptedException e) {
+                    throw new Cancelled();
+                }
             }
         }
 
@@ -214,7 +369,7 @@ public final class AiJobs {
         protected BookText open() throws IOException {
             final BookText text = BookText.open(target.path, target.width, target.height, target.fontSize);
             if (text == null) {
-                throw new AiClient.AiException(activity.getString(R.string.ai_cannot_open));
+                throw new AiClient.AiException(string(R.string.ai_cannot_open));
             }
             return text;
         }
@@ -223,19 +378,35 @@ public final class AiJobs {
             if (cancelled) {
                 return;
             }
-            activity.runOnUiThread(() -> {
-                if (!cancelled && !Apps.isDestroyedActivity(activity)) {
+            if (activity != null) {
+                activity.runOnUiThread(() -> {
+                    if (!cancelled && !Apps.isDestroyedActivity(activity)) {
+                        r.run();
+                    }
+                });
+                return;
+            }
+            AiProgress.main(() -> {
+                final Activity owner = screenOwner;
+                if (!cancelled && (owner == null || !Apps.isDestroyedActivity(owner))) {
                     r.run();
                 }
             });
         }
 
+        /** A message for the reader when no screen shows it: a toast from a screen's job; a task's notification says it instead. */
+        protected void tell(String text) {
+            if (activity != null) {
+                Toast.makeText(activity, text, Toast.LENGTH_LONG).show();
+            }
+        }
+
         protected void toast(String text) {
-            ui(() -> Toast.makeText(activity, text, Toast.LENGTH_LONG).show());
+            ui(() -> tell(text));
         }
 
         protected String string(int res, Object... args) {
-            return activity.getString(res, args);
+            return context.getString(res, args);
         }
 
         protected String message(Throwable e) {
@@ -305,7 +476,7 @@ public final class AiJobs {
     public static class SummaryJob extends Job {
         private final boolean wholeBook;
         private final boolean regenerate;
-        private final SummaryScreen screen;
+        private volatile SummaryScreen screen;
         /** A chapter given by the caller (a study chapter), else the one at the reader's page. */
         private final BookChapters.Range given;
 
@@ -322,13 +493,48 @@ public final class AiJobs {
             this.given = given;
         }
 
+        /** The task of a whole-book summary (design-2026-10-25.md): its part summaries are kept as they come. */
+        public SummaryJob(android.content.Context context, Target target, boolean regenerate) {
+            super(context, target);
+            this.wholeBook = true;
+            this.regenerate = regenerate;
+            this.given = null;
+        }
+
+        @Override
+        protected void setTaskScreen(Object screen) {
+            this.screen = screen instanceof SummaryScreen ? (SummaryScreen) screen : null;
+        }
+
+        @Override
+        protected void showStatus(String text) {
+            status(text);
+        }
+
+        @Override
+        protected void retrying(String status) {
+            super.retrying(status);
+            // what streamed before the failure goes: the answer comes again from its start
+            show(SummaryScreen::onAnswerStart);
+        }
+
+        /** Something for the screen, when one is attached. */
+        private void show(java.util.function.Consumer<SummaryScreen> call) {
+            ui(() -> {
+                final SummaryScreen s = screen;
+                if (s != null) {
+                    call.accept(s);
+                }
+            });
+        }
+
         @Override
         protected void failed(String message) {
-            ui(() -> screen.onError(message));
+            show(s -> s.onError(message));
         }
 
         private void status(String status) {
-            ui(() -> screen.onStatus(status));
+            show(s -> s.onStatus(status));
         }
 
         @Override
@@ -340,9 +546,9 @@ public final class AiJobs {
                 final AiStore.Summary saved = key == null ? null : AiStore.get().load(target.name).summary(key);
                 if (saved != null) {
                     final String title = wholeBook ? target.title : chapterTitle(known);
-                    ui(() -> {
-                        screen.onTitle(title);
-                        screen.onDone(saved, true, null);
+                    show(s -> {
+                        s.onTitle(title);
+                        s.onDone(saved, true, null);
                     });
                     return;
                 }
@@ -355,17 +561,17 @@ public final class AiJobs {
                         ? new BookChapters.Range(0, pages, target.title, AiStore.BOOK)
                         : given != null ? given : BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES);
                 final String title = wholeBook ? target.title : chapterTitle(range);
-                ui(() -> screen.onTitle(title));
+                show(s -> s.onTitle(title));
 
                 if (!regenerate) {
                     final AiStore.Summary saved = AiStore.get().load(target.name).summary(range.key);
                     if (saved != null) {
-                        ui(() -> screen.onDone(saved, true, null));
+                        show(s -> s.onDone(saved, true, null));
                         return;
                     }
                 }
                 if (!settings.isReady()) {
-                    ui(screen::onNeedSettings);
+                    show(SummaryScreen::onNeedSettings);
                     return;
                 }
 
@@ -374,17 +580,17 @@ public final class AiJobs {
                 read(text, range.from, range.to, plain, lengths, this::status);
                 final long total = BookChapters.length(lengths, range.from, range.to);
                 if (total == 0) {
-                    failed(string(R.string.ai_no_text));
+                    failWith(string(R.string.ai_no_text));
                     return;
                 }
 
                 final String system = AiPrompts.withMaster(settings.masterPrompt, AiPrompts.summarySystem(settings.answerLanguage));
-                final AiClient.Output stream = delta -> ui(() -> screen.onText(delta));
+                final AiClient.Output stream = delta -> show(s -> s.onText(delta));
                 final String answer;
                 if (total <= settings.maxChars) {
                     final String all = join(plain, range.from, range.to);
                     status(string(R.string.ai_writing));
-                    ui(screen::onAnswerStart);
+                    show(SummaryScreen::onAnswerStart);
                     answer = ask(system, wholeBook ? AiPrompts.bookSummary(target.title, all)
                             : AiPrompts.chapterSummary(target.title, title, all), stream);
                 } else {
@@ -393,12 +599,25 @@ public final class AiJobs {
                             ? BookChapters.chaptersOrBlocks(toc, pages, BookChapters.BLOCK_PAGES)
                             : Collections.singletonList(range);
                     final List<BookChapters.Range> parts = BookChapters.parts(chapters, lengths, settings.maxChars);
+                    // a whole book's parts are kept as they come: a run broken off goes on from the next one
+                    final AiParts kept = wholeBook ? AiParts.open(AiParts.folder(context), target.name,
+                            AiParts.key(target, settings.model, settings.maxChars, parts.size())) : null;
                     List<String> summaries = new ArrayList<>();
                     for (int i = 0; i < parts.size(); i++) {
+                        final String done = kept == null ? null : kept.get(i);
+                        if (done != null) {
+                            summaries.add(done);
+                            continue;
+                        }
                         status(string(R.string.ai_summarizing_part, i + 1, parts.size()));
+                        step(string(R.string.ai_summarizing_part, i + 1, parts.size()), i + 1, parts.size());
                         final BookChapters.Range part = parts.get(i);
-                        summaries.add(ask(system, AiPrompts.partSummary(target.title, part.title,
-                                join(plain, part.from, part.to)), null));
+                        final String summary = ask(system, AiPrompts.partSummary(target.title, part.title,
+                                join(plain, part.from, part.to)), null);
+                        summaries.add(summary);
+                        if (kept != null) {
+                            kept.put(i, summary);
+                        }
                     }
                     while (summaries.size() > 1 && length(summaries) > settings.maxChars) {
                         final List<String> condensed = condense(system, summaries);
@@ -408,7 +627,7 @@ public final class AiJobs {
                         summaries = condensed;
                     }
                     status(string(R.string.ai_writing));
-                    ui(screen::onAnswerStart);
+                    show(SummaryScreen::onAnswerStart);
                     answer = ask(system, AiPrompts.joinSummaries(target.title,
                             wholeBook ? AiPrompts.BOOK_TASK : AiPrompts.CHAPTER_TASK, summaries), stream);
                 }
@@ -416,11 +635,16 @@ public final class AiJobs {
                 final AiStore.Summary summary = new AiStore.Summary(range.key, title, answer.trim(),
                         settings.model, System.currentTimeMillis());
                 if (wasCutOff()) {
-                    ui(() -> screen.onDone(summary, false, string(R.string.ai_cut_off)));
+                    result = string(R.string.ai_cut_off);
+                    show(s -> s.onDone(summary, false, string(R.string.ai_cut_off)));
                     return;
                 }
                 AiHighlights.get().set(target.name, AiStore.get().update(target.name, book -> book.putSummary(summary)));
-                ui(() -> screen.onDone(summary, false, null));
+                if (wholeBook) {
+                    AiParts.open(AiParts.folder(context), target.name, "").clear();
+                }
+                result = string(R.string.ai_task_summary_done);
+                show(s -> s.onDone(summary, false, null));
             }
         }
 
@@ -535,6 +759,13 @@ public final class AiJobs {
             this.given = given;
         }
 
+        /** The task of a key passages run (design-2026-10-25.md). */
+        public HighlightJob(android.content.Context context, Target target, boolean wholeBook, BookChapters.Range given) {
+            super(context, target);
+            this.wholeBook = wholeBook;
+            this.given = given;
+        }
+
         public String getStatus() {
             return status;
         }
@@ -542,6 +773,19 @@ public final class AiJobs {
         /** The progress is shown again (or hidden with null): the run goes on either way. */
         public void setScreen(HighlightScreen screen) {
             this.screen = screen;
+        }
+
+        @Override
+        protected void setTaskScreen(Object screen) {
+            setScreen(screen instanceof HighlightScreen ? (HighlightScreen) screen : null);
+            if (this.screen != null && !status.isEmpty()) {
+                status(status);
+            }
+        }
+
+        @Override
+        protected void showStatus(String text) {
+            status(text);
         }
 
         private void status(String text) {
@@ -555,12 +799,13 @@ public final class AiJobs {
         }
 
         private void finished(String message) {
+            result = message;
             ui(() -> {
                 final HighlightScreen s = screen;
                 if (s != null) {
                     s.onFinished(message);
                 } else {
-                    Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
+                    tell(message);
                 }
             });
         }
@@ -572,7 +817,7 @@ public final class AiJobs {
                 if (s != null) {
                     s.onError(message);
                 } else {
-                    Toast.makeText(activity, message, Toast.LENGTH_LONG).show();
+                    tell(message);
                 }
             });
         }
@@ -625,6 +870,7 @@ public final class AiJobs {
                 for (int i = 0; i < todo.size(); i++) {
                     final BookChapters.Range chapter = todo.get(i);
                     status(string(R.string.ai_chapter_progress, i + 1, todo.size(), marked));
+                    step(status, i + 1, todo.size());
 
                     final List<String> words = new ArrayList<>();
                     final List<Integer> wordPage = new ArrayList<>();

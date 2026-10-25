@@ -62,7 +62,11 @@ public class AiClientTest {
         JSONObject body = body(request);
         assertEquals("claude-opus-5-5", body.getString("model"));
         assertTrue(body.getBoolean("stream"));
-        assertEquals("Be brief.", body.getString("system"));
+        JSONObject system = body.getJSONArray("system").getJSONObject(0);
+        assertEquals("text", system.getString("type"));
+        assertEquals("Be brief.", system.getString("text"));
+        assertEquals("ephemeral", system.getJSONObject("cache_control").getString("type"));
+        assertFalse("the book's text is not cached", body.has("cache_control"));
         assertEquals("Summarize.", body.getJSONArray("messages").getJSONObject(0).getString("content"));
         assertEquals("default", body.getString("fallbacks"));
         assertFalse(body.has("thinking"));
@@ -115,6 +119,30 @@ public class AiClientTest {
     }
 
     @Test
+    public void anEmptySystemPromptIsLeftOut() throws Exception {
+        AiClient client = new AiClient(new OkHttpClient(), claude("https://api.anthropic.com", "claude-opus-5-5"));
+        assertFalse(body(client.claudeRequest("", "u")).has("system"));
+    }
+
+    @Test
+    public void claudeStreamCountsTheTokensWithTheCache() throws Exception {
+        AiClient client = new AiClient(new OkHttpClient(), claude("https://api.anthropic.com", "claude-opus-5-5"));
+        assertNull(client.getUsage());
+        client.readClaude(sse(
+                "{\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":3000,"
+                        + "\"cache_read_input_tokens\":900,\"cache_creation_input_tokens\":0,\"output_tokens\":1}}}",
+                "{\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hi\"}}",
+                "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"},\"usage\":{\"output_tokens\":250}}",
+                "{\"type\":\"message_stop\"}"), null);
+
+        AiClient.Usage usage = client.getUsage();
+        assertEquals(3000, usage.input);
+        assertEquals(900, usage.cacheRead);
+        assertEquals(0, usage.cacheWrite);
+        assertEquals("message_delta's count wins", 250, usage.output);
+    }
+
+    @Test
     public void aClaudeRefusalIsAnErrorNotAnAnswer() throws Exception {
         AiClient client = new AiClient(new OkHttpClient(), claude("https://api.anthropic.com", "claude-opus-5-5"));
         try {
@@ -125,6 +153,7 @@ public class AiClientTest {
             fail();
         } catch (AiClient.AiException e) {
             assertTrue(e.refusal);
+            assertFalse("a refusal comes back the same", e.retryable);
             assertTrue(e.getMessage().contains("cyber"));
         }
     }
@@ -137,12 +166,14 @@ public class AiClientTest {
             fail();
         } catch (AiClient.AiException e) {
             assertFalse(e.refusal);
+            assertTrue("a stream cut short may come whole next time", e.retryable);
         }
         try {
             client.readClaude(sse("{\"type\":\"error\",\"error\":{\"type\":\"overloaded_error\",\"message\":\"Overloaded\"}}"), null);
             fail();
         } catch (AiClient.AiException e) {
             assertEquals("overloaded_error: Overloaded", e.getMessage());
+            assertTrue(e.retryable);
         }
     }
 

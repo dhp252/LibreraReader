@@ -35,15 +35,36 @@ public class AiClient {
     /** The provider answered, but not with a usable answer. */
     public static class AiException extends IOException {
         public final boolean refusal;
+        /**
+         * Worth asking again later: no answer (the network), a busy or failing server (408, 429,
+         * 5xx, overloaded), an answer cut short in the stream. Not a refused key or request.
+         */
+        public final boolean retryable;
 
         public AiException(String message) {
-            this(message, false);
+            this(message, false, false);
         }
 
         AiException(String message, boolean refusal) {
+            this(message, refusal, false);
+        }
+
+        AiException(String message, boolean refusal, boolean retryable) {
             super(message);
             this.refusal = refusal;
+            this.retryable = retryable;
         }
+    }
+
+    /** HTTP statuses worth another try: a timeout, too many requests, a server error or overload. */
+    static boolean retryableStatus(int code) {
+        return code == 408 || code == 429 || code >= 500;
+    }
+
+    /** Error types of a stream worth another try. */
+    static boolean retryableError(String type) {
+        return "overloaded_error".equals(type) || "rate_limit_error".equals(type) || "api_error".equals(type)
+                || "timeout_error".equals(type);
     }
 
     static final String ANTHROPIC_VERSION = "2023-06-01";
@@ -59,6 +80,21 @@ public class AiClient {
     private final AiSettings settings;
     private volatile Call call;
     private volatile String stopReason;
+    private volatile Usage usage;
+
+    /** Tokens of the last Claude answer as the API counted them, prompt caching included. */
+    public static class Usage {
+        /** Input not read from the cache nor written to it. */
+        public int input;
+        public int cacheRead;
+        public int cacheWrite;
+        public int output;
+
+        @Override
+        public String toString() {
+            return "input " + input + ", cache read " + cacheRead + ", cache write " + cacheWrite + ", output " + output;
+        }
+    }
 
     public AiClient(AiSettings settings) {
         this(new OkHttpClient.Builder()
@@ -87,6 +123,11 @@ public class AiClient {
         return stopReason;
     }
 
+    /** The tokens of the last Claude answer, or null (another provider, or none counted). */
+    public Usage getUsage() {
+        return usage;
+    }
+
     /** @return the whole answer; {@code output} also gets it piece by piece as it streams */
     public String complete(String system, String user, Output output) throws IOException {
         final Request request;
@@ -96,11 +137,13 @@ public class AiClient {
             throw new AiException(e.getMessage());
         }
         stopReason = null;
+        usage = null;
         call = http.newCall(request);
         try (Response response = call.execute()) {
             final ResponseBody body = response.body();
             if (!response.isSuccessful()) {
-                throw new AiException(errorMessage(response.code(), body == null ? "" : body.string()));
+                throw new AiException(errorMessage(response.code(), body == null ? "" : body.string()), false,
+                        retryableStatus(response.code()));
             }
             if (body == null) {
                 throw new AiException("empty answer");
@@ -120,7 +163,15 @@ public class AiClient {
         body.put("model", settings.model.trim());
         body.put("max_tokens", MAX_TOKENS);
         body.put("stream", true);
-        body.put("system", system);
+        if (!system.isEmpty()) {
+            // the same instructions go with every part of a task: cached, the next requests read them
+            // back at a tenth of the price. Below the model's minimum (512 to 4096 tokens) nothing is
+            // cached and nothing extra is paid; the book's text differs per request and is never cached.
+            body.put("system", new JSONArray().put(new JSONObject()
+                    .put("type", "text")
+                    .put("text", system)
+                    .put("cache_control", new JSONObject().put("type", "ephemeral"))));
+        }
         body.put("messages", new JSONArray().put(new JSONObject().put("role", "user").put("content", user)));
         final Request.Builder request = new Request.Builder()
                 .url(endpoint(settings.url, "v1/messages"))
@@ -153,7 +204,10 @@ public class AiClient {
             }
             final JSONObject event = new JSONObject(data);
             final String type = event.optString("type");
-            if ("content_block_delta".equals(type)) {
+            if ("message_start".equals(type)) {
+                final JSONObject message = event.optJSONObject("message");
+                count(message == null ? null : message.optJSONObject("usage"));
+            } else if ("content_block_delta".equals(type)) {
                 final JSONObject delta = event.optJSONObject("delta");
                 // only text: thinking and other blocks (a fallback marker) are not part of the answer
                 if (delta != null && "text_delta".equals(delta.optString("type"))) {
@@ -175,9 +229,11 @@ public class AiClient {
                 if (details != null && !details.isNull("category")) {
                     category = details.optString("category", null);
                 }
+                count(event.optJSONObject("usage"));
             } else if ("error".equals(type)) {
                 final JSONObject error = event.optJSONObject("error");
-                throw new AiException(error == null ? data : error.optString("type") + ": " + error.optString("message"));
+                throw new AiException(error == null ? data : error.optString("type") + ": " + error.optString("message"),
+                        false, error != null && retryableError(error.optString("type")));
             } else if ("message_stop".equals(type)) {
                 break;
             }
@@ -187,9 +243,22 @@ public class AiClient {
             throw new AiException("declined" + (category == null ? "" : " (" + category + ")"), true);
         }
         if (stopReason == null) {
-            throw new AiException("the answer stopped before it was complete");
+            throw new AiException("the answer stopped before it was complete", false, true);
         }
         return text.toString();
+    }
+
+    /** The counts of message_start, then the totals message_delta may repeat or raise. */
+    private void count(JSONObject counted) {
+        if (counted == null) {
+            return;
+        }
+        final Usage u = usage == null ? new Usage() : usage;
+        u.input = counted.optInt("input_tokens", u.input);
+        u.cacheRead = counted.optInt("cache_read_input_tokens", u.cacheRead);
+        u.cacheWrite = counted.optInt("cache_creation_input_tokens", u.cacheWrite);
+        u.output = counted.optInt("output_tokens", u.output);
+        usage = u;
     }
 
     // --- OpenAI-compatible chat completions ---
@@ -247,7 +316,7 @@ public class AiClient {
             }
         }
         if (!done && stopReason == null) {
-            throw new AiException("the answer stopped before it was complete");
+            throw new AiException("the answer stopped before it was complete", false, true);
         }
         return text.toString();
     }
