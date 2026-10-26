@@ -247,7 +247,7 @@ public final class StudyJobs {
                 final List<Integer> wordPage = new ArrayList<>();
                 for (int p = from; p < to; p++) {
                     checkCancelled();
-                    final org.ebookdroid.droids.mupdf.codec.TextWord[][] page = text.text(p);
+                    final org.ebookdroid.droids.mupdf.codec.TextWord[][] page = text.body(p);
                     for (String w : BookText.words(page)) {
                         words.add(w);
                         wordPage.add(p);
@@ -524,7 +524,7 @@ public final class StudyJobs {
         final Set<String> keys = new HashSet<>();
         for (int i = 0; i < chapters.size(); i++) {
             final BookChapters.Range range = chapters.get(i);
-            if (StudyChapters.isFront(range)) {
+            if (StudyChapters.isOutside(range)) {
                 continue;
             }
             keys.add(range.key);

@@ -20,12 +20,24 @@ public final class AiPrompts {
         return master.trim() + "\n\n" + system;
     }
 
+    /**
+     * Pages around the book's text that hold none of its ideas ({@link SideMatter}): the app leaves
+     * out what it can tell by titles and page layout, the model the rest (a "join our community"
+     * box inside a chapter, an author's bio without a TOC entry).
+     */
+    public static final String SIDE_MATTER = "Ignore side matter: it is not part of the book's content. Side "
+            + "matter is copyright and publishing details, contents lists, indexes, bios of the author or "
+            + "contributors, acknowledgments, dedications, bibliographies and reference lists, glossaries, "
+            + "praise for the book, ads for other books, calls to action (join a community or channel, leave a "
+            + "review, share your thoughts, subscribe, sign up, download a copy or a bonus, scan a QR code), "
+            + "running heads and page numbers. Take nothing from it.";
+
     /** @param answerLanguage the reader's choice; empty means the language of the book */
     public static String summarySystem(String answerLanguage) {
         return "You summarize parts of a book for someone who is reading it. "
                 + "Write in " + language(answerLanguage) + ". "
                 + "Stay faithful to the text you are given: no outside knowledge about the book, "
-                + "and nothing from parts of it you were not given. "
+                + "and nothing from parts of it you were not given. " + SIDE_MATTER + " "
                 + "Plain prose in short paragraphs; no headings, tables or Markdown.";
     }
 
@@ -86,6 +98,7 @@ public final class AiPrompts {
                 .append("order, and list every main idea (a claim, a step of the argument, a conclusion) and, ")
                 .append("under it, the evidence, concepts, caveats and examples that matter for understanding ")
                 .append("or believing it. Leave out only filler and repetition.\n")
+                .append(SIDE_MATTER).append(" When the text is only side matter, answer [].\n")
                 .append("Each idea has one category, the one whose test it passes best:\n");
         categories(out, hasGoal);
         out.append("Answer with a JSON array of objects in reading order and nothing else, each\n")
@@ -117,7 +130,7 @@ public final class AiPrompts {
     public static String repairSystem() {
         return "You find where a text says given ideas. For each idea, copy from the text the 1 or 2 "
                 + "sentences that say it most directly, each one whole sentence. If the text does not say "
-                + "it, give no sentences. Answer with a JSON array and nothing else, each "
+                + "it, give no sentences. " + SIDE_MATTER + " Answer with a JSON array and nothing else, each "
                 + "{\"id\": <the idea's id>, \"sentences\": [\"<sentence>\"]}. " + QUOTE_RULES;
     }
 

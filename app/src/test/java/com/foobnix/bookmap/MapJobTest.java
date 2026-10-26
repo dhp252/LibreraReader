@@ -47,6 +47,17 @@ public class MapJobTest {
     }
 
     @Test
+    public void leavesSideMatterOut() {
+        final List<BookChapters.Range> ranges = new ArrayList<>(RANGES);
+        ranges.add(new BookChapters.Range(60, 70, "Index", "index#0"));
+        ranges.add(1, new BookChapters.Range(3, 3, "Copyright", "copyright#0"));
+        final List<MapJob.Todo> todo = MapJob.todo(ranges, new MapBook(), new AiStore.Book(), false);
+        assertEquals(4, todo.size());
+        assertEquals("one#0", todo.get(1).range.key);
+        assertEquals("three#0", todo.get(3).range.key);
+    }
+
+    @Test
     public void sendsSavedIdeasOnlyWhenTheSettingIsOnAndTheChapterHasThem() {
         final AiStore.Book ai = withIdeasIn("two#0");
         List<MapJob.Todo> todo = MapJob.todo(RANGES, new MapBook(), ai, true);

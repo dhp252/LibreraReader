@@ -32,7 +32,7 @@ public final class SkimPack {
         int last = -1;
         int count = 0;
         for (int i = 0; i < chapters.size(); i++) {
-            if (!StudyChapters.isFront(chapters.get(i))) {
+            if (!StudyChapters.isOutside(chapters.get(i))) {
                 if (first < 0) {
                     first = i;
                 }
@@ -48,7 +48,7 @@ public final class SkimPack {
         final StringBuilder out = new StringBuilder();
         for (int i = 0; i < chapters.size(); i++) {
             final BookChapters.Range chapter = chapters.get(i);
-            if (StudyChapters.isFront(chapter)) {
+            if (StudyChapters.isOutside(chapter)) {
                 continue;
             }
             final String text = text(pageText, chapter.from, chapter.to);

@@ -443,8 +443,20 @@ public final class AiJobs {
                 if (progress != null && (p - from) % 10 == 0) {
                     progress.on(string(R.string.ai_reading_pages, p - from + 1, to - from));
                 }
-                plain[p] = BookText.plain(text.text(p));
+                plain[p] = BookText.plain(text.body(p));
                 lengths[p] = plain[p].length();
+            }
+        }
+
+        /** Side matter chapters (copyright, index, ads...) out of text already read: none of the book's ideas. */
+        protected static void leaveOutSide(List<BookChapters.Range> chapters, String[] plain, int[] lengths) {
+            for (BookChapters.Range r : chapters) {
+                if (SideMatter.isSideTitle(r.title)) {
+                    for (int p = Math.max(0, r.from); p < r.to && p < plain.length; p++) {
+                        plain[p] = null;
+                        lengths[p] = 0;
+                    }
+                }
             }
         }
 
@@ -593,6 +605,9 @@ public final class AiJobs {
                 final String[] plain = new String[pages];
                 final int[] lengths = new int[pages];
                 read(text, range.from, range.to, plain, lengths, this::status);
+                if (wholeBook) {
+                    leaveOutSide(BookChapters.chaptersOrBlocks(toc, pages, BookChapters.BLOCK_PAGES), plain, lengths);
+                }
                 final long total = BookChapters.length(lengths, range.from, range.to);
                 if (total == 0) {
                     failWith(string(R.string.ai_no_text));
@@ -862,6 +877,10 @@ public final class AiJobs {
                 final AiStore.Book saved = rememberChapters(all);
                 if (wholeBook) {
                     for (BookChapters.Range chapter : all) {
+                        if (SideMatter.isSideTitle(chapter.title)) {
+                            leaveOut(chapter);
+                            continue;
+                        }
                         // key passages from before ideas are done again; on a redo, all done before it
                         final AiStore.Chapter had = saved.chapter(chapter.key);
                         final boolean redo = redoBefore > 0 && (had == null || had.time < redoBefore);
@@ -874,7 +893,14 @@ public final class AiJobs {
                         return;
                     }
                 } else {
-                    todo.add(given != null ? given : BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES));
+                    final BookChapters.Range chapter = given != null ? given
+                            : BookChapters.chapterAt(toc, target.page, pages, BookChapters.BLOCK_PAGES);
+                    if (SideMatter.isSideTitle(chapter.title)) {
+                        leaveOut(chapter);
+                        finished(string(R.string.ai_side_matter, chapter.title));
+                        return;
+                    }
+                    todo.add(chapter);
                 }
 
                 // the reader's goal decides whether "apply" is asked for (AiCategory)
@@ -898,7 +924,7 @@ public final class AiJobs {
                     final List<Integer> wordPage = new ArrayList<>();
                     for (int p = chapter.from; p < chapter.to; p++) {
                         checkCancelled();
-                        final TextWord[][] page = text.text(p);
+                        final TextWord[][] page = text.body(p);
                         for (String w : BookText.words(page)) {
                             words.add(w);
                             wordPage.add(p);
@@ -999,6 +1025,21 @@ public final class AiJobs {
             });
             AiHighlights.get().set(target.name, changed);
             return changed;
+        }
+
+        /** Side matter is never marked: marks it got before go, and a whole-book run passes it from now on. */
+        private void leaveOut(BookChapters.Range chapter) throws IOException {
+            final AiStore.Book saved = AiStore.get().load(target.name);
+            if (saved.chapter(chapter.key) == null && saved.emptyKeys.contains(chapter.key)) {
+                return;
+            }
+            final AiStore.Book book = AiStore.get().update(target.name, b -> {
+                b.removeChapter(chapter.key);
+                if (!b.emptyKeys.contains(chapter.key)) {
+                    b.emptyKeys.add(chapter.key);
+                }
+            });
+            AiHighlights.get().set(target.name, book);
         }
 
         /** A chapter without text, or without an idea: a whole-book run passes it from now on. */

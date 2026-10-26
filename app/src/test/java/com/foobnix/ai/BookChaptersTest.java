@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class BookChaptersTest {
 
@@ -97,5 +98,21 @@ public class BookChaptersTest {
         assertEquals(8, parts.get(1).to);
         assertEquals(8, parts.get(2).from);
         assertEquals(10, parts.get(2).to);
+    }
+
+    @Test
+    public void partsWithoutTextAreLeftOut() {
+        List<BookChapters.Range> chapters = Arrays.asList(
+                new BookChapters.Range(0, 4, "A"),       // 400 chars, cut
+                new BookChapters.Range(4, 6, "Index"),   // left out: no text
+                new BookChapters.Range(6, 10, "C"));     // 400 chars, cut
+        int[] pageLength = {100, 100, 100, 100, 0, 0, 100, 100, 100, 100};
+
+        List<BookChapters.Range> parts = BookChapters.parts(chapters, pageLength, 300);
+
+        for (BookChapters.Range part : parts) {
+            assertTrue(part.from + "-" + part.to, BookChapters.length(pageLength, part.from, part.to) > 0);
+        }
+        assertEquals(4, parts.size());   // A in 2, C in 2
     }
 }

@@ -1,6 +1,7 @@
 package com.foobnix.study;
 
 import com.foobnix.ai.BookChapters;
+import com.foobnix.ai.SideMatter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +31,7 @@ public final class StudyChapters {
             return split;
         }
         for (BookChapters.Range range : BookChapters.chapters(valid, pageCount)) {
-            if (!isFront(range) && BookChapters.length(pageChars, range.from, range.to) > StudyRules.LONG_CHARS
+            if (!isOutside(range) && BookChapters.length(pageChars, range.from, range.to) > StudyRules.LONG_CHARS
                     && !children(valid, range).isEmpty()) {
                 split.add(range.key);
             }
@@ -69,9 +70,39 @@ public final class StudyChapters {
         return out;
     }
 
-    /** Pages before the first TOC entry (cover, copyright): no cards. */
-    public static boolean isFront(BookChapters.Range range) {
-        return range != null && BookChapters.FRONT.equals(range.key);
+    /** Key of pages no previewed chapter holds (side matter left out of the preview). */
+    public static final String SIDE = "@side";
+
+    /**
+     * Not studied (no skim, no cards): the pages before the first TOC entry (cover, copyright),
+     * side matter (contents, index, about the author, ads... {@link SideMatter}) and the pages
+     * between previewed chapters.
+     */
+    public static boolean isOutside(BookChapters.Range range) {
+        return range != null && (BookChapters.FRONT.equals(range.key) || SIDE.equals(range.key)
+                || SideMatter.isSideTitle(range.title));
+    }
+
+    /**
+     * The previewed chapters with the pages none of them holds (side matter, left out of the
+     * preview) as not studied.
+     *
+     * @param sorted the previewed chapters by first page
+     */
+    public static List<BookChapters.Range> withGaps(List<BookChapters.Range> sorted, int docPages) {
+        final List<BookChapters.Range> out = new ArrayList<>();
+        int at = 0;
+        for (BookChapters.Range r : sorted) {
+            if (r.from > at) {
+                out.add(new BookChapters.Range(at, r.from, "", SIDE));
+            }
+            out.add(r);
+            at = Math.max(at, r.to);
+        }
+        if (at < docPages) {
+            out.add(new BookChapters.Range(at, docPages, "", SIDE));
+        }
+        return out;
     }
 
     /** The chapter holding a page (clamped into the book), or null when there is none. */

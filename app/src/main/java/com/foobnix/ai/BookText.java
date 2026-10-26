@@ -4,6 +4,7 @@ import android.graphics.RectF;
 
 import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.sys.ImageExtractor;
 import com.foobnix.tts.TTSHighlight;
 
@@ -16,7 +17,12 @@ import org.ebookdroid.droids.mupdf.codec.TextWord;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The text of the open book for AI requests. Reads a copy of the document of its own, laid out
@@ -27,10 +33,22 @@ public class BookText implements Closeable {
 
     private final CodecDocument doc;
     private final int pageCount;
+    /** Pages laid out once and for all (PDF, DjVu...): they have running heads and page numbers. */
+    private final boolean fixed;
+    /** The edges of pages already read, for the running heads of the pages near them. */
+    private final Map<Integer, PageEdges.Page> edges = new HashMap<>();
+    /** The text of the pages read last: a page is read for its own body and for its neighbours'. */
+    private final Map<Integer, TextWord[][]> recent = new LinkedHashMap<Integer, TextWord[][]>(32, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Integer, TextWord[][]> eldest) {
+            return size() > 2 * PageEdges.NEAR + 4;
+        }
+    };
 
-    private BookText(CodecDocument doc, int pageCount) {
+    private BookText(CodecDocument doc, int pageCount, boolean fixed) {
         this.doc = doc;
         this.pageCount = pageCount;
+        this.fixed = fixed;
     }
 
     /**
@@ -44,7 +62,7 @@ public class BookText implements Closeable {
             return null;
         }
         try {
-            return new BookText(doc, doc.getPageCount(width, height, fontSize));
+            return new BookText(doc, doc.getPageCount(width, height, fontSize), !ExtUtils.isTextFomat(path));
         } catch (Exception e) {
             LOG.e(e);
             doc.recycle();
@@ -105,6 +123,86 @@ public class BookText implements Closeable {
                 codecPage.recycle();
             }
         }
+    }
+
+    /**
+     * The words of a page that are the book's text, for the AI: a fixed layout's running heads and
+     * page numbers left out ({@link PageEdges}), and nothing of a copyright, contents or index page
+     * ({@link SideMatter#isSidePage}).
+     */
+    public TextWord[][] body(int page) {
+        final TextWord[][] text = cached(page);
+        final List<PageEdges.Line> lines = PageEdges.lines(edgeWords(text));
+        Set<Integer> heads = Collections.emptySet();
+        if (fixed) {
+            final List<PageEdges.Page> nearby = new ArrayList<>();
+            for (int p = Math.max(0, page - PageEdges.NEAR); p <= page + PageEdges.NEAR && p < pageCount; p++) {
+                if (p != page) {
+                    nearby.add(edges(p));
+                }
+            }
+            heads = PageEdges.heads(edges(page), nearby);
+        }
+        final List<String> kept = new ArrayList<>();
+        for (PageEdges.Line line : lines) {
+            if (!heads.containsAll(line.words)) {
+                kept.add(line.text);
+            }
+        }
+        if (SideMatter.isSidePage(kept, page, pageCount)) {
+            return new TextWord[0][0];
+        }
+        if (heads.isEmpty()) {
+            return text;
+        }
+        final List<TextWord[]> out = new ArrayList<>();
+        int i = 0;
+        for (TextWord[] line : text) {
+            if (line == null) {
+                continue;
+            }
+            final List<TextWord> left = new ArrayList<>();
+            for (TextWord w : line) {
+                if (!heads.contains(i++)) {
+                    left.add(w);
+                }
+            }
+            if (!left.isEmpty()) {
+                out.add(left.toArray(new TextWord[0]));
+            }
+        }
+        return out.toArray(new TextWord[0][]);
+    }
+
+    private TextWord[][] cached(int page) {
+        TextWord[][] text = recent.get(page);
+        if (text == null) {
+            text = text(page);
+            recent.put(page, text);
+        }
+        return text;
+    }
+
+    private PageEdges.Page edges(int page) {
+        PageEdges.Page e = edges.get(page);
+        if (e == null) {
+            e = PageEdges.page(PageEdges.lines(edgeWords(cached(page))));
+            edges.put(page, e);
+        }
+        return e;
+    }
+
+    /** Every word of the page in order (a missing one too, unplaced), so indexes match the text's. */
+    private static List<PageEdges.Word> edgeWords(TextWord[][] text) {
+        final List<PageEdges.Word> words = new ArrayList<>();
+        for (TextWord[] line : text) {
+            if (line != null) {
+                for (TextWord w : line) {
+                    words.add(w == null ? new PageEdges.Word("", -1, -1, -1) : new PageEdges.Word(w.getWord(), w.left, w.top, w.bottom));
+                }
+            }
+        }
+        return words;
     }
 
     /** The annotations inside a PDF page, how they look, and the page's words (F-008 export). */

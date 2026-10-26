@@ -1,5 +1,6 @@
 package com.foobnix.bookmap;
 
+import com.foobnix.ai.AiPrompts;
 import com.foobnix.ai.AiStore;
 
 import org.json.JSONArray;
@@ -54,6 +55,7 @@ public final class MapPrompts {
                 + "Each moment names 1 to 4 threads from your list (several means they meet in it), a label of at "
                 + "most 8 words in your own words, and a quote: one whole sentence copied from the text. Leave out "
                 + "moments that change nothing.\n"
+                + AiPrompts.SIDE_MATTER + " When the text is only side matter, answer {\"threads\":[],\"moments\":[]}.\n"
                 + "Keep names as the book has them; write the labels and what each thread is in "
                 + language(answerLanguage) + ".\n"
                 + "Answer with JSON only:\n"

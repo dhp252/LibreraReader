@@ -34,7 +34,9 @@ public final class StudyPrompts {
                 + "- reason: why that label, at most 15 words, concrete (\"mostly airline case studies\").\n"
                 + "- questions: 2 or 3 short questions to keep in mind while reading the chapter, each "
                 + "answerable from the chapter in a sentence or two.\n"
-                + "Judge only from what you are given; when the skim is too thin to tell, choose \"read\".\n"
+                + "Judge only from what you are given; when the skim is too thin to tell, choose \"read\". "
+                + "A chapter that is only side matter (copyright, contents, index, bios, acknowledgments, "
+                + "bibliography, glossary, ads, calls to join or review) gets \"skip\".\n"
                 + "Answer with one JSON object and nothing else: {\"thesis\": \"...\", \"chapters\": "
                 + "[{\"n\": <the chapter's n>, \"line\": \"...\", \"label\": \"read|skim|skip\", "
                 + "\"reason\": \"...\", \"questions\": [\"...\", \"...\"]}]}, one entry per chapter, in order.";

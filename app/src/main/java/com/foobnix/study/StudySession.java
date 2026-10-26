@@ -148,7 +148,7 @@ public final class StudySession {
         final List<BookChapters.Range> out = new ArrayList<>();
         if (all != null) {
             for (BookChapters.Range r : all) {
-                if (!StudyChapters.isFront(r) && book.chapter(r.key) != null) {
+                if (!StudyChapters.isOutside(r) && book.chapter(r.key) != null) {
                     out.add(r);
                 }
             }
@@ -160,7 +160,7 @@ public final class StudySession {
     public BookChapters.Range currentChapter() {
         final List<BookChapters.Range> all = chapters;
         final BookChapters.Range r = all == null || lastPage < 0 ? null : StudyChapters.at(all, lastPage);
-        return r == null || StudyChapters.isFront(r) ? null : r;
+        return r == null || StudyChapters.isOutside(r) ? null : r;
     }
 
     public String bookName() {
@@ -308,7 +308,7 @@ public final class StudySession {
                 continue;
             }
             final BookChapters.Range r = StudyChapters.at(all, m.firstPage());
-            if (r == null || StudyChapters.isFront(r)) {
+            if (r == null || StudyChapters.isOutside(r)) {
                 continue;
             }
             final StudyBook.Node note = new StudyBook.Node(m.note.replace("\r", "").replace("\n", " ").trim(),
@@ -418,7 +418,7 @@ public final class StudySession {
         if (out.get(0).from > 0) {
             out.add(0, new BookChapters.Range(0, out.get(0).from, "", BookChapters.FRONT));
         }
-        return out;
+        return StudyChapters.withGaps(out, docPages);
     }
 
     /** The chapters in the reader's layout, from the TOC (reflowing books: pages move with the font). */

@@ -14,6 +14,16 @@ import static org.junit.Assert.assertTrue;
 public class AiPromptsTest {
 
     @Test
+    public void everyRequestOnTheBooksTextLeavesSideMatterOut() {
+        for (String system : Arrays.asList(AiPrompts.ideasSystem(false, ""), AiPrompts.ideasSystem(true, "English"),
+                AiPrompts.repairSystem(), AiPrompts.summarySystem(""),
+                com.foobnix.bookmap.MapPrompts.chapterSystem(""))) {
+            assertTrue(system, system.contains(AiPrompts.SIDE_MATTER));
+        }
+        assertTrue(AiPrompts.ideasSystem(false, "").contains("only side matter, answer []"));
+    }
+
+    @Test
     public void parsesIdeasWithTheirAnchors() {
         final AiPrompts.Ideas read = AiPrompts.parseIdeas("[{\"id\": 1, \"category\": \"main\", \"idea\": \"Habits compound.\", "
                 + "\"parent\": 0, \"sentences\": [\"First sentence.\"], \"paragraphs\": [{\"start\": \"Some years ago\", \"end\": \"to the sea.\"}]},"

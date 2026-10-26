@@ -59,7 +59,7 @@ public class StudyChaptersTest {
 
         // front (page 0) + 9 chapters
         assertEquals(10, chapters.size());
-        assertTrue(StudyChapters.isFront(chapters.get(0)));
+        assertTrue(StudyChapters.isOutside(chapters.get(0)));
         assertEquals("Chapter 1", chapters.get(1).title);
         assertEquals(1, chapters.get(1).from);          // the "Part 1" title page joins chapter 1
         assertEquals(chapters.get(2).from, chapters.get(1).to);
@@ -117,7 +117,7 @@ public class StudyChaptersTest {
                 Collections.<String>emptySet());
         assertEquals(3, chapters.size());
         assertEquals(40, chapters.get(2).from);
-        assertFalse(StudyChapters.isFront(chapters.get(0)));
+        assertFalse(StudyChapters.isOutside(chapters.get(0)));
         assertTrue(StudyChapters.longParts(Collections.<BookChapters.Entry>emptyList(), 45, pages(45, 9000)).isEmpty());
     }
 
@@ -136,5 +136,31 @@ public class StudyChaptersTest {
         assertEquals(0, StudyChapters.indexAt(chapters, 0));
         assertEquals(chapters.size() - 1, StudyChapters.indexAt(chapters, 500));
         assertEquals(-1, StudyChapters.indexAt(Collections.<BookChapters.Range>emptyList(), 3));
+    }
+
+    @Test
+    public void sideMatterIsNotStudied() {
+        assertTrue(StudyChapters.isOutside(new BookChapters.Range(80, 90, "Index", "index#0")));
+        assertTrue(StudyChapters.isOutside(new BookChapters.Range(0, 2, "About the Author", "about the author#0")));
+        assertTrue(StudyChapters.isOutside(new BookChapters.Range(80, 90, "", StudyChapters.SIDE)));
+        assertFalse(StudyChapters.isOutside(new BookChapters.Range(80, 90, "Notes", "notes#0")));
+        assertFalse(StudyChapters.isOutside(null));
+    }
+
+    @Test
+    public void pagesNoPreviewedChapterHoldsAreSide() {
+        final List<BookChapters.Range> chapters = StudyChapters.withGaps(Arrays.asList(
+                new BookChapters.Range(0, 3, "", BookChapters.FRONT),
+                new BookChapters.Range(5, 20, "One", "one#0"),
+                new BookChapters.Range(20, 40, "Two", "two#0")), 50);
+        assertEquals(5, chapters.size());
+        assertEquals(StudyChapters.SIDE, chapters.get(1).key);   // contents, pages 3-4
+        assertEquals(3, chapters.get(1).from);
+        assertEquals(5, chapters.get(1).to);
+        assertEquals(StudyChapters.SIDE, chapters.get(4).key);   // index, pages 40-49
+        assertEquals(40, chapters.get(4).from);
+        assertEquals(50, chapters.get(4).to);
+        assertEquals("two#0", StudyChapters.at(chapters, 30).key);
+        assertTrue(StudyChapters.isOutside(StudyChapters.at(chapters, 45)));
     }
 }

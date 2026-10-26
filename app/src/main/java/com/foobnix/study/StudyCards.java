@@ -66,7 +66,7 @@ public final class StudyCards {
             return cards;
         }
         final BookChapters.Range left = chapters.get(was);
-        final StudyBook.Chapter done = StudyChapters.isFront(left) ? null : book.chapter(left.key);
+        final StudyBook.Chapter done = StudyChapters.isOutside(left) ? null : book.chapter(left.key);
         if (done != null && !StudyBook.SKIP.equals(done.label) && done.afterShown == 0 && done.checked == 0) {
             cards.add(new Card(AFTER, left.key));
         }
@@ -75,7 +75,7 @@ public final class StudyCards {
     }
 
     private static void addBefore(List<Card> cards, BookChapters.Range range, StudyBook book) {
-        final StudyBook.Chapter c = StudyChapters.isFront(range) ? null : book.chapter(range.key);
+        final StudyBook.Chapter c = StudyChapters.isOutside(range) ? null : book.chapter(range.key);
         if (c != null && c.beforeShown == 0 && c.checked == 0) {
             cards.add(new Card(BEFORE, range.key));
         }

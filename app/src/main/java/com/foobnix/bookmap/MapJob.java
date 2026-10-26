@@ -7,10 +7,12 @@ import com.foobnix.ai.AiPrompts;
 import com.foobnix.ai.AiStore;
 import com.foobnix.ai.BookChapters;
 import com.foobnix.ai.BookText;
+import com.foobnix.ai.SideMatter;
 import com.foobnix.pdf.info.R;
 
 import org.ebookdroid.droids.mupdf.codec.TextWord;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -88,20 +90,40 @@ public final class MapJob extends AiJobs.Job {
     }
 
     /**
-     * The chapters still to map, in the book's order: those without a saved map chapter. With
-     * {@code fromIdeas}, a chapter whose key passages have ideas sends those instead of its text.
+     * The chapters still to map, in the book's order: those without a saved map chapter, side
+     * matter (copyright, index, ads...) left out. With {@code fromIdeas}, a chapter whose key
+     * passages have ideas sends those instead of its text.
      */
     static List<Todo> todo(List<BookChapters.Range> ranges, MapBook saved, AiStore.Book ai, boolean fromIdeas) {
         final List<Todo> out = new ArrayList<>();
         for (int i = 0; i < ranges.size(); i++) {
             final BookChapters.Range r = ranges.get(i);
-            if (saved.chapter(r.key) != null) {
+            if (saved.chapter(r.key) != null || SideMatter.isSideTitle(r.title)) {
                 continue;
             }
             final AiStore.Chapter marked = ai == null ? null : ai.chapter(r.key);
             out.add(new Todo(r, i + 1, fromIdeas && marked != null && !marked.ideas.isEmpty()));
         }
         return out;
+    }
+
+    /** Moments a map got before in side matter go (the whole-book step is then offered again). */
+    private void dropSide(MapStore store) throws IOException {
+        boolean any = false;
+        for (MapBook.Chapter c : store.load(target.name).chapters.values()) {
+            any |= !c.moments.isEmpty() && SideMatter.isSideTitle(c.title);
+        }
+        if (!any) {
+            return;
+        }
+        store.update(target.name, b -> {
+            for (MapBook.Chapter c : b.chapters.values()) {
+                if (SideMatter.isSideTitle(c.title)) {
+                    c.moments.clear();
+                    c.threads.clear();
+                }
+            }
+        });
     }
 
     private void status(String text) {
@@ -150,6 +172,7 @@ public final class MapJob extends AiJobs.Job {
             return;
         }
         final MapStore store = MapStore.get();
+        dropSide(store);
         int read = 0;
         int found = 0;
         int dropped = 0;
@@ -177,7 +200,7 @@ public final class MapJob extends AiJobs.Job {
                     final List<Integer> wordPage = new ArrayList<>();
                     for (int p = r.from; p < r.to; p++) {
                         checkCancelled();
-                        final TextWord[][] page = text.text(p);
+                        final TextWord[][] page = text.body(p);
                         for (String w : BookText.words(page)) {
                             words.add(w);
                             wordPage.add(p);

@@ -158,7 +158,8 @@ public final class BookChapters {
 
     /**
      * Parts for a text too long for one request: consecutive chapters joined while they fit in
-     * {@code maxChars} characters; a chapter longer than that is cut between pages.
+     * {@code maxChars} characters; a chapter longer than that is cut between pages. A part without
+     * text (side matter left out, a scan) is no part: there is nothing to send.
      *
      * @param pageLength characters of text on each page of the book
      */
@@ -192,6 +193,11 @@ public final class BookChapters {
                 current = chapter;
                 currentLength = length;
                 parts.add(current);
+            }
+        }
+        for (int i = parts.size() - 1; i >= 0; i--) {
+            if (length(pageLength, parts.get(i).from, parts.get(i).to) == 0) {
+                parts.remove(i);
             }
         }
         return parts;

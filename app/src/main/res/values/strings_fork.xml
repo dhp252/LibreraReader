@@ -131,6 +131,7 @@
     <string name="ai_highlights_none">No ideas were found.</string>
     <string name="ai_chapters_without_text">%1$d chapters have no text.</string>
     <string name="ai_all_done">Every chapter already has its ideas marked.</string>
+    <string name="ai_side_matter">\"%1$s\" is side matter (copyright, contents, index, ads…): nothing to mark.</string>
     <string name="ai_removed">AI highlights removed.</string>
     <string name="ai_no_highlights">This book has no AI highlights.</string>
     <string name="ai_saved_into_pdf">%1$d passages are now PDF highlights; they are written into the file when the book closes.</string>
