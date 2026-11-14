@@ -29,11 +29,6 @@ on:
       tag:
         description: Release tag (default v<version>-<date>-<commit>)
         default: ""
-  # Temporary, while this workflow is set up on its branch: a workflow can only be started by
-  # hand once it has run. Builds master.
-  push:
-    branches: [claude/project-thread-bu27m6]
-    paths: [.github/workflows/release-apk.yml]
 
 permissions:
   contents: write
@@ -196,7 +191,7 @@ jobs:
             case "$apk" in *-x86.apk|*-x86_64.apk) ;; *) cp "$apk" "dist/$(basename "$apk" | tr ' ' '-')" ;; esac
           done
           [ "$FAILED" = 0 ] || { echo "::error::an APK lacks the native library or a valid signature"; exit 1; }
-          CERT=$("$APKSIGNER" verify --print-certs "${APKS[0]}" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          CERT=$("$APKSIGNER" verify --print-certs "${APKS[0]}" | grep -m 1 'certificate SHA-256 digest' | sed 's/.*: //')
           echo "CERT_SHA256=$CERT" >> "$GITHUB_ENV"
 
       - uses: actions/upload-artifact@v4
