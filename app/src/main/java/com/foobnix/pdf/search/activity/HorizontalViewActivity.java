@@ -96,6 +96,7 @@ import com.foobnix.pdf.info.widget.FileInformationDialog;
 import com.foobnix.pdf.info.widget.ShareDialog;
 import com.foobnix.pdf.info.wrapper.DocumentController;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
+import com.foobnix.pdf.info.wrapper.ReaderChrome;
 import com.foobnix.pdf.info.wrapper.UITab;
 import com.foobnix.pdf.search.activity.msg.FlippingStart;
 import com.foobnix.pdf.search.activity.msg.FlippingStop;
@@ -615,7 +616,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
 
         applyRTL();
 
-        int color = MagicHelper.getTextOrIconColor();
+        int color = ReaderChrome.seek();
 
         seekBar.getProgressDrawable().mutate().setColorFilter(color, PorterDuff.Mode.SRC_IN);
 
@@ -2269,9 +2270,9 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
 
     private void tinUI() {
         // The bars are painted first: on Ink a mark takes its colour from the surface under it.
-        TintUtil.setTintBgSimple(actionBar, AppState.get().transparencyUI);
-        TintUtil.setTintBgSimple(bottomBar, AppState.get().transparencyUI);
-        TxtUtils.updateAllLinks(parentParent);
+        ReaderChrome.paintBar(actionBar, AppState.get().transparencyUI, true);
+        ReaderChrome.paintBar(bottomBar, AppState.get().transparencyUI, false);
+        ReaderChrome.tint(parentParent, actionBar, bottomBar);
         // TintUtil.setBackgroundFillColorBottomRight(ttsActive,
         // ColorUtils.setAlphaComponent(TintUtil.color, 230));
 

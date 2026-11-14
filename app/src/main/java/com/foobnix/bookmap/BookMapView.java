@@ -393,7 +393,7 @@ public final class BookMapView {
         ws.setBlockNetworkLoads(true);
         ws.setAllowFileAccess(true);
         ws.setAllowContentAccess(false);
-        w.setBackgroundColor(dark ? 0xff121212 : 0xfff1f3f6);
+        w.setBackgroundColor(dark ? 0xff0e0f13 : 0xfff6f7f9);
         w.addJavascriptInterface(new Bridge(), "BookMapBridge");
         pageLoaded = false;
         w.setWebViewClient(new WebViewClient() {

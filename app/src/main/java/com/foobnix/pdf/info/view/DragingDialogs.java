@@ -267,7 +267,7 @@ public class DragingDialogs {
             return;
         }
         final int color = TintUtil.isLightSurface(button.getContext(), android.R.attr.colorBackground)
-                          ? TintUtil.color : MagicHelper.getTextOrIconColor();
+                          ? TintUtil.color : MagicHelper.getSheetMarkColor();
         if (button instanceof ImageView) {
             TintUtil.setTintImageNoAlpha((ImageView) button, color);
         }
@@ -292,7 +292,7 @@ public class DragingDialogs {
                 // except on a light sheet, where that white would vanish into it; there they
                 // take the theme colour.
                 final int buttonColor = TintUtil.isLightSurface(activity, android.R.attr.colorBackground)
-                                        ? TintUtil.color : MagicHelper.getTextOrIconColor();
+                                        ? TintUtil.color : MagicHelper.getSheetMarkColor();
 
                 CheckBox isEnableTextReplacement = new CheckBox(activity);
                 isEnableTextReplacement.setText(R.string.enable);
@@ -5699,6 +5699,16 @@ public class DragingDialogs {
                 final CheckBox isBgFullScreen = inflate.findViewById(R.id.isBgFullScreen);
                 isBgFullScreen.setChecked(AppState.get().isBgFullScreen);
                 isBgFullScreen.setOnCheckedChangeListener((buttonView, isChecked) -> AppState.get().isBgFullScreen = isChecked);
+
+                // the bars as a sheet with ink marks rather than in the theme colour (ReaderChrome)
+                final CheckBox isPaperChrome = inflate.findViewById(R.id.isPaperChrome);
+                isPaperChrome.setChecked(AppState.get().isPaperChrome);
+                isPaperChrome.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    AppState.get().isPaperChrome = isChecked;
+                    if (onRefresh != null) {
+                        onRefresh.run();
+                    }
+                });
 
                 TextView textCustomizeFontBGColor = inflate.findViewById(R.id.textCustomizeFontBGColor);
                 if (AppState.get().isCustomizeBgAndColors || controller.isTextFormat()) {

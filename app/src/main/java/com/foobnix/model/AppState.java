@@ -98,6 +98,7 @@ public class AppState {
     public static final List<String> STYLE_COLORS = Arrays.asList(//
             "#1B2A4A", // Oxford navy - the leather-bound blue
             "#3949AB", // indigo - the blue Librera wore before the redesign
+            "#2337C4", // the canvas indigo, a shade down from the reader's accent #2F45E0 to keep 7:1
             "#6B2131", // oxblood
             "#7A5230", // bronze
             "#000000" //
@@ -460,6 +461,8 @@ public class AppState {
     public int bgImageNightTransparency = NIGHT_TRANSPARENCY;
     // the background colour and texture fill the screen, not just the page (ReadingSurface)
     public boolean isBgFullScreen = true;
+    // the reader's bars are a light (at night a dark) sheet with ink marks, not the theme colour (ReaderChrome)
+    public boolean isPaperChrome = true;
     public String appLang = AppState.MY_SYSTEM_LANG;
     public boolean isPrefFormatMode = false;
     public String prefScrollMode = PREF_SCROLL_MODE;

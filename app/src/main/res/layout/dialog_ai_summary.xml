@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="8dip">
+    android:padding="12dip">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -24,8 +24,11 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:alpha="0.75"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.04"
             android:padding="4dip"
-            android:textSize="13sp" />
+            android:textAllCaps="true"
+            android:textSize="11sp" />
 
         <ImageView
             android:id="@+id/aiCopy"
@@ -56,7 +59,8 @@
             android:id="@+id/aiText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:lineSpacingMultiplier="1.15"
+            android:fontFamily="serif"
+            android:lineSpacingMultiplier="1.4"
             android:padding="4dip"
             android:textIsSelectable="true"
             android:textSize="16sp" />

@@ -36,7 +36,9 @@
     <dimen name="cover_radius_small">6dp</dimen>
     <!-- The round a menu sheet is cut to: smaller than a card, so a popup reads as something
          laid over the screen rather than another card on it. -->
-    <dimen name="popup_radius">8dp</dimen>
+    <dimen name="popup_radius">12dp</dimen>
+    <!-- a dialog's sheet, the round of the canvas's cards -->
+    <dimen name="dialog_radius">16dp</dimen>
     
     <dimen name="brigtness">15dip</dimen>
     <dimen name="progress">2dip</dimen>

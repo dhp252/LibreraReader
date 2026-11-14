@@ -6,9 +6,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
-  html, body { margin: 0; height: 100%; background: #ffffff; overflow: hidden; }
-  body.markmap-dark { background: #1e1e1e; }
+  /* the canvas look: white or near-black ground, ink text, a serif for the book's own words */
+  html, body { margin: 0; height: 100%; background: #ffffff; color: #14161B; overflow: hidden; }
+  body.markmap-dark { background: #14161B; color: #E9EBEF; }
   #mm { width: 100%; height: 100%; }
+  .markmap-foreign { font-family: Literata, Georgia, 'Noto Serif', serif; font-size: 15px; line-height: 22px; }
   .markmap-foreign { cursor: pointer; }
 </style>
 <script src="d3.min.js"></script>

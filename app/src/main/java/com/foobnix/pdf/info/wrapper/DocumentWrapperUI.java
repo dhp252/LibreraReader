@@ -1463,9 +1463,9 @@ public class DocumentWrapperUI {
         updateSeekBarColorAndSize();
         BrightnessHelper.updateOverlay(overlay);
 
-        TintUtil.setTintBgSimple(a.findViewById(R.id.menuLayout), AppState.get().transparencyUI);
-        TintUtil.setTintBgSimple(a.findViewById(R.id.bottomBar1), AppState.get().transparencyUI);
-        TintUtil.setBackgroundFillColorBottomRight(lirbiLogo, ColorUtils.setAlphaComponent(TintUtil.color, AppState.get().transparencyUI));
+        ReaderChrome.paintBar(a.findViewById(R.id.menuLayout), AppState.get().transparencyUI, true);
+        ReaderChrome.paintBar(a.findViewById(R.id.bottomBar1), AppState.get().transparencyUI, false);
+        TintUtil.setBackgroundFillColorBottomRight(lirbiLogo, ColorUtils.setAlphaComponent(ReaderChrome.bg(), AppState.get().transparencyUI));
         // The name of the mode is set in the colour the book's own title beside it is, rather
         // than in a white of its own.
         lirbiLogo.setTextColor(MagicHelper.getTextOrIconColor());
@@ -1528,7 +1528,7 @@ public class DocumentWrapperUI {
 
         hideShowPrevNext();
         dc.initAnchor(anchor);
-        TxtUtils.updateAllLinks(parentParent);
+        ReaderChrome.tint(parentParent, a.findViewById(R.id.menuLayout), a.findViewById(R.id.bottomBar1));
     }
 
     public void updateSeekBarColorAndSize() {
@@ -1560,7 +1560,7 @@ public class DocumentWrapperUI {
         //int titleColor = AppState.get().isDayNotInvert ? MagicHelper.otherColor(AppState.get().colorDayBg, -0.05f) : MagicHelper.otherColor(AppState.get().colorNigthBg, 0.05f);
         paintTitleBar(AppState.get().isEditMode);
 
-        int progressColor = TintUtil.color;
+        int progressColor = ReaderChrome.accent();
 
         //progressDraw.setBackgroundColor(TintUtil.color);
         progressDraw.updateColor(progressColor);
@@ -1612,7 +1612,7 @@ public class DocumentWrapperUI {
 
             speedSeekBar.getThumb().setColorFilter(tintColor, PorterDuff.Mode.SRC_IN);
 
-            int color = MagicHelper.getTextOrIconColor();
+            int color = ReaderChrome.seek();
 
             seekBar.getProgressDrawable().mutate().setColorFilter(color, PorterDuff.Mode.SRC_IN);
 
@@ -1981,7 +1981,7 @@ public class DocumentWrapperUI {
         if (!menuUp && ReadingSurface.isOn()) {
             titleBar.setBackground(new ReadingSurface.Paper(titleBar));
         } else {
-            titleBar.setBackgroundColor(TintUtil.color);
+            titleBar.setBackgroundColor(ReaderChrome.bg());
         }
     }
 
