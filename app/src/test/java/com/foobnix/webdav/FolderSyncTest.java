@@ -347,7 +347,123 @@ public class FolderSyncTest {
                     public String merge(String relativePath, String base, String l, String r) throws Exception {
                         return ProfileMerge.merge(relativePath, base, l, r);
                     }
+
+                    @Override
+                    public boolean valid(String relativePath, String text) {
+                        return ProfileMerge.valid(relativePath, text);
+                    }
                 });
+    }
+
+    private static final String POSITIONS = "{\"a.pdf\":{\"p\":0.5,\"t\":1},\"b.pdf\":{\"p\":0.2,\"t\":2}}";
+
+    @Test
+    public void anEmptyListHereIsNeverSent() throws Exception {
+        write("app-Progress.json", POSITIONS, 10_000);
+        merging().sync();
+        // caught in the middle of a write: the file is empty for a moment
+        write("app-Progress.json", "", 20_000);
+
+        final FolderSync.Result result = merging().sync();
+
+        assertEquals(0, result.uploaded);
+        assertEquals(1, result.errors.size());
+        assertEquals(POSITIONS, remote.get("Librera/app-Progress.json"));
+    }
+
+    @Test
+    public void aHalfWrittenListHereIsNeverSent() throws Exception {
+        write("app-Progress.json", POSITIONS, 10_000);
+        merging().sync();
+        write("app-Progress.json", "{\"a.pdf\":{\"p\":0.", 20_000);
+
+        assertEquals(0, merging().syncPaths(java.util.Collections.singleton("app-Progress.json")).uploaded);
+        assertEquals(POSITIONS, remote.get("Librera/app-Progress.json"));
+    }
+
+    @Test
+    public void anEmptyListHereTakesTheServerCopyWhenBothChanged() throws Exception {
+        write("app-Progress.json", POSITIONS, 10_000);
+        merging().sync();
+        final String there = "{\"a.pdf\":{\"p\":0.9,\"t\":5},\"b.pdf\":{\"p\":0.2,\"t\":2}}";
+        remote.put("Librera/app-Progress.json", there);
+        write("app-Progress.json", "", 20_000);
+
+        merging().sync();
+
+        assertEquals(there, read("app-Progress.json"));
+        assertEquals(there, remote.get("Librera/app-Progress.json"));
+    }
+
+    @Test
+    public void anEmptyListOnTheServerIsReplacedByThisCopy() throws Exception {
+        write("app-Progress.json", POSITIONS, 10_000);
+        merging().sync();
+        remote.put("Librera/app-Progress.json", "");
+
+        merging().sync();
+
+        assertEquals(POSITIONS, read("app-Progress.json"));
+        assertEquals(POSITIONS, remote.get("Librera/app-Progress.json"));
+    }
+
+    @Test
+    public void anEmptyListOnBothSidesIsLeftAlone() throws Exception {
+        write("app-Progress.json", POSITIONS, 10_000);
+        merging().sync();
+        remote.put("Librera/app-Progress.json", "");
+        write("app-Progress.json", "", 20_000);
+
+        final FolderSync.Result result = merging().sync();
+
+        assertEquals(1, result.errors.size());
+        assertEquals("", remote.get("Librera/app-Progress.json"));
+    }
+
+    @Test
+    public void sendIfUnchangedRefusesToOverwriteAnotherDevicesWrite() throws Exception {
+        remote.put("Librera/.shared/app-State.json", "{\"a\":\"1\"}");
+        final WebDavClient.Entry seen = remote.stat("Librera/.shared/app-State.json");
+        // another device writes in between
+        remote.put("Librera/.shared/app-State.json", "{\"a\":\"2\"}");
+        final File mine = write("up.json", "{\"a\":\"3\"}", 10_000);
+
+        try {
+            FolderSync.sendIfUnchanged(remote, mine, "Librera/.shared/app-State.json", seen);
+            org.junit.Assert.fail("overwrote the other device's copy");
+        } catch (FolderSync.ServerCopyChanged e) {
+            assertEquals(remote.stat("Librera/.shared/app-State.json").etag, e.now.etag);
+        }
+        assertEquals("{\"a\":\"2\"}", remote.get("Librera/.shared/app-State.json"));
+
+        // merged again with the copy now there: goes up
+        FolderSync.sendIfUnchanged(remote, mine, "Librera/.shared/app-State.json", remote.stat("Librera/.shared/app-State.json"));
+        assertEquals("{\"a\":\"3\"}", remote.get("Librera/.shared/app-State.json"));
+    }
+
+    @Test
+    public void sendIfUnchangedWithNoCopySeenRefusesOneWrittenMeanwhile() throws Exception {
+        remote.put("Librera/.shared/app-CSS.json", "{}");
+        final File mine = write("up.json", "{\"b\":\"1\"}", 10_000);
+        try {
+            FolderSync.sendIfUnchanged(remote, mine, "Librera/.shared/app-CSS.json", null);
+            org.junit.Assert.fail("overwrote the other device's copy");
+        } catch (FolderSync.ServerCopyChanged expected) {
+            assertEquals("{}", remote.get("Librera/.shared/app-CSS.json"));
+        }
+    }
+
+    @Test
+    public void theAppIsToldWhenTheSyncChangedAFileHere() throws Exception {
+        final int[] told = {0};
+        FolderSync.afterLocalWrite = () -> told[0]++;
+        try {
+            remote.put("Librera/app-Progress.json", POSITIONS);
+            merging().sync();
+            assertTrue(told[0] > 0);
+        } finally {
+            FolderSync.afterLocalWrite = null;
+        }
     }
 
     @Test

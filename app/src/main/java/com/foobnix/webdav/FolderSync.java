@@ -73,6 +73,14 @@ public class FolderSync {
 
         /** @param base the file after the last sync, null when there is no copy */
         String merge(String relativePath, String base, String local, String remote) throws Exception;
+
+        /**
+         * Whether the text is a whole file of its kind. An empty or cut-off list is never sent
+         * nor merged: read as a list, it says every item was deleted.
+         */
+        default boolean valid(String relativePath, String text) {
+            return text != null && !text.trim().isEmpty();
+        }
     }
 
     /** State of one file as of the last sync. */
@@ -126,6 +134,22 @@ public class FolderSync {
      * change the other has just made (a mark erased while a sync merged the file came back).
      */
     public static final Object LOCAL_FILES = new Object();
+
+    /**
+     * Run after the sync changed a file on the device (downloaded, merged, deleted): the app's
+     * caches of those files are dropped ({@code IO.invalidateCache}). Null in the JVM tests.
+     */
+    public static volatile Runnable afterLocalWrite;
+
+    /** The sync state is written after this many files, and at the end of a run. */
+    static final int SAVE_EVERY = 50;
+
+    private static void wroteLocal() {
+        final Runnable r = afterLocalWrite;
+        if (r != null) {
+            r.run();
+        }
+    }
 
     /**
      * Puts {@code temp} in the place of {@code file}: in one step where the system can, so a sync
@@ -211,13 +235,20 @@ public class FolderSync {
 
         final Result result = new Result();
         keepFromMassDeletion(state, localFiles, remoteFiles, remoteMissing, result);
-        for (String path : paths) {
-            try {
-                syncOneRetrying(path, localFiles.get(path), remoteFiles.get(path), state, result, true);
-            } catch (IOException e) {
-                // one bad file must not stop the others; it is retried next time
-                result.errors.add(path + ": " + e.getMessage());
+        int done = 0;
+        try {
+            for (String path : paths) {
+                try {
+                    syncOneRetrying(path, localFiles.get(path), remoteFiles.get(path), state, result, true);
+                } catch (IOException e) {
+                    // one bad file must not stop the others; it is retried next time
+                    result.errors.add(path + ": " + e.getMessage());
+                }
+                if (++done % SAVE_EVERY == 0) {
+                    saveState(state);
+                }
             }
+        } finally {
             saveState(state);
         }
         return result;
@@ -250,20 +281,34 @@ public class FolderSync {
     public Result syncPaths(Collection<String> paths) throws IOException {
         final Map<String, Record> state = loadState();
         final Result result = new Result();
-        for (String path : new TreeSet<>(paths)) {
-            if (!accept(path)) {
-                continue;
+        int done = 0;
+        try {
+            for (String path : new TreeSet<>(paths)) {
+                if (!accept(path)) {
+                    continue;
+                }
+                try {
+                    final File file = new File(localRoot, path);
+                    final WebDavClient.Entry remoteEntry = remote.stat(remotePath(path));
+                    syncOneRetrying(path, file.isFile() ? file : null, remoteEntry, state, result, false);
+                } catch (IOException e) {
+                    result.errors.add(path + ": " + e.getMessage());
+                }
+                if (++done % SAVE_EVERY == 0) {
+                    saveState(state);
+                }
             }
-            try {
-                final File file = new File(localRoot, path);
-                final WebDavClient.Entry remoteEntry = remote.stat(remotePath(path));
-                syncOneRetrying(path, file.isFile() ? file : null, remoteEntry, state, result, false);
-            } catch (IOException e) {
-                result.errors.add(path + ": " + e.getMessage());
-            }
+        } finally {
             saveState(state);
         }
         return result;
+    }
+
+    /** Both copies of a merged file are empty or damaged: left as they are, reported. */
+    private static final class DamagedBothSides extends IOException {
+        DamagedBothSides(String path) {
+            super(path + ": damaged on the server and here, left alone");
+        }
     }
 
     /** The server copy changed between reading it and uploading over it. */
@@ -382,6 +427,7 @@ public class FolderSync {
                 if (!local.delete() && local.exists()) {
                     throw new IOException("cannot delete " + local);
                 }
+                wroteLocal();
                 state.remove(path);
                 dropBase(path);
                 result.deletedLocal++;
@@ -421,6 +467,7 @@ public class FolderSync {
             // not all Android storage keeps it; the record below uses whatever stuck
             target.setLastModified(remoteEntry.lastModified);
         }
+        wroteLocal();
         state.put(path, record(target, remoteEntry));
         keepBase(path, target);
         result.downloaded++;
@@ -440,6 +487,15 @@ public class FolderSync {
         try {
             remote.download(remotePath(path), theirs);
             final String remoteText = read(theirs);
+            if (!merger.valid(path, remoteText)) {
+                // an empty or damaged server copy never replaces a list here: this device's
+                // copy goes up over it instead (or, damaged here too, both are left alone)
+                if (target.isFile() && merger.valid(path, read(target))) {
+                    upload(path, target, remoteEntry, state, result);
+                    return;
+                }
+                throw new IOException("damaged on the server and here, left alone");
+            }
             synchronized (LOCAL_FILES) {
                 final boolean writtenMeanwhile = target.isFile() && (last == null
                         || target.lastModified() != last.localModified || target.length() != last.localSize);
@@ -454,6 +510,7 @@ public class FolderSync {
                     }
                 }
                 writeAtomically(target, merged != null ? merged : remoteText);
+                wroteLocal();
                 if (merged != null) {
                     // the server has its copy; this one differs from it and is uploaded next time
                     state.put(path, new Record(-1, -1, tag(remoteEntry), remoteEntry.size));
@@ -494,7 +551,16 @@ public class FolderSync {
             synchronized (LOCAL_FILES) {
                 modified = local.lastModified();
                 size = local.length();
-                writeAtomically(sent, read(local));
+                final String text = read(local);
+                if (!merger.valid(path, text)) {
+                    if (known == null && text.trim().isEmpty()) {
+                        // an empty file nobody has yet: nothing to send
+                        return;
+                    }
+                    // never sent: on the other devices it would read as every item deleted
+                    throw new IOException("empty or damaged here, not sent");
+                }
+                writeAtomically(sent, text);
             }
             send(path, sent, known);
             final WebDavClient.Entry uploaded = uploadedEntry(path, sent);
@@ -508,17 +574,41 @@ public class FolderSync {
 
     private void send(String path, File source, WebDavClient.Entry known) throws IOException {
         try {
-            remote.upload(source, remotePath(path), ifMatch(known));
+            sendIfUnchanged(remote, source, remotePath(path), known);
+        } catch (ServerCopyChanged e) {
+            throw new ChangedMeanwhile(path, e.now);
+        }
+    }
+
+    /** {@link #sendIfUnchanged}: the server copy is no longer the one the caller merged with. */
+    public static final class ServerCopyChanged extends IOException {
+        public final WebDavClient.Entry now;
+
+        ServerCopyChanged(String path, WebDavClient.Entry now) {
+            super(path + " changed on the server meanwhile");
+            this.now = now;
+        }
+    }
+
+    /**
+     * Uploads over the server copy {@code known} (null: there must be none) only if it is still
+     * there unchanged; else {@link ServerCopyChanged}, and the caller merges again with the new
+     * copy. A server that refuses even a matching condition gets a plain upload.
+     */
+    public static void sendIfUnchanged(Remote remote, File source, String remotePath, WebDavClient.Entry known)
+            throws IOException {
+        try {
+            remote.upload(source, remotePath, ifMatch(known));
         } catch (WebDavClient.WebDavException e) {
             if (e.code != WebDavClient.PRECONDITION_FAILED) {
                 throw e;
             }
-            final WebDavClient.Entry now = remote.stat(remotePath(path));
+            final WebDavClient.Entry now = remote.stat(remotePath);
             if (!sameFile(now, known)) {
-                throw new ChangedMeanwhile(path, now);
+                throw new ServerCopyChanged(remotePath, now);
             }
             // the copy is the one we saw, yet the server refused: it cannot compare its own tags
-            remote.upload(source, remotePath(path), null);
+            remote.upload(source, remotePath, null);
         }
     }
 
@@ -557,17 +647,43 @@ public class FolderSync {
     private void merge(String path, File local, WebDavClient.Entry remoteEntry, Map<String, Record> state, Result result) throws IOException {
         final File theirs = new File(baseFolder(), path + ".remote.tmp");
         theirs.getParentFile().mkdirs();
+        boolean merged = false;
         try {
             remote.download(remotePath(path), theirs);
             final File base = baseOf(path);
             // read and written in one go: a mark erased in between is not undone by the merge
             synchronized (LOCAL_FILES) {
-                final String merged = merger.merge(path, base.isFile() ? read(base) : null, read(local), read(theirs));
-                if (merged == null) {
-                    throw new IOException("not merged");
+                final String mine = read(local);
+                final String their = read(theirs);
+                final boolean mineOk = merger.valid(path, mine);
+                final boolean theirOk = merger.valid(path, their);
+                if (!mineOk || !theirOk) {
+                    if (!mineOk && !theirOk) {
+                        throw new DamagedBothSides(path);
+                    }
+                    // one side empty or damaged: the other is taken whole, never merged as deletions
+                    if (!mineOk) {
+                        writeAtomically(local, their);
+                        wroteLocal();
+                        state.put(path, record(local, remoteEntry));
+                        writeAtomically(baseOf(path), their);
+                        result.downloaded++;
+                        result.changedHere.add(path);
+                        return;
+                    }
+                    // theirs is the damaged one: this device's copy goes up below
+                } else {
+                    final String both = merger.merge(path, base.isFile() ? read(base) : null, mine, their);
+                    if (both == null) {
+                        throw new IOException("not merged");
+                    }
+                    writeAtomically(local, both);
+                    wroteLocal();
+                    merged = true;
                 }
-                writeAtomically(local, merged);
             }
+        } catch (DamagedBothSides e) {
+            throw e;
         } catch (Exception e) {
             if (remoteEntry.lastModified > local.lastModified()) {
                 download(path, remoteEntry, state, result);
@@ -578,9 +694,13 @@ public class FolderSync {
         } finally {
             theirs.delete();
         }
-        result.changedHere.add(path);
+        if (merged) {
+            result.changedHere.add(path);
+        }
         upload(path, local, remoteEntry, state, result);
-        result.downloaded++;
+        if (merged) {
+            result.downloaded++;
+        }
     }
 
     /** Where the copies of merged files after the last sync are kept: beside the state file. */
@@ -751,12 +871,8 @@ public class FolderSync {
         try (OutputStream stream = new FileOutputStream(temp)) {
             stream.write(out.toString().getBytes(StandardCharsets.UTF_8));
         }
-        if (stateFile.exists() && !stateFile.delete()) {
-            throw new IOException("cannot replace " + stateFile);
-        }
-        if (!temp.renameTo(stateFile)) {
-            throw new IOException("cannot write " + stateFile);
-        }
+        // one rename: a sync killed here keeps the old state, never none (deleted files came back)
+        replace(temp, stateFile);
     }
 
     static String escape(String value) {

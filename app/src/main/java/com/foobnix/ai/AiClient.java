@@ -7,8 +7,12 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import okhttp3.Call;
 import okhttp3.HttpUrl;
@@ -74,7 +78,12 @@ public class AiClient {
             "claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"));
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
     /** Long answers stream, so this caps only an answer that runs away. */
-    private static final int MAX_TOKENS = 64000;
+    static final int MAX_TOKENS = 64000;
+    /** The cap asked for when a model refuses {@link #MAX_TOKENS} without saying its own. */
+    static final int SMALL_MAX_TOKENS = 8192;
+    /** Models (by URL and name) that refused a cap, with the one they took: not asked twice. */
+    private static final Map<String, Integer> LOWER_CAPS = new ConcurrentHashMap<>();
+    private static final Pattern CAP_IN_ERROR = Pattern.compile("max_tokens\\D{0,20}?\\d+\\s*>\\s*(\\d+)");
 
     private final OkHttpClient http;
     private final AiSettings settings;
@@ -142,8 +151,15 @@ public class AiClient {
         try (Response response = call.execute()) {
             final ResponseBody body = response.body();
             if (!response.isSuccessful()) {
-                throw new AiException(errorMessage(response.code(), body == null ? "" : body.string()), false,
-                        retryableStatus(response.code()));
+                final String text = body == null ? "" : body.string();
+                final int lower = response.code() == 400 && settings.isClaude() ? lowerCap(text, maxTokens()) : -1;
+                if (lower > 0) {
+                    // the model's output limit is below ours: asked again once with its own
+                    LOWER_CAPS.put(capKey(), lower);
+                    response.close();
+                    return complete(system, user, output);
+                }
+                throw new AiException(errorMessage(response.code(), text), false, retryableStatus(response.code()));
             }
             if (body == null) {
                 throw new AiException("empty answer");
@@ -161,7 +177,7 @@ public class AiClient {
     Request claudeRequest(String system, String user) throws JSONException {
         final JSONObject body = new JSONObject();
         body.put("model", settings.model.trim());
-        body.put("max_tokens", MAX_TOKENS);
+        body.put("max_tokens", maxTokens());
         body.put("stream", true);
         if (!system.isEmpty()) {
             // the same instructions go with every part of a task: cached, the next requests read them
@@ -182,6 +198,40 @@ public class AiClient {
             request.header("anthropic-beta", FALLBACK_BETA);
         }
         return request.post(RequestBody.create(JSON, body.toString())).build();
+    }
+
+    /** The output cap asked for: {@link #MAX_TOKENS}, or what this model said it takes. */
+    int maxTokens() {
+        final Integer lower = LOWER_CAPS.get(capKey());
+        return lower != null ? lower : MAX_TOKENS;
+    }
+
+    private String capKey() {
+        return settings.url.trim() + "|" + settings.model.trim();
+    }
+
+    /**
+     * A 400 answer refusing the output cap: the model's own limit when the message names it
+     * ("max_tokens: 64000 > 8192, which is the maximum..."), else {@link #SMALL_MAX_TOKENS};
+     * -1 when the answer is about something else or the cap is already that low.
+     */
+    static int lowerCap(String body, int current) {
+        if (body == null || !body.contains("max_tokens")) {
+            return -1;
+        }
+        final Matcher m = CAP_IN_ERROR.matcher(body);
+        int cap = SMALL_MAX_TOKENS;
+        if (m.find()) {
+            try {
+                cap = Integer.parseInt(m.group(1));
+            } catch (NumberFormatException e) {
+                cap = SMALL_MAX_TOKENS;
+            }
+        }
+        if (cap >= current) {
+            cap = current > SMALL_MAX_TOKENS ? SMALL_MAX_TOKENS : -1;
+        }
+        return cap > 0 ? cap : -1;
     }
 
     /** Server-side fallback exists for these models on Anthropic's own API (not on proxies). */

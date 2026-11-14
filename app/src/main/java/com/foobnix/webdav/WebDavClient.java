@@ -247,13 +247,12 @@ public class WebDavClient implements FolderSync.Remote {
             temp.delete();
             throw e;
         }
-        if (target.exists() && !target.delete()) {
+        try {
+            // one rename over the old copy: never a moment with no file (a listing takes that for deleted)
+            FolderSync.replace(temp, target);
+        } catch (IOException e) {
             temp.delete();
-            throw new IOException("Cannot replace " + target);
-        }
-        if (!temp.renameTo(target)) {
-            temp.delete();
-            throw new IOException("Cannot rename " + temp + " to " + target);
+            throw e;
         }
     }
 

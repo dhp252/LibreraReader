@@ -46,6 +46,18 @@ public class ProfileMergeTest {
     }
 
     @Test
+    public void anEmptyOrCutOffFileIsNotValid() {
+        assertFalse(ProfileMerge.valid("app-Progress.json", ""));
+        assertFalse(ProfileMerge.valid("app-Progress.json", "  \n"));
+        assertFalse(ProfileMerge.valid("app-Progress.json", null));
+        assertFalse(ProfileMerge.valid("app-Progress.json", "{\"a.pdf\":{\"p\":0."));
+        assertFalse(ProfileMerge.valid("app-Recent.json", "{}"));
+        assertTrue(ProfileMerge.valid("app-Progress.json", "{}"));
+        assertTrue(ProfileMerge.valid("app-Recent.json", "[]"));
+        assertTrue(ProfileMerge.valid("marks/book.pdf.json", "{\"a\":{\"t\":1}}"));
+    }
+
+    @Test
     public void handlesOnlyTheItemFiles() {
         assertTrue(ProfileMerge.handles("app-Progress.json"));
         assertTrue(ProfileMerge.handles("profile.Librera/app-Bookmarks.json"));

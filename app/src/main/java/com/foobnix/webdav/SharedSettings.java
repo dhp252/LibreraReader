@@ -63,7 +63,12 @@ final class SharedSettings {
         syncObject(c, client, folder, STATE, AppState.get(), AppProfile.syncState, summary);
         syncObject(c, client, folder, CSS, BookCSS.get(), AppProfile.syncCSS, summary);
         try {
-            syncAi(c, client, folder + "/" + AI);
+            try {
+                syncAi(c, client, folder + "/" + AI);
+            } catch (FolderSync.ServerCopyChanged e) {
+                // another device wrote it while this one merged: merged once more with its copy
+                syncAi(c, client, folder + "/" + AI);
+            }
         } catch (Exception e) {
             LOG.e(e);
             summary.errors.append(FOLDER).append('/').append(AI).append(": ").append(e.getMessage()).append('\n');
@@ -73,36 +78,46 @@ final class SharedSettings {
     private static void syncObject(Context c, WebDavClient client, String folder, String name, Object settings,
                                    File localFile, WebDav.Summary summary) {
         try {
-            final String path = folder + "/" + name;
-            final Remote remote = download(c, client, path);
-            final File baseFile = WebDav.stateFile(c, "shared-" + name, AppProfile.SYNC_FOLDER_PROFILE);
-            final Map<String, String> local = fieldsOf(settings);
-            final long localTime = localFile == null ? 0 : localFile.lastModified();
-            final SettingsMerge.Result result = SettingsMerge.merge(read(baseFile), local, remote.values,
-                    remote.time == 0 || localTime > remote.time);
-
-            if (!result.fromRemote.isEmpty()) {
-                final Map<String, String> values = new HashMap<>();
-                for (String key : result.fromRemote) {
-                    values.put(key, result.merged.get(key));
-                }
-                apply(settings, values);
-                if (settings instanceof AppState) {
-                    AppState.get().save(c);
-                } else if (settings instanceof BookCSS) {
-                    BookCSS.get().save(c);
-                }
-                summary.downloaded++;
+            try {
+                syncObjectOnce(c, client, folder, name, settings, localFile, summary);
+            } catch (FolderSync.ServerCopyChanged e) {
+                // another device wrote it while this one merged: merged once more with its copy
+                syncObjectOnce(c, client, folder, name, settings, localFile, summary);
             }
-            if (remote.values == null || !result.merged.equals(remote.values)) {
-                upload(c, client, path, result.merged);
-                summary.uploaded++;
-            }
-            write(baseFile, result.merged);
         } catch (Exception e) {
             LOG.e(e);
             summary.errors.append(FOLDER).append('/').append(name).append(": ").append(e.getMessage()).append('\n');
         }
+    }
+
+    private static void syncObjectOnce(Context c, WebDavClient client, String folder, String name, Object settings,
+                                       File localFile, WebDav.Summary summary) throws Exception {
+        final String path = folder + "/" + name;
+        final Remote remote = download(c, client, path);
+        final File baseFile = WebDav.stateFile(c, "shared-" + name, AppProfile.SYNC_FOLDER_PROFILE);
+        final Map<String, String> local = fieldsOf(settings);
+        final long localTime = localFile == null ? 0 : localFile.lastModified();
+        final SettingsMerge.Result result = SettingsMerge.merge(read(baseFile), local, remote.values,
+                remote.time == 0 || localTime > remote.time);
+
+        if (!result.fromRemote.isEmpty()) {
+            final Map<String, String> values = new HashMap<>();
+            for (String key : result.fromRemote) {
+                values.put(key, result.merged.get(key));
+            }
+            apply(settings, values);
+            if (settings instanceof AppState) {
+                AppState.get().save(c);
+            } else if (settings instanceof BookCSS) {
+                BookCSS.get().save(c);
+            }
+            summary.downloaded++;
+        }
+        if (remote.values == null || !result.merged.equals(remote.values)) {
+            upload(c, client, path, result.merged, remote.entry);
+            summary.uploaded++;
+        }
+        write(baseFile, result.merged);
     }
 
     /**
@@ -169,7 +184,7 @@ final class SharedSettings {
                     sealed.put(name, SecretBox.seal(password, key));
                 }
             }
-            upload(c, client, path, sealed);
+            upload(c, client, path, sealed, remote.entry);
         }
         write(baseFile, result.merged);
     }
@@ -245,6 +260,8 @@ final class SharedSettings {
     private static final class Remote {
         Map<String, String> values;
         long time;
+        /** The server copy merged with, null when there was none: the upload goes only over it. */
+        WebDavClient.Entry entry;
     }
 
     private static Remote download(Context c, WebDavClient client, String path) throws IOException, JSONException {
@@ -258,17 +275,23 @@ final class SharedSettings {
             client.download(path, temp);
             remote.values = parse(readText(temp));
             remote.time = entry.lastModified;
+            remote.entry = entry;
         } finally {
             temp.delete();
         }
         return remote;
     }
 
-    private static void upload(Context c, WebDavClient client, String path, Map<String, String> values) throws IOException {
+    /**
+     * Uploads over the copy {@code known} merged with, only if no device wrote it since
+     * ({@link FolderSync.ServerCopyChanged}): the last writer no longer drops another's change.
+     */
+    private static void upload(Context c, WebDavClient client, String path, Map<String, String> values,
+                               WebDavClient.Entry known) throws IOException {
         final File temp = new File(c.getCacheDir(), "webdav-shared-up.json");
         try {
             writeText(temp, new JSONObject(values).toString());
-            client.upload(temp, path);
+            FolderSync.sendIfUnchanged(client, temp, path, known);
         } finally {
             temp.delete();
         }
