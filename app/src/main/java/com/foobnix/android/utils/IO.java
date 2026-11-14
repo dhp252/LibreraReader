@@ -26,7 +26,7 @@ public class IO {
 
     static HashMap<Integer, Object> locks = new HashMap<>();
 
-    public static Object getLock(File file) {
+    public static synchronized Object getLock(File file) {
         Object l = locks.get(file.hashCode());
         if (l == null) {
             l = new Object();
@@ -89,8 +89,35 @@ public class IO {
 
     }
 
-    public static volatile String cacheFile;
-    public static volatile String cacheString;
+    /**
+     * The last file read or written, with its text. It is trusted only while the file on disk still
+     * has the modified time and size it had then: the WebDAV sync replaces profile files behind
+     * IO's back, and a stale copy written back would undo what the sync brought.
+     */
+    private static final class Cached {
+        final String path;
+        final String text;
+        final long modified;
+        final long length;
+
+        Cached(File file, String text) {
+            this.path = file.getPath();
+            this.text = text;
+            this.modified = file.lastModified();
+            this.length = file.length();
+        }
+
+        boolean matches(File file) {
+            return path.equals(file.getPath()) && file.lastModified() == modified && file.length() == length;
+        }
+    }
+
+    private static volatile Cached cached;
+
+    /** Forgets the cached file: call after something other than IO changed files on disk. */
+    public static void invalidateCache() {
+        cached = null;
+    }
 
     public static String readString(File file) {
         return readString(file, false);
@@ -109,16 +136,15 @@ public class IO {
 
 
     public static String readString(File file, boolean withSeparator) {
-        if (file.getPath().equals(cacheFile)) {
+        final Cached c = cached;
+        if (!withSeparator && c != null && c.matches(file)) {
             LOG.d("lib-IO", "read cache", file);
-            return cacheString;
+            return c.text;
         }
         synchronized (getLock(file)) {
 
             try {
                 if (!file.exists()) {
-                    cacheString = "";
-                    cacheFile = file.getPath();
                     return "";
                 }
                 LOG.d("lib-IO", "read file", file);
@@ -134,14 +160,15 @@ public class IO {
                     }
                 }
                 reader.close();
-                cacheFile = file.getPath();
-                cacheString = builder.toString();
-                return cacheString;
+                final String text = builder.toString();
+                if (!withSeparator) {
+                    cached = new Cached(file, text);
+                }
+                return text;
             } catch (Exception e) {
                 LOG.e(e);
             }
-            cacheFile = file.getPath();
-            cacheString = "";
+            cached = null;
             return "";
         }
     }
@@ -157,16 +184,33 @@ public class IO {
                 LOG.d("lib-IO", "write file", file);
                 new File(file.getParent()).mkdirs();
 
-                OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-                out.write(string.getBytes());
-                out.flush();
-                out.close();
+                // written beside and renamed over the file in one step: the WebDAV sync reading the
+                // profile files never finds one empty or half written (and takes it for "all deleted")
+                final File temp = new File(file.getPath() + ".io.tmp");
+                OutputStream out = new BufferedOutputStream(new FileOutputStream(temp));
+                try {
+                    out.write(string.getBytes());
+                    out.flush();
+                } finally {
+                    out.close();
+                }
+                if (!temp.renameTo(file)) {
+                    // a system that cannot rename over a file
+                    if (file.exists() && !file.delete()) {
+                        temp.delete();
+                        throw new IOException("cannot replace " + file);
+                    }
+                    if (!temp.renameTo(file)) {
+                        temp.delete();
+                        throw new IOException("cannot write " + file);
+                    }
+                }
 
-                cacheString = string;
-                cacheFile = file.getPath();
+                cached = new Cached(file, string);
 
             } catch (Exception e) {
                 LOG.e(e);
+                cached = null;
                 return false;
             }
             return true;

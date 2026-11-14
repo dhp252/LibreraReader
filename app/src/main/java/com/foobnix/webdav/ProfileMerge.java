@@ -46,7 +46,33 @@ public final class ProfileMerge {
         public String merge(String relativePath, String base, String local, String remote) throws Exception {
             return ProfileMerge.merge(relativePath, base, local, remote);
         }
+
+        @Override
+        public boolean valid(String relativePath, String text) {
+            return ProfileMerge.valid(relativePath, text);
+        }
     };
+
+    /**
+     * Whether the text is a whole file of its kind: a JSON array for the book lists, an object for
+     * the others. An empty or cut-off file is not: merged, it would delete every item.
+     */
+    public static boolean valid(String path, String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return false;
+        }
+        final String name = nameOf(path);
+        try {
+            if (RECENT.equals(name) || FAVORITE.equals(name) || EXCLUDE.equals(name)) {
+                new JSONArray(text);
+            } else {
+                new JSONObject(text);
+            }
+            return true;
+        } catch (JSONException e) {
+            return false;
+        }
+    }
 
     /** Whether the file (a path relative to the profile folder, or a name) is merged by item. */
     public static boolean handles(String path) {

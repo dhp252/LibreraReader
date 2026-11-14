@@ -66,6 +66,11 @@ public class WebDav {
     static final String MARKER = ".changed";
     private static final String WORK_NAME = "webdav-sync";
 
+    static {
+        // the sync replaces profile files behind IO's back: its cached copy must not be written back
+        FolderSync.afterLocalWrite = com.foobnix.android.utils.IO::invalidateCache;
+    }
+
     /** What one run did, over all synced folders. */
     public static class Summary {
         public int uploaded, downloaded, deletedLocal, deletedRemote, conflicts;
