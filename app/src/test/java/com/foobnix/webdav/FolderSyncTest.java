@@ -421,6 +421,39 @@ public class FolderSyncTest {
     }
 
     @Test
+    public void sendIfUnchangedRefusesToOverwriteAnotherDevicesWrite() throws Exception {
+        remote.put("Librera/.shared/app-State.json", "{\"a\":\"1\"}");
+        final WebDavClient.Entry seen = remote.stat("Librera/.shared/app-State.json");
+        // another device writes in between
+        remote.put("Librera/.shared/app-State.json", "{\"a\":\"2\"}");
+        final File mine = write("up.json", "{\"a\":\"3\"}", 10_000);
+
+        try {
+            FolderSync.sendIfUnchanged(remote, mine, "Librera/.shared/app-State.json", seen);
+            org.junit.Assert.fail("overwrote the other device's copy");
+        } catch (FolderSync.ServerCopyChanged e) {
+            assertEquals(remote.stat("Librera/.shared/app-State.json").etag, e.now.etag);
+        }
+        assertEquals("{\"a\":\"2\"}", remote.get("Librera/.shared/app-State.json"));
+
+        // merged again with the copy now there: goes up
+        FolderSync.sendIfUnchanged(remote, mine, "Librera/.shared/app-State.json", remote.stat("Librera/.shared/app-State.json"));
+        assertEquals("{\"a\":\"3\"}", remote.get("Librera/.shared/app-State.json"));
+    }
+
+    @Test
+    public void sendIfUnchangedWithNoCopySeenRefusesOneWrittenMeanwhile() throws Exception {
+        remote.put("Librera/.shared/app-CSS.json", "{}");
+        final File mine = write("up.json", "{\"b\":\"1\"}", 10_000);
+        try {
+            FolderSync.sendIfUnchanged(remote, mine, "Librera/.shared/app-CSS.json", null);
+            org.junit.Assert.fail("overwrote the other device's copy");
+        } catch (FolderSync.ServerCopyChanged expected) {
+            assertEquals("{}", remote.get("Librera/.shared/app-CSS.json"));
+        }
+    }
+
+    @Test
     public void theAppIsToldWhenTheSyncChangedAFileHere() throws Exception {
         final int[] told = {0};
         FolderSync.afterLocalWrite = () -> told[0]++;

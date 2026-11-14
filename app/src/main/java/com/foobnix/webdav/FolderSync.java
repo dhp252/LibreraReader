@@ -574,17 +574,41 @@ public class FolderSync {
 
     private void send(String path, File source, WebDavClient.Entry known) throws IOException {
         try {
-            remote.upload(source, remotePath(path), ifMatch(known));
+            sendIfUnchanged(remote, source, remotePath(path), known);
+        } catch (ServerCopyChanged e) {
+            throw new ChangedMeanwhile(path, e.now);
+        }
+    }
+
+    /** {@link #sendIfUnchanged}: the server copy is no longer the one the caller merged with. */
+    public static final class ServerCopyChanged extends IOException {
+        public final WebDavClient.Entry now;
+
+        ServerCopyChanged(String path, WebDavClient.Entry now) {
+            super(path + " changed on the server meanwhile");
+            this.now = now;
+        }
+    }
+
+    /**
+     * Uploads over the server copy {@code known} (null: there must be none) only if it is still
+     * there unchanged; else {@link ServerCopyChanged}, and the caller merges again with the new
+     * copy. A server that refuses even a matching condition gets a plain upload.
+     */
+    public static void sendIfUnchanged(Remote remote, File source, String remotePath, WebDavClient.Entry known)
+            throws IOException {
+        try {
+            remote.upload(source, remotePath, ifMatch(known));
         } catch (WebDavClient.WebDavException e) {
             if (e.code != WebDavClient.PRECONDITION_FAILED) {
                 throw e;
             }
-            final WebDavClient.Entry now = remote.stat(remotePath(path));
+            final WebDavClient.Entry now = remote.stat(remotePath);
             if (!sameFile(now, known)) {
-                throw new ChangedMeanwhile(path, now);
+                throw new ServerCopyChanged(remotePath, now);
             }
             // the copy is the one we saw, yet the server refused: it cannot compare its own tags
-            remote.upload(source, remotePath(path), null);
+            remote.upload(source, remotePath, null);
         }
     }
 
