@@ -191,6 +191,50 @@ public class AiClientTest {
     }
 
     @Test
+    public void aRefusedOutputCapIsLoweredToTheModelsOwn() {
+        assertEquals(8192, AiClient.lowerCap("{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\","
+                + "\"message\":\"max_tokens: 64000 > 8192, which is the maximum allowed number of output tokens\"}}", 64000));
+        assertEquals(32000, AiClient.lowerCap("max_tokens: 64000 > 32000, which is the maximum", 64000));
+        // not named: a small cap; already small: nothing more to try
+        assertEquals(AiClient.SMALL_MAX_TOKENS, AiClient.lowerCap("max_tokens is too large", 64000));
+        assertEquals(-1, AiClient.lowerCap("max_tokens is too large", AiClient.SMALL_MAX_TOKENS));
+        assertEquals(-1, AiClient.lowerCap("{\"error\":{\"message\":\"model not found\"}}", 64000));
+    }
+
+    @Test
+    public void aModelRefusingTheCapIsAskedAgainOnceWithItsOwn() throws Exception {
+        final List<Integer> asked = new ArrayList<>();
+        final okhttp3.Interceptor server = chain -> {
+            final int cap;
+            try {
+                cap = body(chain.request()).getInt("max_tokens");
+            } catch (Exception e) {
+                throw new java.io.IOException(e);
+            }
+            asked.add(cap);
+            final okhttp3.Response.Builder r = new okhttp3.Response.Builder().request(chain.request())
+                    .protocol(okhttp3.Protocol.HTTP_1_1).message("x");
+            if (cap > 4096) {
+                return r.code(400).body(okhttp3.ResponseBody.create(okhttp3.MediaType.parse("application/json"),
+                        "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":"
+                                + "\"max_tokens: " + cap + " > 4096, which is the maximum allowed\"}}")).build();
+            }
+            return r.code(200).body(okhttp3.ResponseBody.create(okhttp3.MediaType.parse("text/event-stream"), sse(
+                    "{\"type\":\"content_block_delta\",\"delta\":{\"type\":\"text_delta\",\"text\":\"ok\"}}",
+                    "{\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\"}}",
+                    "{\"type\":\"message_stop\"}").readUtf8())).build();
+        };
+        final AiSettings s = claude("https://small.example.com", "small-model");
+        final AiClient client = new AiClient(new OkHttpClient.Builder().addInterceptor(server).build(), s);
+
+        assertEquals("ok", client.complete("", "Hi", null));
+        assertEquals(java.util.Arrays.asList(AiClient.MAX_TOKENS, 4096), asked);
+        // remembered: the next request asks for the model's cap at once
+        assertEquals("ok", new AiClient(new OkHttpClient.Builder().addInterceptor(server).build(), s).complete("", "Hi", null));
+        assertEquals(Integer.valueOf(4096), asked.get(2));
+    }
+
+    @Test
     public void errorMessagesNameTheProblem() {
         assertEquals("401: the API key was not accepted (invalid x-api-key)", AiClient.errorMessage(401,
                 "{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}"));

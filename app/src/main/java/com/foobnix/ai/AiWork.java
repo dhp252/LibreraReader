@@ -158,7 +158,13 @@ public final class AiWork extends Worker {
 
     // --- the queue ---
 
-    /** Queues the task; the same task (book and kind) already queued or running is kept, not doubled. */
+    /**
+     * Queues the task. One task per book and kind: a request for one still queued (waiting for
+     * the network, backing off, queued before the app restarted) replaces it, so the reader's
+     * newest choice runs (a chapter instead of the whole book, a redo) instead of being dropped.
+     * The steps the old one saved are kept and skipped. A task running in this process is never
+     * replaced: the screens show its progress instead of offering a new one.
+     */
     public static void enqueue(Context c, AiTask task) {
         final Context app = c.getApplicationContext();
         AiProgress.queued(task.key());
@@ -169,7 +175,8 @@ public final class AiWork extends Worker {
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
                 .addTag(TAG)
                 .build();
-        WorkManager.getInstance(app).enqueueUniqueWork(task.key(), ExistingWorkPolicy.KEEP, request);
+        final ExistingWorkPolicy policy = AiProgress.isRunning(task.key()) ? ExistingWorkPolicy.KEEP : ExistingWorkPolicy.REPLACE;
+        WorkManager.getInstance(app).enqueueUniqueWork(task.key(), policy, request);
     }
 
     /** Stops the task (its saved steps stay). */
