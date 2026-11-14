@@ -8,18 +8,19 @@
 /* Book map (F-013): the book runs top to bottom like a metro line diagram, thread lanes on the
    left, moments on the right. Bundled with the app, no network: system fonts only. */
 :root {
-  --bg: #F1F3F6; --surface: #FFFFFF; --ink: #16202C; --muted: #5A6575; --rule: #D3D9E2;
-  --accent: #1E4E8C; --sel: #E2EAF5; --badge-ink: #FFFFFF;
+  /* the "Book That Reads You Back" canvas: white sheet, ink, one indigo, mono caps for labels */
+  --bg: #F6F7F9; --surface: #FFFFFF; --ink: #14161B; --muted: #5E6570; --rule: #E3E5EA;
+  --accent: #2F45E0; --sel: #EEF0FE; --badge-ink: #FFFFFF;
   --l1: #C8323F; --l2: #2563C9; --l3: #1F8A4C; --l4: #BF7200;
   --l5: #7B45C2; --l6: #0A8794; --l7: #B23A79; --lo: #8C96A3;
-  --f-sign: "sans-serif-condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --f-sign: ui-monospace, "Roboto Mono", "Droid Sans Mono", monospace;
   --f-ui: "Roboto", system-ui, sans-serif;
-  --f-book: "Noto Serif", "Droid Serif", Georgia, serif;
+  --f-book: Literata, "Noto Serif", "Droid Serif", Georgia, serif;
   --gut: 20px; --lw: 22px; --sy: 13px;
 }
 :root[data-theme="dark"] {
-  --bg: #121212; --surface: #1E1E1E; --ink: #E8EAED; --muted: #9AA3AF; --rule: #33393F;
-  --accent: #8DB2EA; --sel: #24303F; --badge-ink: #121212;
+  --bg: #0E0F13; --surface: #14161B; --ink: #E9EBEF; --muted: #A5ABB6; --rule: #2A2D35;
+  --accent: #AEB9FF; --sel: #232842; --badge-ink: #14161B;
   --l1: #F06A73; --l2: #6EA0F2; --l3: #4CC27E; --l4: #F0A63A;
   --l5: #A982EA; --l6: #3CC3CF; --l7: #E070AA; --lo: #6F7A89;
   color-scheme: dark;
@@ -36,7 +37,7 @@ button { font: inherit; color: inherit; }
 .stats { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 
 .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
-.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; background: var(--surface); }
 .seg button { border: 0; background: transparent; padding: 7px 11px; font-size: 14px; }
 .seg button + button { border-left: 1px solid var(--rule); }
 .seg button[aria-pressed="true"] { background: var(--sel); color: var(--accent); font-weight: 600; }
@@ -55,9 +56,9 @@ button { font: inherit; color: inherit; }
 .note { font-size: 13px; color: var(--muted); margin: 0; }
 .note b { color: var(--ink); font-weight: 600; }
 
-.map { position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding-bottom: 10px; }
+.map { position: relative; background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding-bottom: 10px; }
 .lanebar { position: sticky; top: 0; z-index: 5; display: grid; grid-template-columns: var(--gut) var(--lanesW) 1fr;
-  align-items: center; background: var(--surface); border-bottom: 1px solid var(--rule); padding: 7px 0; margin-bottom: 4px; border-radius: 10px 10px 0 0; }
+  align-items: center; background: var(--surface); border-bottom: 1px solid var(--rule); padding: 7px 0; margin-bottom: 4px; border-radius: 14px 14px 0 0; }
 .lanebar .heads { position: relative; height: 18px; }
 .lanebar .badge { position: absolute; top: 0; transform: translateX(-50%); }
 .lanebar .where { padding-left: 10px; font-family: var(--f-sign); font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
@@ -84,8 +85,8 @@ button { font: inherit; color: inherit; }
 .moment.dim .label { opacity: .4; }
 
 .chap .text { padding: 12px 10px 6px; display: grid; gap: 3px; }
-.chap .num { font-family: var(--f-sign); font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.chap .title { font-family: var(--f-sign); font-weight: 700; font-size: 15px; letter-spacing: .05em; text-transform: uppercase; line-height: 1.2; }
+.chap .num { font-family: var(--f-sign); font-weight: 500; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.chap .title { font-family: var(--f-ui); font-weight: 700; font-size: 16px; line-height: 1.25; }
 .chap .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bar { display: inline-block; width: 60px; height: 4px; border-radius: 2px; background: var(--rule); overflow: hidden; }
 .bar b { display: block; height: 100%; background: var(--muted); }
@@ -94,7 +95,7 @@ button { font: inherit; color: inherit; }
 .here { border-top: 2px dashed var(--accent); margin-top: 6px; }
 .here .text { padding: 10px; font-family: var(--f-sign); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
 
-.card { margin: 2px 10px 10px calc(var(--gut) + 4px); background: var(--bg); border: 1px solid var(--rule); border-radius: 8px;
+.card { margin: 2px 10px 10px calc(var(--gut) + 4px); background: var(--bg); border: 1px solid var(--rule); border-radius: 12px;
   padding: 12px 14px; display: grid; gap: 10px; }
 .card blockquote { margin: 0; font-family: var(--f-book); font-size: 16px; line-height: 1.55; }
 .card .where2 { font-size: 13px; color: var(--muted); }

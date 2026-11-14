@@ -4,8 +4,8 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle" >
 
-    <solid android:color="#F2FAFAFA" />
+    <solid android:color="#FAFFFFFF" />
 
-    <corners android:radius="@dimen/radius" />
+    <corners android:radius="@dimen/dialog_radius" />
 
 </shape>

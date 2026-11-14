@@ -755,7 +755,7 @@ public class Dialogs {
             TintUtil.setDrawableTint(pr.getIndeterminateDrawable().getCurrent(), textColor);
             TintUtil.setTintText(text, textColor);
 
-            view.setBackgroundColor(TintUtil.color);
+            view.setBackgroundColor(com.foobnix.pdf.info.wrapper.ReaderChrome.bg());
 
             image.setOnClickListener(new OnClickListener() {
 

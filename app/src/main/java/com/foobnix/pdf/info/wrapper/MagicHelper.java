@@ -506,7 +506,16 @@ public class MagicHelper {
         return allpixels;
     }
 
+    /** The colour of the marks on the reader's bars and on the page: ink on the sheet (ReaderChrome). */
     public static int getTextOrIconColor() {
+        if (ReaderChrome.inkMarks()) {
+            return ReaderChrome.ink();
+        }
+        return getSheetMarkColor();
+    }
+
+    /** The colour of a mark on a dark sheet or on the theme colour: white, or the one picked. */
+    public static int getSheetMarkColor() {
         int textColor = AppState.get().isUiTextColor ? AppState.get().uiTextColor : Color.WHITE;
 
         if (AppState.get().uiTextColor == AppState.get().tintThemeColor) {

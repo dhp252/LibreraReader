@@ -80,7 +80,7 @@ public final class StudyMap {
 
         final LinearLayout page = new LinearLayout(a);
         page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(dark ? 0xff1e1e1e : Color.WHITE);
+        page.setBackgroundColor(dark ? 0xff14161b : Color.WHITE);
 
         // top bar: title, Mind map / Outline, close
         final LinearLayout bar = new LinearLayout(a);
@@ -149,7 +149,7 @@ public final class StudyMap {
         ws.setBlockNetworkLoads(true);
         ws.setAllowFileAccess(true);
         ws.setAllowContentAccess(false);
-        w.setBackgroundColor(dark ? 0xff1e1e1e : Color.WHITE);
+        w.setBackgroundColor(dark ? 0xff14161b : Color.WHITE);
         w.addJavascriptInterface(new Bridge(), "Study");
         final String data;
         try {

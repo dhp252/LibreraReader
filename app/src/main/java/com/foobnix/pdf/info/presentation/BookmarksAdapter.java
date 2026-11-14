@@ -69,7 +69,7 @@ public class BookmarksAdapter extends BaseAdapter {
         // The cross takes the colour the dialog's buttons are: the reader's marks, or on a light
         // sheet, where those would vanish, the theme colour.
         final int removeColor = TintUtil.isLightSurface(context, android.R.attr.colorBackground)
-                                ? TintUtil.color : MagicHelper.getTextOrIconColor();
+                                ? TintUtil.color : MagicHelper.getSheetMarkColor();
         TintUtil.setTintImageNoAlpha((ImageView) deleteView, removeColor);
         view.findViewById(R.id.remove).setVisibility(View.GONE);
 

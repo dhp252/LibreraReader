@@ -205,14 +205,15 @@
     </style>
 
     <!-- Dialogs are cut to the same round the cards are and held a little short of opaque, and
-         their titles are set in caps like the section heads, so a dialog reads as part of the
-         app rather than as the platform's own box. -->
+         their titles are set bold in sentence case, as the canvas sets a sheet's title, so a
+         dialog reads as part of the app rather than as the platform's own box. -->
     <!-- The platform's own dialog-title style is private, so the title is described here
-         rather than inherited: the large text appearance the platform uses for it, set in
-         caps and bold like the section heads. -->
+         rather than inherited: the large text appearance the platform uses for it, a little
+         smaller and bold. -->
     <style name="DialogRoundTitle">
         <item name="android:textAppearance">?android:attr/textAppearanceLarge</item>
-        <item name="android:textAllCaps">true</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">18sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:singleLine">true</item>
         <item name="android:ellipsize">end</item>

@@ -108,6 +108,23 @@ public class FontExtractor {
                             LOG.d(e);
                         }
 
+                        // fork: the book fonts the app carries itself (Literata), next to the
+                        // ones of the zip; a font the reader already has is left alone
+                        try {
+                            File fontDir = new File(BookCSS.get().fontFolder);
+                            fontDir.mkdirs();
+                            String[] own = c.getAssets().list("fonts-fork");
+                            if (own != null) {
+                                for (String name : own) {
+                                    File font = new File(fontDir, name);
+                                    if (name.endsWith(".ttf") && !font.isFile()) {
+                                        IOUtils.copyClose(c.getAssets().open("fonts-fork/" + name), new FileOutputStream(font));
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            LOG.d(e);
+                        }
 
                     }
                 } catch (Exception e) {

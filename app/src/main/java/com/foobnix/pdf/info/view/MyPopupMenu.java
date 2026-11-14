@@ -94,7 +94,7 @@ public class MyPopupMenu {
             // a light menu an icon takes the theme colour.
             TintUtil.setTintImageWithAlpha(imageView, TintUtil.color);
         } else {
-            TintUtil.setTintImageWithAlpha(imageView, MagicHelper.getTextOrIconColor());
+            TintUtil.setTintImageWithAlpha(imageView, MagicHelper.getSheetMarkColor());
         }
     }
 
