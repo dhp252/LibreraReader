@@ -2,6 +2,7 @@ package com.foobnix.pdf.info.wrapper;
 
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
+import android.os.SystemClock;
 import android.view.OrientationEventListener;
 
 import androidx.annotation.NonNull;
@@ -21,11 +22,12 @@ import java.util.WeakHashMap;
 public final class AutoPortrait extends OrientationEventListener implements DefaultLifecycleObserver {
 
     /** How far (degrees) from exactly upside down the device may be held and still flip. */
-    static final int FLIP_TOLERANCE = 40;
+    static final int FLIP_TOLERANCE = FlipGate.FLIP_TOLERANCE;
 
     private static final Map<Activity, AutoPortrait> ACTIVE = new WeakHashMap<>();
 
     private final Activity activity;
+    private final FlipGate gate = new FlipGate();
 
     private AutoPortrait(Activity activity) {
         super(activity);
@@ -64,12 +66,7 @@ public final class AutoPortrait extends OrientationEventListener implements Defa
      * (a {@code Surface.ROTATION_*} value).
      */
     static boolean isUpsideDown(int degrees, int displayRotation) {
-        if (degrees == ORIENTATION_UNKNOWN) {
-            return false;
-        }
-        int upright = (360 - displayRotation * 90) % 360;
-        int distance = Math.abs(degrees - (upright + 180) % 360);
-        return Math.min(distance, 360 - distance) <= FLIP_TOLERANCE;
+        return FlipGate.isUpsideDown(degrees, displayRotation);
     }
 
     @Override
@@ -78,7 +75,8 @@ public final class AutoPortrait extends OrientationEventListener implements Defa
             return;
         }
         int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        if (isUpsideDown(degrees, rotation)) {
+        // gated: readings taken before the display has turned would ask to turn it back
+        if (gate.onSensor(SystemClock.uptimeMillis(), degrees, rotation)) {
             activity.setRequestedOrientation(activity.getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
                     ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                     : ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT);
@@ -95,6 +93,7 @@ public final class AutoPortrait extends OrientationEventListener implements Defa
     @Override
     public void onPause(@NonNull LifecycleOwner owner) {
         disable();
+        gate.reset();
     }
 
     @Override
