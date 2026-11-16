@@ -687,6 +687,7 @@
 
             </LinearLayout>
 
+            <include layout="@layout/canvas_t01_prefs" />
 
             <TextView
                 android:id="@+id/linksColor"
