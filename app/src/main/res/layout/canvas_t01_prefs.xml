@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The canvas rows of the library preferences (CanvasPrefs): the Canvas look switch. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/canvas_t01_prefs"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <CheckBox
+        android:id="@+id/canvas_t01_look"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:text="@string/canvas_t01_look" />
+
+    <TextView
+        android:id="@+id/canvas_t01_look_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alpha="0.75"
+        android:paddingLeft="32dip"
+        android:paddingBottom="4dip"
+        android:text="@string/canvas_t01_look_info"
+        android:textSize="12sp" />
+
+</LinearLayout>

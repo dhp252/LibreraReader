@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the canvas look switch and its shared parts (task t01). English only, kept out of
+     strings.xml and strings_fork.xml so parallel work does not conflict. -->
+<resources>
+    <string name="canvas_t01_look">Canvas look</string>
+    <string name="canvas_t01_look_info">The look of the Book That Reads You Back design. Off brings back the classic look.</string>
+</resources>
