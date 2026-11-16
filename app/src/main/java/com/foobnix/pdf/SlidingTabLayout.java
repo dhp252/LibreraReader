@@ -176,6 +176,9 @@ public class SlidingTabLayout extends HorizontalScrollView {
         setBackground(floatingPill);
         setClipToOutline(true);
         setElevation(ink ? 0 : Dips.dpToPx(FLOATING_ELEVATION_DIPS));
+        if (painter != null) {
+            painter.paintPill(this, floatingPill);
+        }
 
         int inset = Dips.dpToPx(isIconsAlone() ? FLOATING_INSET_ALONE_DIPS : FLOATING_INSET_DIPS);
         setPadding(inset, inset, inset, inset);
@@ -325,6 +328,19 @@ public class SlidingTabLayout extends HorizontalScrollView {
         } catch (Exception e) {
             LOG.e(e);
         }
+    }
+
+    /** Paints the bar and its tabs in place of the colours here (the canvas look, LibraryBar). */
+    public interface Painter {
+        void paintPill(SlidingTabLayout bar, GradientDrawable pill);
+
+        void paintTab(TextView tab, Drawable icon, boolean selected);
+    }
+
+    private Painter painter;
+
+    public void setPainter(Painter painter) {
+        this.painter = painter;
     }
 
     public void addSwipeRefreshLayout(SwipeRefreshLayout swipeRefreshLayout) {
@@ -662,6 +678,10 @@ public class SlidingTabLayout extends HorizontalScrollView {
                 drawable = childAt.getCompoundDrawables()[1];
             } else {
                 drawable = childAt.getCompoundDrawables()[0];
+            }
+            if (painter != null) {
+                painter.paintTab(childAt, drawable, i == position);
+                continue;
             }
 
             if (isInkOnPage()) {

@@ -42,6 +42,8 @@ import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.Safe;
 import com.foobnix.android.utils.StringDB;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.CanvasLook;
+import com.foobnix.canvas.library.LibraryBar;
 import com.foobnix.drive.GFile;
 import com.foobnix.ext.CacheZipUtils.CacheDir;
 import com.foobnix.model.AppBook;
@@ -427,6 +429,9 @@ public class MainTabs2 extends AdsFragmentActivity {
         // it, at the head or at the foot, and carries the status bar itself.
         DocumentController.applyEdgeToEdge(this, true,
                                            SlidingTabLayout.floatingTint(TintUtil.color));
+        if (CanvasLook.isOn()) {
+            LibraryBar.statusBar(this);
+        }
 
         imageMenu = findViewById(R.id.imageMenu1);
         imageMenuParent = findViewById(R.id.imageParent1);
@@ -434,6 +439,9 @@ public class MainTabs2 extends AdsFragmentActivity {
 
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         swipeRefreshLayout.setColorSchemeColors(TintUtil.color);
+        if (CanvasLook.isOn()) {
+            LibraryBar.refresh(swipeRefreshLayout);
+        }
 
         swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -536,6 +544,9 @@ public class MainTabs2 extends AdsFragmentActivity {
         if (AppState.get().appTheme == AppState.THEME_DARK_OLED) {
             pager.setBackgroundColor(Color.BLACK);
         }
+        if (CanvasLook.isOn()) {
+            pager.setBackgroundColor(CanvasLook.bg());
+        }
 
         pager.setOffscreenPageLimit(10);
         pager.addOnPageChangeListener(onPageChangeListener);
@@ -572,6 +583,9 @@ public class MainTabs2 extends AdsFragmentActivity {
                     if (isPullToRefreshEnable(MainTabs2.this, swipeRefreshLayout)) {
                         swipeRefreshLayout.setEnabled(true);
                         swipeRefreshLayout.setColorSchemeColors(TintUtil.color);
+                        if (CanvasLook.isOn()) {
+                            LibraryBar.refresh(swipeRefreshLayout);
+                        }
                     }
                 } catch (Exception e) {
                     LOG.e(e);
@@ -661,6 +675,9 @@ public class MainTabs2 extends AdsFragmentActivity {
             // the page at the top, the books scroll beneath it, so there it is solid white,
             // as ink paper is.
             imageMenuParent.setBackgroundColor(AppState.get().tapPositionTop ? Color.WHITE : Color.TRANSPARENT);
+        }
+        if (CanvasLook.isOn()) {
+            LibraryBar.tabs(indicator, AppState.get().tapPositionTop ? imageMenuParent : null, imageMenu, pager);
         }
 
         //Android6.checkPermissions(this, true);
@@ -864,6 +881,9 @@ public class MainTabs2 extends AdsFragmentActivity {
         LOG.d("FLAG clearFlags", "FLAG_KEEP_SCREEN_ON", "clear");
 
         DocumentController.chooseFullScreen(this, AppState.get().fullScreenMainMode);
+        if (CanvasLook.isOn()) {
+            LibraryBar.statusBar(this);
+        }
         TintUtil.updateAll();
 
         LocalBroadcastManager.getInstance(this)
@@ -1043,6 +1063,8 @@ public class MainTabs2 extends AdsFragmentActivity {
                     indicator.setSelectedIndicatorColors(TintUtil.color);
                     indicator.setDividerColors(TintUtil.color);
                     indicator.updateIcons(pager.getCurrentItem());
+                } else if (CanvasLook.isOn()) {
+                    LibraryBar.tabs(indicator, AppState.get().tapPositionTop ? imageMenuParent : null, imageMenu, pager);
                 } else {
                     // Through setTabsBackground, or the pill at the foot would be flattened
                     // into a plain rectangle of the new colour.
