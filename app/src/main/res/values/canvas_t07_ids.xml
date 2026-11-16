@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The part a view plays in the Preferences screen in the canvas look (PrefsLook):
+         a section head, a card it made, or how a line of text is set. -->
+    <item name="canvas_t07_role" type="id" />
+</resources>
