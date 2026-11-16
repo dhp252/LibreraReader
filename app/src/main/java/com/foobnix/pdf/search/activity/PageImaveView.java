@@ -456,7 +456,10 @@ public class PageImaveView extends View {
 
     private void drawAiBands(Canvas canvas, List<RectF> bands, int number) {
         for (RectF band : bands) {
-            canvas.drawRect(transform(band, number), AiHighlights.get().paint(band));
+            final RectF at = transform(band, number);
+            if (!com.foobnix.assist.xray.XrayStyle.draw(canvas, at, band)) {
+                canvas.drawRect(at, AiHighlights.get().paint(band));
+            }
         }
     }
 
