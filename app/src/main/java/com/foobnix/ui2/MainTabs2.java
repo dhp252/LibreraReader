@@ -885,6 +885,8 @@ public class MainTabs2 extends AdsFragmentActivity {
         }
 
         IMG.resumeRequests(this);
+        // Use it (canvas, Assist.USE_IT): "1 experiment to check in"; with the switch off it only removes its banner
+        com.foobnix.assist.useit.UseIt.libraryResumed(this);
         //AppSP.get().lastClosedActivity = MainTabs2.class.getSimpleName();
         //LOG.d("lasta save", AppSP.get().lastClosedActivity);
 

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of "Use it" (canvas task t23, Assist.USE_IT): the experiment screen, the check-in, the
+     lists and the due card. English only, kept out of strings.xml and strings_fork.xml so parallel
+     work does not conflict. -->
+<resources>
+    <string name="canvas_t23_title">Use it</string>
+
+    <!-- the experiment screen (canvas "Use it this month") -->
+    <string name="canvas_t23_one_idea">One idea, one experiment</string>
+    <string name="canvas_t23_question">Where would this change something you\'re doing this month?</string>
+    <string name="canvas_t23_your_answer">Your answer</string>
+    <string name="canvas_t23_answer_hint">A habit, a project, the way your team works…</string>
+    <string name="canvas_t23_sends">Sends this chapter\'s ideas (or, without key passages, its text) and your answer to your AI, once, when you tap the button.</string>
+    <string name="canvas_t23_design">Design my experiment</string>
+    <string name="canvas_t23_design_again">Design again from this answer</string>
+    <string name="canvas_t23_designing">Designing…</string>
+    <string name="canvas_t23_unreadable">The AI\'s answer could not be read. Try again.</string>
+    <string name="canvas_t23_your_experiment">Your %1$d-week experiment</string>
+    <string name="canvas_t23_idea">Idea</string>
+    <string name="canvas_t23_try">Try</string>
+    <string name="canvas_t23_predicts">%1$s predicts</string>
+    <string name="canvas_t23_book_predicts">The book predicts</string>
+    <string name="canvas_t23_measure">Measure</string>
+    <string name="canvas_t23_measure_name">What you count or rate</string>
+    <string name="canvas_t23_measure_scale">Scale</string>
+    <string name="canvas_t23_add_measure">+ Add a measure</string>
+    <string name="canvas_t23_warning">Also watch for</string>
+    <string name="canvas_t23_checkin_on">Check-in on %1$s</string>
+    <string name="canvas_t23_how_long">How long</string>
+    <string name="canvas_t23_week_1">1 week</string>
+    <string name="canvas_t23_weeks_2">2 weeks</string>
+    <string name="canvas_t23_weeks_4">4 weeks</string>
+    <string name="canvas_t23_now">Where you are now</string>
+    <string name="canvas_t23_now_note">Write down each number before you start. You can also add it at the check-in.</string>
+    <string name="canvas_t23_higher_better">Higher is better</string>
+    <string name="canvas_t23_lower_better">Lower is better</string>
+    <string name="canvas_t23_before">before</string>
+    <string name="canvas_t23_during">during</string>
+    <string name="canvas_t23_done_editing">Done</string>
+    <string name="canvas_t23_start">Start experiment</string>
+    <string name="canvas_t23_need_try">Write what you will try first.</string>
+    <string name="canvas_t23_started">Experiment started. Check-in on %1$s, here in the app.</string>
+    <string name="canvas_t23_not_saved">Could not be saved: %1$s</string>
+
+    <!-- the check-in (canvas "Experiment check-in") -->
+    <string name="canvas_t23_checkin_title">Experiment check-in</string>
+    <string name="canvas_t23_later_1">One week later</string>
+    <string name="canvas_t23_later_2">Two weeks later</string>
+    <string name="canvas_t23_later_4">Four weeks later</string>
+    <string name="canvas_t23_hold_up">Did %1$s\'s idea hold up?</string>
+    <string name="canvas_t23_hold_up_book">Did the idea hold up?</string>
+    <string name="canvas_t23_logged">What you logged</string>
+    <string name="canvas_t23_worse">%1$s, worse</string>
+    <string name="canvas_t23_verdict">Your verdict</string>
+    <string name="canvas_t23_held">Held up</string>
+    <string name="canvas_t23_mostly">Mostly</string>
+    <string name="canvas_t23_didnt">Didn\'t</string>
+    <string name="canvas_t23_surprised">What surprised you?</string>
+    <string name="canvas_t23_saved_edition">Saved to your edition under “Tried it”.</string>
+    <string name="canvas_t23_saved_book">Saved with this book under “Tried it”.</string>
+    <string name="canvas_t23_checked_in">Check-in saved</string>
+    <string name="canvas_t23_delete_confirm">Delete this experiment and what you logged?</string>
+
+    <!-- the lists -->
+    <string name="canvas_t23_new">New experiment</string>
+    <string name="canvas_t23_section_due">Due</string>
+    <string name="canvas_t23_section_running">Running</string>
+    <string name="canvas_t23_section_done">Tried it</string>
+    <string name="canvas_t23_was_due">Check-in due since %1$s</string>
+    <string name="canvas_t23_none">No experiments for this book yet.</string>
+    <string name="canvas_t23_due_list">Experiments to check in</string>
+    <string name="canvas_t23_none_due">Nothing to check in.</string>
+    <string name="canvas_t23_gone">That experiment is no longer on this device.</string>
+    <string name="canvas_t23_day_left">1 day left</string>
+    <string name="canvas_t23_days_left">%1$d days left</string>
+
+    <!-- due: the card in the book and the banner on the main screen (in the app only, nothing scheduled) -->
+    <string name="canvas_t23_due_card">Your experiment is due: %1$s</string>
+    <string name="canvas_t23_check_in">Check in</string>
+    <string name="canvas_t23_later">Later</string>
+    <string name="canvas_t23_banner_one">1 experiment to check in</string>
+    <string name="canvas_t23_banner_many">%1$d experiments to check in</string>
+</resources>
