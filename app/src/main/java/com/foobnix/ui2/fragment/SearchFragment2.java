@@ -52,6 +52,7 @@ import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.ResultResponse;
 import com.foobnix.android.utils.StringDB;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.library.LibraryRows;
 import com.foobnix.android.utils.Views;
 import com.foobnix.dao2.FileMeta;
 import com.foobnix.model.AppProfile;
@@ -307,6 +308,9 @@ public class SearchFragment2 extends UIFragment<FileMeta> {
         // menu, the name of the shelf and its count are drawn in white as on every other
         // theme. The page itself stays black on white.
         styleFilterLineOnTint();
+        if (LibraryRows.isOn(searchEditText)) {
+            LibraryRows.searchField(searchEditText, countBooks, cleanFilter, myAutoCompleteImage);
+        }
 
     }
 
