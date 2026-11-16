@@ -74,6 +74,14 @@ public final class AiMenu {
                     showKeyPassages(a, anchor, dc, target, data, chapter, highlightsBusy);
                     return true;
                 });
+        // Lens (canvas, Assist.LENS): the chapter's ideas mapped to the fields the reader knows
+        if (com.foobnix.assist.Assist.LENS.isOn()) {
+            menu.getMenu().add(a.getString(R.string.lens_in_your_terms)).setIcon(R.drawable.canvas_t14_ic_lens)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.lens.LensBridgeScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
         menu.show();
     }
 

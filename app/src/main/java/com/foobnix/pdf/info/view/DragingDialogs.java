@@ -2315,6 +2315,10 @@ public class DragingDialogs {
                 fr.addView(image);
 
                 dictLayout.addView(fr);
+                // Lens (canvas, Assist.LENS): "In your terms" for the selected text
+                if (com.foobnix.assist.Assist.LENS.isOn()) {
+                    com.foobnix.assist.lens.LensSentence.addTo(dictLayout, controller, editText, () -> closeDialog());
+                }
 
                 view.findViewById(R.id.onUnderline).
 
