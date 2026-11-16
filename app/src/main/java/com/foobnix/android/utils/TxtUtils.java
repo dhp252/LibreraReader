@@ -1561,7 +1561,7 @@ public class TxtUtils {
                         ImageView imageView = (ImageView) child;
 
                         if ((imageView.getId() == R.id.closePopup || imageView.getId() == R.id.onIconAction) && !AppState.get().isUiTextColor) {
-                            imageView.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+                            imageView.setImageTintList(ColorStateList.valueOf(com.foobnix.canvas.reader.PopupLook.headMark(imageView, Color.WHITE)));
                         } else if (AppState.get().appTheme == AppState.THEME_INK) {
                             // Ink is black and white only: a mark on the black bars is drawn in
                             // white, a mark on the page in the black of the words around it.
