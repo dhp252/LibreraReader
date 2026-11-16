@@ -74,6 +74,14 @@ public final class AiMenu {
                     showKeyPassages(a, anchor, dc, target, data, chapter, highlightsBusy);
                     return true;
                 });
+        // Semantic zoom (canvas, Assist.ZOOM): the chapter as Full / Lean / Claims / 1 line
+        if (com.foobnix.assist.Assist.ZOOM.isOn()) {
+            menu.getMenu().add(a.getString(R.string.zoom_title)).setIcon(R.drawable.canvas_t15_ic_zoom)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.zoom.ZoomScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
         menu.show();
     }
 

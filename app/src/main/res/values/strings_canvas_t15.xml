@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Semantic zoom (canvas T15, Assist.ZOOM): the zoom view Full / Lean / Claims / 1 line. English only. -->
+<resources>
+    <string name="zoom_title">Semantic zoom</string>
+    <string name="zoom_back">Back to the book</string>
+    <string name="zoom_full">Full</string>
+    <string name="zoom_lean">Lean</string>
+    <string name="zoom_claims">Claims</string>
+    <string name="zoom_line">1 line</string>
+    <string name="zoom_status_full">Full · the author\'s own words</string>
+    <string name="zoom_status_lean">Lean · repetition cut · %1$s</string>
+    <string name="zoom_status_lean_plain">Lean · repetition cut</string>
+    <string name="zoom_status_claims">Claims only · %1$s</string>
+    <string name="zoom_status_line">1 line · one sentence per section · seconds, not minutes</string>
+    <string name="zoom_finding">Finding the chapter…</string>
+    <string name="zoom_intro">Read this chapter from closer or from further away. Lean cuts the repetition, Claims keeps only the argument, 1 line gives each section in a sentence. Full is the book itself.</string>
+    <string name="zoom_intro_send">Picking Lean, Claims or 1 line sends this chapter\'s text to your AI once. After that the chapter opens from this device.</string>
+    <string name="zoom_working">Condensing this chapter…</string>
+    <string name="zoom_working_note">A long chapter can take a minute or two.</string>
+    <string name="zoom_received">%1$d characters written</string>
+    <string name="zoom_too_short">This chapter has too little text to condense.</string>
+    <string name="zoom_unreadable">The AI\'s answer could not be read. Try again.</string>
+    <string name="zoom_cut_off">The AI\'s answer was cut off before its end. Try again, or use a model that can write a longer answer.</string>
+    <string name="zoom_partial">A long chapter: only its first part (about %1$d%%) is condensed here.</string>
+    <string name="zoom_lean_hint">Condensed by AI. Tap a folded part to read it in the book.</string>
+    <string name="zoom_no_lean">The AI gave no lean version of this chapter.</string>
+    <string name="zoom_kept">Kept · %1$s</string>
+    <string name="zoom_folded">Folded: %1$s</string>
+    <plurals name="zoom_claims_count">
+        <item quantity="one">The chapter in %1$d claim</item>
+        <item quantity="other">The chapter in %1$d claims</item>
+    </plurals>
+    <string name="zoom_claims_tap">Tap one to zoom in</string>
+    <string name="zoom_no_claims">The AI found no claims in this chapter.</string>
+    <string name="zoom_kind_claim">Claim</string>
+    <string name="zoom_kind_evidence">Evidence</string>
+    <string name="zoom_kind_why">Why</string>
+    <string name="zoom_kind_why_n">Why · %1$d</string>
+    <string name="zoom_kind_caveat">Caveat</string>
+    <string name="zoom_kind_so_what">So what</string>
+    <string name="zoom_example">e.g. %1$s</string>
+    <string name="zoom_para">¶%1$d</string>
+    <string name="zoom_para_range">¶%1$d–%2$d</string>
+    <string name="zoom_one_line">The chapter in one line</string>
+    <string name="zoom_per_section">One line per section</string>
+    <string name="zoom_here">You\'re here</string>
+    <string name="zoom_line_hint">Tap a line to zoom in on it in the book.</string>
+    <string name="zoom_made">Made by AI from the chapter\'s text.</string>
+    <string name="zoom_again">Make again</string>
+    <string name="zoom_redo_ask">This chapter is already condensed. Do it again? The AI reads the chapter again.</string>
+</resources>
