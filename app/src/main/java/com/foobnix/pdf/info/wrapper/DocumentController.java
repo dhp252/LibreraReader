@@ -809,6 +809,7 @@ public abstract class DocumentController {
                 com.foobnix.assist.prequestions.PreQSession.pageShown(this);
             }
             com.foobnix.eye.EyeMode.pageShown(this);
+            com.foobnix.assist.skeleton.SkeletonOffer.pageShown(this, lastRead);
 
             handler2.removeCallbacks(saveCurrentPageRunnable);
             handler2.postDelayed(saveCurrentPageRunnable, 1000);

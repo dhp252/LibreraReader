@@ -46,6 +46,11 @@ public final class AiMenu {
                     }
                     return true;
                 });
+        // Skeleton first (canvas T13): the book's whole argument before reading it
+        if (com.foobnix.assist.Assist.SKELETON.isOn()) {
+            menu.getMenu(R.drawable.glyphicons_115_list, R.string.canvas_t13_skeleton_first,
+                    () -> com.foobnix.assist.skeleton.SkeletonScreen.show(a, dc));
+        }
         // the book map (F-013), for every book
         menu.getMenu().add(mark(a, R.string.book_map, com.foobnix.bookmap.MapStore.get().has(target.name),
                         AiBusyButton.isBusy(dc, AiTask.MAP)))

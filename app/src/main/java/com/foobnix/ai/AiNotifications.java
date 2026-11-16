@@ -97,6 +97,9 @@ public final class AiNotifications {
         if (AiTask.STUDY_PREVIEW.equals(kind)) {
             return c.getString(R.string.ai_task_preview);
         }
+        if (AiTask.SKELETON.equals(kind)) {
+            return c.getString(R.string.canvas_t13_skeleton_first);
+        }
         return c.getString(R.string.ai_task_highlights);
     }
 
