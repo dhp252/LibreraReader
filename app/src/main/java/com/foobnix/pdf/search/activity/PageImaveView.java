@@ -420,6 +420,23 @@ public class PageImaveView extends View {
         }
     }
 
+    /** Underlines the answers of the reader's pre-questions (Assist.PRE_QUESTIONS; none when off). */
+    private void drawPreQuestions(Canvas canvas) {
+        if (AppSP.get().isDouble) {
+            final int first = pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+            drawPreQLines(canvas, com.foobnix.assist.prequestions.PreQMarks.underlines(first, getPageText(1)), 1);
+            drawPreQLines(canvas, com.foobnix.assist.prequestions.PreQMarks.underlines(first + 1, getPageText(2)), 2);
+        } else {
+            drawPreQLines(canvas, com.foobnix.assist.prequestions.PreQMarks.underlines(pageNumber, getPageText(0)), 0);
+        }
+    }
+
+    private void drawPreQLines(Canvas canvas, List<RectF> lines, int number) {
+        for (RectF line : lines) {
+            canvas.drawRect(transform(line, number), com.foobnix.assist.prequestions.PreQMarks.paint());
+        }
+    }
+
     /** The AI mark drawn under a point of this view, or null. */
     private AiHighlights.Band aiMarkAt(float x, float y) {
         final AiHighlights highlights = AiHighlights.get();
@@ -681,6 +698,7 @@ public class PageImaveView extends View {
             if (!AppSP.get().isCut && isCropMappable(0)) {
                 drawMarks(canvas);
                 drawAiHighlights(canvas);
+                drawPreQuestions(canvas);
                 drawReadAloud(canvas);
 
                 paintWrods.setColor(AppState.get().isDayNotInvert ? Color.BLUE : Color.YELLOW);
