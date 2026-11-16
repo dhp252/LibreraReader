@@ -3,13 +3,16 @@ package com.foobnix.canvas.prefs;
 import android.app.Activity;
 import android.view.View;
 import android.widget.CheckBox;
+import android.widget.TextView;
 
 import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.R;
+import com.foobnix.pdf.info.TintUtil;
 
 /**
  * The canvas rows of the library preferences ({@code layout/canvas_t01_prefs}, included once in
- * {@code fragment_preferences}): the Canvas look switch ({@link AppState#isCanvasLook}).
+ * {@code fragment_preferences}): the Canvas look switch ({@link AppState#isCanvasLook}) and the
+ * way to the Assisted reading page ({@link AssistPage}) with how many features are on.
  * {@code PrefFragment2} calls {@link #bind} once; nothing else of the preferences changes.
  */
 public final class CanvasPrefs {
@@ -38,5 +41,12 @@ public final class CanvasPrefs {
             AppState.get().isCanvasLook = checked;
             recreate.run();
         });
+
+        final TextView assist = root.findViewById(R.id.canvas_t01_assist);
+        if (assist != null) {
+            assist.setText(AssistPage.summary(a));
+            TintUtil.asLinkButton(assist);
+            assist.setOnClickListener(v -> AssistPage.show(a, () -> assist.setText(AssistPage.summary(a))));
+        }
     }
 }
