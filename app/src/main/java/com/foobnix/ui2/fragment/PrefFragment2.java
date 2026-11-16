@@ -68,6 +68,8 @@ import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.ResultResponse2;
 import com.foobnix.android.utils.TxtUtils;
 import com.foobnix.android.utils.Views;
+import com.foobnix.canvas.CanvasLook;
+import com.foobnix.canvas.prefs.PrefsLook;
 import com.foobnix.dao2.FileMeta;
 import com.foobnix.drive.GFile;
 import com.foobnix.ext.CacheZipUtils;
@@ -191,6 +193,8 @@ public class PrefFragment2 extends UIFragment {
 
     @Override public void onTintChanged() {
 
+        // The canvas look draws the heads as labels and the bar on the page (PrefsLook, below).
+        if (!CanvasLook.isOn()) {
         TintUtil.setSectionFillColor(section1, TintUtil.color);
         TintUtil.setSectionFillColor(section2, TintUtil.color);
         TintUtil.setSectionFillColor(section3, TintUtil.color);
@@ -201,6 +205,7 @@ public class PrefFragment2 extends UIFragment {
         TintUtil.setSectionFillColor(section8, TintUtil.color);
         TintUtil.setSectionFillColor(section9, TintUtil.color);
         TintUtil.setBackgroundFillColor(panelRecent, TintUtil.color);
+        }
         if (statusBarHack != null) {
             statusBarHack.setBackgroundColor(TintUtil.color);
         }
@@ -217,6 +222,9 @@ public class PrefFragment2 extends UIFragment {
         }
         TxtUtils.updateAllLinks(inflate,true);
         paintLinkButtons(inflate);
+        if (CanvasLook.isOn()) {
+            PrefsLook.apply(inflate);
+        }
 
     }
 
@@ -361,7 +369,7 @@ public class PrefFragment2 extends UIFragment {
                    isSyncWifiOnly.setOnCheckedChangeListener(
                            (buttonView, isChecked) -> BookCSS.get().isSyncWifiOnly = isChecked);
 
-                   AlertDialogs.showViewDialog(getActivity(), null, isSyncWifiOnly);
+                   PrefsLook.dialog(AlertDialogs.showViewDialog(getActivity(), null, isSyncWifiOnly));
                });
 
         updateSyncInfo(null);
@@ -1230,7 +1238,7 @@ public class PrefFragment2 extends UIFragment {
 
                            }
                        });
-                       builder.show();
+                       PrefsLook.dialog(builder.show());
                    }
                });
 
@@ -1437,6 +1445,7 @@ public class PrefFragment2 extends UIFragment {
                                     isSkipFolderWithNOMEDIA,
                                     isShowOnlyOriginalFileNames, isAuthorTitleFromMetaPDF, isUseCalibreOpf,
                                     isDisplayAnnotation, isHideReadBook, isShowSeriesNumberInTitle);
+                    PrefsLook.dialog(d);
 
                     isScanOnLaunch.setChecked(AppState.get().isScanOnLaunch);
                     isFirstSurname.setChecked(AppState.get().isFirstSurname);
@@ -2553,7 +2562,7 @@ public class PrefFragment2 extends UIFragment {
 
                            }
                        });
-                       builder.show();
+                       PrefsLook.dialog(builder.show());
                    }
                });
 
@@ -2581,7 +2590,7 @@ public class PrefFragment2 extends UIFragment {
 
                            }
                        });
-                       builder.show();
+                       PrefsLook.dialog(builder.show());
 
                    }
                });
@@ -2618,6 +2627,7 @@ public class PrefFragment2 extends UIFragment {
                     }
                 });
                 create.show();
+                PrefsLook.dialog(create);
             }
         });
 
@@ -2834,7 +2844,11 @@ public class PrefFragment2 extends UIFragment {
 
         TxtUtils.updateAllLinks(inflate, true);
         paintLinkButtons(inflate);
-        TintUtil.setBackgroundFillColor(panelRecent, TintUtil.color);
+        if (CanvasLook.isOn()) {
+            PrefsLook.apply(inflate);
+        } else {
+            TintUtil.setBackgroundFillColor(panelRecent, TintUtil.color);
+        }
         return inflate;
 
     }
@@ -2870,6 +2884,9 @@ public class PrefFragment2 extends UIFragment {
         TintUtil.asLinkButton(button);
         drawIconInside(button);
         paintLinkButton(button);
+        if (CanvasLook.isOn()) {
+            PrefsLook.link(button);
+        }
         return button;
     }
 
@@ -3028,6 +3045,9 @@ public class PrefFragment2 extends UIFragment {
 
             row.setOnClickListener(v -> onFolderConfigDialog());
             searchPaths.addView(row);
+        }
+        if (CanvasLook.isOn()) {
+            PrefsLook.apply(inflate);
         }
     }
 
