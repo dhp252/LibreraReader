@@ -11,6 +11,9 @@ import android.text.TextUtils;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.foobnix.canvas.CanvasLook;
+import com.foobnix.canvas.library.LibraryTabs;
+
 import java.util.List;
 
 /**
@@ -35,6 +38,9 @@ public final class StatsCharts {
         final int textPrimary;
         final int textSecondary;
         final int grid;
+        /** Text on an accent mark, and an empty cell. */
+        final int onAccent;
+        final int empty;
         final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
         final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
         final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -46,10 +52,22 @@ public final class StatsCharts {
             dp = c.getResources().getDisplayMetrics().density;
             this.accent = accent;
             final TypedArray a = c.getTheme().obtainStyledAttributes(new int[]{android.R.attr.textColorPrimary, android.R.attr.textColorSecondary});
-            textPrimary = a.getColor(0, Color.GRAY);
-            textSecondary = a.getColor(1, Color.GRAY);
+            if (LibraryTabs.isOn(c)) {
+                // the canvas look: ink and muted text, hairline grids in the line colour
+                textPrimary = CanvasLook.ink();
+                textSecondary = CanvasLook.muted();
+                grid = CanvasLook.line();
+                onAccent = CanvasLook.onAccent();
+                empty = CanvasLook.surface2();
+                text.setTypeface(CanvasLook.ui(c, 500));
+            } else {
+                textPrimary = a.getColor(0, Color.GRAY);
+                textSecondary = a.getColor(1, Color.GRAY);
+                grid = withAlpha(textSecondary, 0x40);
+                onAccent = Color.WHITE;
+                empty = withAlpha(textSecondary, 0x14);
+            }
             a.recycle();
-            grid = withAlpha(textSecondary, 0x40);
             line.setStyle(Paint.Style.STROKE);
             line.setStrokeCap(Paint.Cap.ROUND);
             line.setStrokeJoin(Paint.Join.ROUND);
@@ -401,7 +419,7 @@ public final class StatsCharts {
                 label(c, weekdays[d], 0, d * cell + cell * 0.75f, Paint.Align.LEFT, textSecondary);
                 for (int h = 0; h < 24; h++) {
                     final long v = values[d][h];
-                    fill.setColor(v <= 0 || max == 0 ? withAlpha(textSecondary, 0x14) : withAlpha(accent, 0x30 + (int) (0xCF * v / (double) max)));
+                    fill.setColor(v <= 0 || max == 0 ? empty : withAlpha(accent, 0x30 + (int) (0xCF * v / (double) max)));
                     final float x = left() + h * cell;
                     final float y = d * cell;
                     c.drawRoundRect(new RectF(x + gap, y + gap, x + cell - gap, y + cell - gap), 2 * dp, 2 * dp, fill);
@@ -486,7 +504,7 @@ public final class StatsCharts {
                     line.setStrokeWidth(1.5f * dp);
                     c.drawCircle(cx, cy, r + 2 * dp, line);
                 }
-                label(c, String.valueOf(d), cx, cy + text.getTextSize() / 3, Paint.Align.CENTER, read[d] ? Color.WHITE : textSecondary);
+                label(c, String.valueOf(d), cx, cy + text.getTextSize() / 3, Paint.Align.CENTER, read[d] ? onAccent : textSecondary);
             }
         }
     }

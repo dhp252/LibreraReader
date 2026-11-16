@@ -23,6 +23,7 @@ import com.foobnix.android.utils.Keyboards;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.ResultResponse;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.library.LibraryTabs;
 import com.foobnix.model.AppBookmark;
 import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.BookmarksData;
@@ -163,6 +164,9 @@ public class BookmarksFragment2 extends UIFragment<AppBookmark> {
     public void onTintChanged() {
         TintUtil.setBackgroundFillColor(topPanel, TintUtil.color);
         TintUtil.setStrokeColor(bookmarksEditSearch, TintUtil.color);
+        if (LibraryTabs.isOn(getActivity())) {
+            LibraryTabs.field(bookmarksEditSearch);
+        }
     }
 
     private final TextWatcher filterTextWatcher = new TextWatcher() {
