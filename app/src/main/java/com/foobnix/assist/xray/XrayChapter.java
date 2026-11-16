@@ -12,7 +12,7 @@ import java.util.List;
  * A chapter's stored key passages as the X-ray reads them, and its ratings in the assist store
  * ({@code xray:<chapter key>} in the book's file).
  */
-final class XrayChapter {
+public final class XrayChapter {
 
     static final String PREFIX = "xray:";
 
@@ -20,7 +20,7 @@ final class XrayChapter {
     }
 
     /** The chapter's ideas, each with its marks' words and the mark a tap goes to (the first in the book). */
-    static List<XrayIdea> ideas(AiStore.Chapter chapter) {
+    public static List<XrayIdea> ideas(AiStore.Chapter chapter) {
         final List<XrayIdea> out = new ArrayList<>();
         for (AiStore.Idea idea : chapter.ideas) {
             final List<String> quotes = new ArrayList<>();

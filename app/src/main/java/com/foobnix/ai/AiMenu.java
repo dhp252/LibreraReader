@@ -95,6 +95,14 @@ public final class AiMenu {
                         return true;
                     });
         }
+        // Debate the author (canvas, Assist.RECALL): argue with a claim of the chapter's key passages
+        if (com.foobnix.assist.Assist.RECALL.isOn()) {
+            menu.getMenu().add(a.getString(R.string.debate_title)).setIcon(R.drawable.canvas_t19_ic_debate)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.debate.DebateScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
         menu.show();
     }
 

@@ -23,7 +23,9 @@ import java.util.List;
 /**
  * The weak spot card (canvas XrayWeak): the weakest supported idea of the chapter, two sentences on
  * why, and how well each cause beside it is supported (3 bars: strong, fair, weak). Argument map
- * goes back to the map; Go to it closes the X-ray at the idea's first mark.
+ * goes back to the map; Go to it closes the X-ray at the idea's first mark. With Assist.RECALL on,
+ * Debate it (the canvas's second button) opens the debate on the weak idea and Go to it moves
+ * below it.
  */
 final class XrayWeakCard {
 
@@ -37,7 +39,8 @@ final class XrayWeakCard {
     private XrayWeakCard() {
     }
 
-    static void show(Activity a, XrayTree tree, XrayRatings ratings, Jump jump) {
+    /** @param debate opens the debate on the weak idea ("Debate it"), or null for no such button */
+    static void show(Activity a, XrayTree tree, XrayRatings ratings, Jump jump, Jump debate) {
         final XrayTree.Node weak = tree.node(ratings.weakestId());
         if (weak == null) {
             return;
@@ -130,8 +133,24 @@ final class XrayWeakCard {
         final LinearLayout.LayoutParams right = new LinearLayout.LayoutParams(0, CanvasLook.dp(48), 1);
         right.leftMargin = CanvasLook.dp(8);
         buttons.addView(map, left);
-        buttons.addView(go, right);
-        sheet.addView(buttons, spaced(12));
+        if (debate != null) {
+            // canvas XrayWeak: Argument map, Debate it; Go to it stays, under them
+            final TextView debateIt = button(a, R.string.debate_it, true);
+            debateIt.setOnClickListener(v -> {
+                dialog.dismiss();
+                debate.to(weak.idea);
+            });
+            buttons.addView(debateIt, right);
+            sheet.addView(buttons, spaced(12));
+            go.setBackground(CanvasParts.secondaryButton());
+            go.setTextColor(CanvasLook.ink());
+            final LinearLayout.LayoutParams under = spaced(8);
+            under.height = CanvasLook.dp(48);
+            sheet.addView(go, under);
+        } else {
+            buttons.addView(go, right);
+            sheet.addView(buttons, spaced(12));
+        }
 
         dialog.setContentView(sheet);
         final Window w = dialog.getWindow();
