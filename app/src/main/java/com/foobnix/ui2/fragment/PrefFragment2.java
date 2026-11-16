@@ -372,6 +372,7 @@ public class PrefFragment2 extends UIFragment {
                .setVisibility(AppsConfig.IS_FDROID ? View.GONE : View.VISIBLE);
         WebDavDialog.bindPreferences(getActivity(), inflate);
         AiSettingsDialog.bindPreferences(getActivity(), inflate);
+        com.foobnix.canvas.prefs.CanvasPrefs.bind(getActivity(), inflate, this::onTheme);
         //inflate.findViewById(R.id.sectionSync).setVisibility(View.GONE);//TODO GDIVE need to fix
 
         section9 = inflate.findViewById(R.id.section9);

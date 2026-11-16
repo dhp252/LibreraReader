@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the canvas look switch and its shared parts (task t01). English only, kept out of
+     strings.xml and strings_fork.xml so parallel work does not conflict. -->
+<resources>
+    <string name="canvas_t01_look">Canvas look</string>
+    <string name="canvas_t01_look_info">The look of the Book That Reads You Back design. Off brings back the classic look.</string>
+    <string name="canvas_t01_section_answers">This section answers</string>
+    <string name="canvas_t01_assist">Assisted reading</string>
+    <string name="canvas_t01_assist_off">All off</string>
+    <string name="canvas_t01_assist_on">%1$d of %2$d on</string>
+    <string name="canvas_t01_assist_header">Each one is off until you turn it on. Turning one off hides it; what it saved stays.</string>
+    <string name="canvas_t01_assist_ai">Uses your AI key</string>
+    <string name="canvas_t01_assist_recap">Re-entry recap</string>
+    <string name="canvas_t01_assist_recap_info">Back after a break: where you stopped and what came just before, in 20 seconds.</string>
+    <string name="canvas_t01_assist_preq">Pre-questions</string>
+    <string name="canvas_t01_assist_preq_info">Before a chapter, guess the answers to a few questions; the text then answers them.</string>
+    <string name="canvas_t01_assist_xray">Argument X-ray</string>
+    <string name="canvas_t01_assist_xray_info">Marks the job each phrase does: claim, evidence, example, caveat.</string>
+    <string name="canvas_t01_assist_skeleton">Skeleton first</string>
+    <string name="canvas_t01_assist_skeleton_info">Before you start: the whole argument in one line, a paragraph or a chapter map.</string>
+    <string name="canvas_t01_assist_lens">Bridges from your field</string>
+    <string name="canvas_t01_assist_lens_info">The book\'s ideas mapped to the terms of a field you know.</string>
+    <string name="canvas_t01_assist_zoom">Semantic zoom</string>
+    <string name="canvas_t01_assist_zoom_info">Read a chapter in full, lean, as claims only or in one line.</string>
+    <string name="canvas_t01_assist_recall">Recall and teach-back</string>
+    <string name="canvas_t01_assist_recall_info">After a chapter, say what it said in your own words, then see what you missed.</string>
+    <string name="canvas_t01_assist_path">Minimal path</string>
+    <string name="canvas_t01_assist_path_info">Name what you want to understand; get the fewest chapters to read, in order.</string>
+    <string name="canvas_t01_assist_updated">The book, updated</string>
+    <string name="canvas_t01_assist_updated_info">Margin notes on what has been learned since the book was written.</string>
+    <string name="canvas_t01_assist_use">Use it</string>
+    <string name="canvas_t01_assist_use_info">Turn one idea into a small experiment this month, then check in two weeks later.</string>
+    <string name="canvas_t01_assist_review">Spaced review</string>
+    <string name="canvas_t01_assist_review_info">A few minutes a day on the ideas you are about to forget, across your books.</string>
+    <string name="canvas_t01_assist_edition">Your edition</string>
+    <string name="canvas_t01_assist_edition_info">When you finish: the book in a few pages, from your recalls, misses and links.</string>
+    <string name="canvas_t01_assist_pictures">Prose to pictures</string>
+    <string name="canvas_t01_assist_pictures_info">A passage drawn as a process, a table or a loop.</string>
+    <string name="canvas_t01_assist_fiction">Spoiler-safe fiction companion</string>
+    <string name="canvas_t01_assist_fiction_info">Who\'s who, the timeline and the map, only up to where you are.</string>
+    <string name="canvas_t01_assist_reads_you">The book reads you back</string>
+    <string name="canvas_t01_assist_reads_you_info">The front camera notices re-reads, drift and tiredness and offers help. It stays on this phone.</string>
+</resources>

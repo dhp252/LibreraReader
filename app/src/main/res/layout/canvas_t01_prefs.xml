@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The canvas rows of the library preferences (CanvasPrefs): the Canvas look switch and the way
+     to the Assisted reading page. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/canvas_t01_prefs"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <CheckBox
+        android:id="@+id/canvas_t01_look"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:text="@string/canvas_t01_look" />
+
+    <TextView
+        android:id="@+id/canvas_t01_look_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alpha="0.75"
+        android:paddingLeft="32dip"
+        android:paddingBottom="4dip"
+        android:text="@string/canvas_t01_look_info"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="5dip"
+        android:layout_marginBottom="4dip">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="135dp"
+            android:text="@string/canvas_t01_assist"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/canvas_t01_assist"
+            style="@style/textLink"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="100dip"
+            android:text="@string/canvas_t01_assist_off" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -233,4 +233,22 @@ public class ProfileMergeTest {
         assertEquals("later", merged.getJSONObject("@book").getString("premise"));
         assertTrue(merged.getJSONObject("@view").getBoolean("whole"));
     }
+
+    @Test
+    public void assistItemsOfTwoDevicesBothStay() throws Exception {
+        assertTrue(ProfileMerge.handles("assist/x.json"));
+        String base = "{\"recap:last\":{\"t\":1,\"text\":\"old\"},\"preq:c1\":{\"t\":1,\"q\":\"?\"}}";
+        // the phone wrote a new recap, the tablet removed one pre-question and added another
+        String local = "{\"recap:last\":{\"t\":4,\"text\":\"phone\"},\"preq:c1\":{\"t\":1,\"q\":\"?\"}}";
+        String remote = "{\"recap:last\":{\"t\":1,\"text\":\"old\"},\"preq:c1\":{\"t\":6,\"del\":true},"
+                + "\"preq:c2\":{\"t\":5,\"guess\":2}}";
+        JSONObject merged = obj(ProfileMerge.merge("assist/x.json", base, local, remote));
+        assertEquals("phone", merged.getJSONObject("recap:last").getString("text"));
+        assertTrue(merged.getJSONObject("preq:c1").getBoolean("del"));
+        assertEquals(2, merged.getJSONObject("preq:c2").getInt("guess"));
+        // the same item on both: the newer
+        merged = obj(ProfileMerge.merge("assist/x.json", base, "{\"recap:last\":{\"t\":9,\"text\":\"later\"}}",
+                "{\"recap:last\":{\"t\":7,\"text\":\"earlier\"}}"));
+        assertEquals("later", merged.getJSONObject("recap:last").getString("text"));
+    }
 }
