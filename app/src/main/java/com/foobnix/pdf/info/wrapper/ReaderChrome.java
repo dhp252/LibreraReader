@@ -44,7 +44,7 @@ public final class ReaderChrome {
     }
 
     public static boolean isOn() {
-        return AppState.get().isPaperChrome && AppState.get().appTheme != AppState.THEME_INK;
+        return AppState.get().isPaperChrome && com.foobnix.canvas.CanvasLook.isOn();
     }
 
     /** The marks are ink only while the reader has not picked a colour for them. */
