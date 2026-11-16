@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- T11: Pre-questions (Assist.PRE_QUESTIONS), canvas "Pre-question", "Pre-questions locked in", "Pre-question answered". -->
+<resources>
+    <!-- the offer before a chapter -->
+    <string name="preq_before_label">Before this chapter</string>
+    <string name="preq_offer_title">3 quick guesses before this chapter</string>
+    <string name="preq_offer_resume">Finish your guesses</string>
+    <string name="preq_offer_line">Guess first; the book answers as you read.</string>
+    <string name="preq_offer_go">Make my guesses</string>
+    <string name="preq_continue">Continue</string>
+    <string name="preq_not_now">Not now</string>
+    <string name="preq_writing">Writing your questions…</string>
+    <string name="preq_cancel">Cancel</string>
+    <string name="preq_failed">Could not write the questions</string>
+    <string name="preq_try_again">Try again</string>
+    <string name="preq_none">No pre-questions for this chapter: too little text, or no answer found in it.</string>
+    <string name="preq_unreadable">The AI\'s answer could not be read. Try again.</string>
+    <string name="preq_not_saved">Pre-questions not saved: %1$s</string>
+
+    <!-- guessing -->
+    <string name="preq_before">Before %1$s</string>
+    <string name="preq_n_of">Pre-question %1$d of %2$d</string>
+    <string name="preq_guess_first">Guess first</string>
+    <string name="preq_own_words">Or in your own words</string>
+    <string name="preq_how_sure">How sure are you?</string>
+    <string name="preq_guessing">Guessing</string>
+    <string name="preq_fairly_sure">Fairly sure</string>
+    <string name="preq_certain">Certain</string>
+    <string name="preq_tip">Most people guess wrong, and that\'s the point. A wrong guess now makes the real answer stick when you reach it.</string>
+    <string name="preq_lock_in">Lock in my guess</string>
+    <string name="preq_skip">No idea, skip</string>
+
+    <!-- locked in -->
+    <string name="preq_all_in">All %1$d guesses in</string>
+    <string name="preq_locked_in">Locked in</string>
+    <string name="preq_saved">Your guesses are saved</string>
+    <string name="preq_saved_line">Every answer is in this chapter. Each one gets flagged the moment you reach it.</string>
+    <string name="preq_you">"You: "</string>
+    <string name="preq_skipped">skipped</string>
+    <string name="preq_in_page">in p. %1$d</string>
+    <string name="preq_start_reading">Start reading</string>
+
+    <!-- an answer reached -->
+    <string name="preq_answers_your">Answers your pre-question %1$d</string>
+    <string name="preq_reveal_more">You guessed %1$s. It\'s %2$s, %3$s times more.</string>
+    <string name="preq_reveal_less">You guessed %1$s. It\'s %2$s, %3$s times less.</string>
+    <string name="preq_reveal_close">You guessed %1$s. Close: it\'s %2$s.</string>
+    <string name="preq_reveal_spot_on">You guessed %1$s. Spot on: it\'s %2$s.</string>
+    <string name="preq_reveal_right">You guessed %1$s. Right.</string>
+    <string name="preq_reveal_wrong">You guessed %1$s. The book says: %2$s.</string>
+    <string name="preq_reveal_own">You said: %1$s. The book says: %2$s.</string>
+    <string name="preq_reveal_skipped">You skipped this one. The book says: %1$s.</string>
+    <string name="preq_your_guess">Your guess</string>
+    <string name="preq_the_book">The book</string>
+    <string name="preq_got_it">Got it</string>
+    <string name="preq_found_n_of">%1$d of %2$d answers found</string>
+</resources>
