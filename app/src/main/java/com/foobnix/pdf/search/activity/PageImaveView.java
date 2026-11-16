@@ -420,6 +420,21 @@ public class PageImaveView extends View {
         }
     }
 
+    /** Margin marks of the notes of "The book, updated" (Assist.UPDATED; none when off). */
+    private void drawUpdated(Canvas canvas) {
+        if (!com.foobnix.assist.Assist.UPDATED.isOn()) {
+            return;
+        }
+        final RectF unit = new RectF(0, 0, 1, 1);
+        if (AppSP.get().isDouble) {
+            final int first = pageNumber * 2 - (AppSP.get().isDoubleCoverAlone ? 1 : 0);
+            com.foobnix.assist.updated.UpdatedMarks.draw(canvas, first, getPageText(1), transform(unit, 1));
+            com.foobnix.assist.updated.UpdatedMarks.draw(canvas, first + 1, getPageText(2), transform(unit, 2));
+        } else {
+            com.foobnix.assist.updated.UpdatedMarks.draw(canvas, pageNumber, getPageText(0), transform(unit, 0));
+        }
+    }
+
     /** The AI mark drawn under a point of this view, or null. */
     private AiHighlights.Band aiMarkAt(float x, float y) {
         final AiHighlights highlights = AiHighlights.get();
@@ -681,6 +696,7 @@ public class PageImaveView extends View {
             if (!AppSP.get().isCut && isCropMappable(0)) {
                 drawMarks(canvas);
                 drawAiHighlights(canvas);
+                drawUpdated(canvas);
                 drawReadAloud(canvas);
 
                 paintWrods.setColor(AppState.get().isDayNotInvert ? Color.BLUE : Color.YELLOW);

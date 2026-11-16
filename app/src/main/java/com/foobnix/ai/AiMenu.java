@@ -74,6 +74,14 @@ public final class AiMenu {
                     showKeyPassages(a, anchor, dc, target, data, chapter, highlightsBusy);
                     return true;
                 });
+        // The book, updated (canvas, Assist.UPDATED): what is known today, on this chapter
+        if (com.foobnix.assist.Assist.UPDATED.isOn()) {
+            menu.getMenu().add(a.getString(R.string.updated_title)).setIcon(R.drawable.canvas_t22_ic_updated)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.updated.UpdatedScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
         menu.show();
     }
 
