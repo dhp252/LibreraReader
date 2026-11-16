@@ -13,8 +13,10 @@ public final class AiTask {
     public static final String MAP = "map";
     public static final String BOOK_SUMMARY = "bookSummary";
     public static final String STUDY_PREVIEW = "studyPreview";
+    /** Skeleton first (canvas T13): the book's skim read for its thesis, parts and chapter lines. */
+    public static final String SKELETON = "skeleton";
     /** Every kind of long task. */
-    public static final String[] KINDS = {HIGHLIGHTS, MAP, BOOK_SUMMARY, STUDY_PREVIEW};
+    public static final String[] KINDS = {HIGHLIGHTS, MAP, BOOK_SUMMARY, STUDY_PREVIEW, SKELETON};
 
     public final String kind;
     public final String path;
@@ -73,6 +75,10 @@ public final class AiTask {
         return of(STUDY_PREVIEW, t, true, null, false, false);
     }
 
+    public static AiTask skeleton(AiJobs.Target t) {
+        return of(SKELETON, t, true, null, false, false);
+    }
+
     private static AiTask of(String kind, AiJobs.Target t, boolean wholeBook, BookChapters.Range chapter,
                              boolean bookOnly, boolean regenerate) {
         return new AiTask(kind, t.path, t.title, t.width, t.height, t.fontSize, t.page, wholeBook, chapter,
@@ -80,7 +86,8 @@ public final class AiTask {
     }
 
     public static boolean isKind(String kind) {
-        return HIGHLIGHTS.equals(kind) || MAP.equals(kind) || BOOK_SUMMARY.equals(kind) || STUDY_PREVIEW.equals(kind);
+        return HIGHLIGHTS.equals(kind) || MAP.equals(kind) || BOOK_SUMMARY.equals(kind) || STUDY_PREVIEW.equals(kind)
+                || SKELETON.equals(kind);
     }
 
     /** The book and the layout the task reads it in. */

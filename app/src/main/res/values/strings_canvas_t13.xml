@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Skeleton first (canvas task T13): see the whole argument of a book before reading it. -->
+<resources>
+    <string name="canvas_t13_skeleton_first">Skeleton first</string>
+    <string name="canvas_t13_before_you_start">Before you start</string>
+    <string name="canvas_t13_title">See the whole argument first</string>
+    <string name="canvas_t13_one_line">1 line</string>
+    <string name="canvas_t13_one_paragraph">1 paragraph</string>
+    <string name="canvas_t13_chapter_map">Chapter map</string>
+    <string name="canvas_t13_length">Skeleton length</string>
+    <string name="canvas_t13_read_it_first">Read it first</string>
+    <string name="canvas_t13_conclusion_in">The conclusion is in %1$s.</string>
+    <string name="canvas_t13_chapters_short">%1$d ch</string>
+    <string name="canvas_t13_here">You\'re here</string>
+    <string name="canvas_t13_conclusion">Conclusion</string>
+    <string name="canvas_t13_optional">optional</string>
+    <string name="canvas_t13_reading_now">reading now</string>
+    <string name="canvas_t13_legend_optional">dashed: optional background</string>
+    <string name="canvas_t13_tap_part">Tap a part for its chapters</string>
+    <string name="canvas_t13_tap_chapter">Tap a chapter to go there</string>
+    <string name="canvas_t13_pre_questions_text">First, three quick guesses. Wrong answers are fine: trying before you read makes the answers stick.</string>
+    <string name="canvas_t13_pre_questions">Start with 3 pre-questions</string>
+    <string name="canvas_t13_back">Back to the book</string>
+    <string name="canvas_t13_more">More options</string>
+    <string name="canvas_t13_loading">Reading the contents…</string>
+    <string name="canvas_t13_empty">See the thesis, how the book is built and one line per chapter before you start.</string>
+    <string name="canvas_t13_empty_note">One AI request on a skim of the book: its contents and the opening and ending of each chapter.</string>
+    <string name="canvas_t13_make">Make the skeleton</string>
+    <string name="canvas_t13_make_ai">Make the skeleton with AI</string>
+    <string name="canvas_t13_redo_confirm">Make the skeleton again? The book is read again and its skim sent to the AI.</string>
+    <string name="canvas_t13_from_study">From the study preview of this book. The AI skeleton adds the parts, the conclusion and what is optional.</string>
+    <string name="canvas_t13_skimming">Finding the argument…</string>
+    <string name="canvas_t13_ready">The skeleton of the book is ready.</string>
+    <string name="canvas_t13_unreadable">The AI\'s answer could not be read. Try again.</string>
+    <string name="canvas_t13_no_text">There is no text the AI can read in this book (a scanned book?).</string>
+    <string name="canvas_t13_no_map">No table of contents could be read for a chapter map.</string>
+    <string name="canvas_t13_offer">See the whole argument first?</string>
+    <string name="canvas_t13_offer_note">The thesis, the parts and one line per chapter, before you start.</string>
+    <string name="canvas_t13_offer_yes">Show me</string>
+    <string name="canvas_t13_offer_no">Not now</string>
+</resources>
