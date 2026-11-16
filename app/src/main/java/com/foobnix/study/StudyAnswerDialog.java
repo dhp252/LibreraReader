@@ -166,6 +166,9 @@ public final class StudyAnswerDialog implements StudyJobs.CheckScreen {
             }
         });
         dialog.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.answers(dialog, box, status, feedback, progress);
+        }
     }
 
     private EditText input(String text, int hint) {

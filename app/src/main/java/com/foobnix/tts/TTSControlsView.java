@@ -344,7 +344,12 @@ public class TTSControlsView extends FrameLayout {
         if (TTSEngine.get().isMp3() && layoutMp3.getVisibility() == View.GONE) {
             layoutMp3.setVisibility(View.VISIBLE);
             trackName.setVisibility(View.VISIBLE);
-            view.setBackgroundColor(Color.parseColor("#ddffffff"));
+            if (com.foobnix.canvas.dialogs.CanvasTts.isStyled(this)) {
+                // the canvas look (T9): the controls stand on the sheet's own colour
+                view.setBackgroundColor(Color.TRANSPARENT);
+            } else {
+                view.setBackgroundColor(Color.parseColor("#ddffffff"));
+            }
 
             udateButtons();
 

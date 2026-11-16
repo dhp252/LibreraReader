@@ -653,6 +653,10 @@ public class FileInformationDialog {
         TintUtil.asLinkButton(onUpdateMeta, 0);
         TintUtil.asLinkButton(delete, 0);
 
+        // the canvas look (T9): facts, annotation, tags, bookmarks and Reading on cards
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasInfo.fileInfo(dialog);
+        }
         // builder.setTitle(R.string.file_info);
         builder.setView(dialog);
 
@@ -665,6 +669,9 @@ public class FileInformationDialog {
         });
 
         infoDialog.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.style(infoDialog);
+        }
     }
 
     private static void editMeta(FileMeta fileMeta, TextView click, TextView author, String key) {

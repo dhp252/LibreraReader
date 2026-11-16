@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- T9: the canvas look of the dialogs (TTS sheet, book info, AI and Study dialogs). English only. -->
+<resources>
+    <!-- Over the book's thesis on the Study panel's tinted card (shown in caps). -->
+    <string name="canvas_t09_thesis">Thesis</string>
+    <!-- Spoken for the speed chip of the read-aloud controls; %1$s is like "1.25×". -->
+    <string name="canvas_t09_speed">Playback speed, %1$s</string>
+</resources>

@@ -158,6 +158,9 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen, AiProgress.Tas
         // back or a tap outside closes the progress; the run goes on
         dialog.setOnCancelListener(d -> AiProgress.detach(key, this));
         dialog.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasAi.progress(dialog, progress, status, note);
+        }
     }
 
     @Override

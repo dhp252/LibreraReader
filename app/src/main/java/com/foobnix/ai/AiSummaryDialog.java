@@ -105,6 +105,9 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen, AiProgress.TaskScr
         });
         dialog.setOnDismissListener(d -> stop());
         dialog.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasAi.summary(dialog, view);
+        }
         start(false);
     }
 
