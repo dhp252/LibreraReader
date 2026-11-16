@@ -66,6 +66,9 @@ public class AlertDialogs {
         });
 
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
     }
 
     public static void showOkDialog(final Activity c, final String message, final Runnable action) {
@@ -112,6 +115,9 @@ public class AlertDialogs {
         });
 
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
         return create;
 
     }
@@ -153,6 +159,9 @@ public class AlertDialogs {
         });
 
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.style(create);
+        }
     }
 
     public static AlertDialog showViewDialog(final Activity c, final View child) {
@@ -196,6 +205,9 @@ public class AlertDialogs {
         });
 
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
         return create;
     }
 
@@ -245,6 +257,9 @@ public class AlertDialogs {
             }
         });
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.style(create);
+        }
 
         create.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
 
@@ -317,6 +332,9 @@ public class AlertDialogs {
             }
         });
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
 
         create.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
 

@@ -103,7 +103,8 @@ public final class StudyPanel {
 
         if (!book.thesis.isEmpty()) {
             final TextView thesis = text(book.thesis, 15, true);
-            list.addView(thesis);
+            // the canvas look (T9): the thesis on the tinted card
+            list.addView(com.foobnix.canvas.CanvasLook.isOn() ? com.foobnix.canvas.dialogs.CanvasStudy.thesis(thesis) : thesis);
         }
         final TextView goal = text(a.getString(R.string.study_goal, book.goal.isEmpty() ? a.getString(R.string.study_no_goal) : book.goal) + "  ✎", 14, false);
         goal.setPadding(0, Dips.dpToPx(6), 0, 0);
@@ -178,6 +179,9 @@ public final class StudyPanel {
         final TextView st = text(state, 14, true);
         st.setMinWidth(Dips.dpToPx(16));
         row.addView(st);
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.chapterRow(row, time, st, here);
+        }
         return row;
     }
 
@@ -194,7 +198,11 @@ public final class StudyPanel {
             box.addView(text(labelName(c.label) + " · " + c.reason, 13, false));
         }
         if (!c.questions.isEmpty()) {
-            box.addView(text(a.getString(R.string.study_read_for), 14, true));
+            final TextView readFor = text(a.getString(R.string.study_read_for), 14, true);
+            if (com.foobnix.canvas.CanvasLook.isOn()) {
+                com.foobnix.canvas.dialogs.CanvasStudy.panelHeading(readFor);
+            }
+            box.addView(readFor);
             for (int i = 0; i < c.questions.size(); i++) {
                 box.addView(text((i + 1) + ". " + c.questions.get(i), 14, false));
             }
@@ -290,6 +298,9 @@ public final class StudyPanel {
         b.setTextColor(TintUtil.color);
         b.setPadding(0, Dips.dpToPx(8), Dips.dpToPx(18), Dips.dpToPx(8));
         ripple(b);
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.panelAction(b);
+        }
         b.setOnClickListener(run::run);
         return b;
     }
@@ -306,6 +317,9 @@ public final class StudyPanel {
         t.setTextSize(sp);
         if (bold) {
             t.setTypeface(Typeface.DEFAULT_BOLD);
+        }
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.panelText(t, sp, bold);
         }
         return t;
     }

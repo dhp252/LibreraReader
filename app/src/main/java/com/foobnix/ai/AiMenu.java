@@ -105,11 +105,14 @@ public final class AiMenu {
 
     /** Before an AI task already done is done again: it costs a new request. */
     public static void confirmRedo(Activity a, int message, Runnable redo) {
-        new AlertDialog.Builder(a)
+        final AlertDialog d = new AlertDialog.Builder(a)
                 .setMessage(message)
-                .setPositiveButton(R.string.ai_redo, (d, w) -> redo.run())
+                .setPositiveButton(R.string.ai_redo, (dialog, w) -> redo.run())
                 .setNegativeButton(R.string.cancel, null)
                 .show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(d);
+        }
     }
 
     /** Key passages: their ideas, running, showing and removing them, the goal they follow. */
@@ -181,10 +184,13 @@ public final class AiMenu {
 
     /** One row removes them, so it asks: they cost requests to get back. */
     private static void confirmRemove(Activity a, DocumentController dc, boolean wholeBook) {
-        new AlertDialog.Builder(a)
+        final AlertDialog d = new AlertDialog.Builder(a)
                 .setMessage(wholeBook ? R.string.ai_remove_book_confirm : R.string.ai_remove_chapter_confirm)
-                .setPositiveButton(R.string.ai_remove, (d, w) -> new AiJobs.RemoveJob(a, AiJobs.Target.of(dc), wholeBook).start())
+                .setPositiveButton(R.string.ai_remove, (dialog, w) -> new AiJobs.RemoveJob(a, AiJobs.Target.of(dc), wholeBook).start())
                 .setNegativeButton(R.string.cancel, null)
                 .show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(d);
+        }
     }
 }

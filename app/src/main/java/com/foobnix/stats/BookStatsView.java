@@ -78,9 +78,16 @@ public final class BookStatsView {
                 final int cw = c.speed.wpm();
                 final boolean slow = cw > 0 && wpm > 0 && cw < wpm * SLOW;
                 final String time = StatsFormat.duration(a, c.ms);
-                add(box, (slow ? "▼ " : "") + c.title + " · "
+                final TextView row = add(box, (slow ? "▼ " : "") + c.title + " · "
                         + (cw > 0 ? a.getString(R.string.stats_chapter_row, time, cw) : time));
+                if (com.foobnix.canvas.CanvasLook.isOn()) {
+                    com.foobnix.canvas.dialogs.CanvasInfo.chapter(row, c.ms);
+                }
             }
+        }
+        // the canvas look (T9): lines in ink, chapters with accent bars of their time
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasInfo.reading(label, box);
         }
     }
 

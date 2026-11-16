@@ -123,6 +123,9 @@ public final class AiIdeasDialog {
                 .setView(scroll)
                 .setPositiveButton(R.string.close, null)
                 .show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasAi.ideas(dialog[0], list);
+        }
     }
 
     /** The idea's mark nearest the chapter's start: a sentence or a paragraph, whichever comes first. */
