@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debate the author (canvas "Debate the author", Assist.RECALL) -->
+    <string name="debate_title">Debate the author</string>
+    <string name="debate_it">Debate it</string>
+    <string name="debate_back">Back</string>
+    <string name="debate_round">Round %1$d of %2$d</string>
+    <string name="debate_pick_title">Pick the claim to argue with</string>
+    <string name="debate_pick_note">The main ideas of this chapter\'s key passages. You get 3 rounds; a referee scores each one.</string>
+    <string name="debate_last_time">Last time: %1$s</string>
+    <string name="debate_in_progress">In progress: round %1$d of %2$d</string>
+    <string name="debate_you">You</string>
+    <string name="debate_author_ai">%1$s · AI</string>
+    <string name="debate_the_author">The author</string>
+    <string name="debate_the_author_mid">the author</string>
+    <string name="debate_author_initial">A</string>
+    <string name="debate_claim_label">The claim</string>
+    <string name="debate_position_intro">Say where you stand in one line. Then you get 3 rounds: you make a point, %1$s answers from the book, and a referee scores the round.</string>
+    <string name="debate_position_hint">Your position in one line</string>
+    <string name="debate_first_hint">Make your first point…</string>
+    <string name="debate_next_hint">Make your next point…</string>
+    <string name="debate_send">Send</string>
+    <string name="debate_opening">Round 1. Make your first point against the claim.</string>
+    <string name="debate_answering">%1$s is answering…</string>
+    <string name="debate_referee_round">Referee · round %1$d</string>
+    <string name="debate_point_you">Point to you:</string>
+    <string name="debate_point_author">Point to %1$s:</string>
+    <string name="debate_point_draw">A draw:</string>
+    <string name="debate_next_round">Next round: %1$s</string>
+    <string name="debate_footer">Words in quotes are %1$s\'s. The rest is the AI\'s reconstruction of the author\'s view.</string>
+    <string name="debate_footer_unknown">Words in quotes are the author\'s. The rest is the AI\'s reconstruction of the author\'s view.</string>
+    <string name="debate_source_page">P. %1$d</string>
+    <string name="debate_source_quoted">QUOTED</string>
+    <string name="debate_source_go">Go to this place in the book</string>
+    <string name="debate_final_label">Final score</string>
+    <string name="debate_score">You %1$d · %2$s %3$d</string>
+    <plurals name="debate_draws">
+        <item quantity="one">%1$d draw</item>
+        <item quantity="other">%1$d draws</item>
+    </plurals>
+    <string name="debate_won_you">You took the debate.</string>
+    <string name="debate_won_author">%1$s held the claim.</string>
+    <string name="debate_won_draw">Level: neither side moved the other.</string>
+    <string name="debate_crux_label">Where you really disagree</string>
+    <string name="debate_again">Debate again</string>
+    <string name="debate_done">Done</string>
+    <string name="debate_unreadable">The answer could not be read. Send your point again.</string>
+    <string name="debate_not_saved">The result of the debate could not be saved.</string>
+</resources>
