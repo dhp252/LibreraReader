@@ -27,6 +27,7 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
+import com.foobnix.canvas.library.LibraryTabs;
 import com.foobnix.pdf.info.view.MyPopupMenu;
 import com.foobnix.pdf.info.view.MyProgressBar;
 import com.foobnix.pdf.info.wrapper.UITab;
@@ -1098,6 +1099,9 @@ public class WebDavFragment2 extends UIFragment<FileMeta> {
             menu2.setBackgroundResource(R.drawable.bg_search_edit);
         }
         TintUtil.setStrokeColor(filterLine, TintUtil.color);
+        if (LibraryTabs.isOn(getActivity())) {
+            LibraryTabs.webdav(filterLine, countBooks, cleanFilter, pathContainer, onBack, pathView, MyProgressBar, status);
+        }
     }
 
     @Override

@@ -26,6 +26,7 @@ import com.foobnix.android.utils.Keyboards;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.ResultResponse;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.library.LibraryTabs;
 import com.foobnix.model.AppState;
 import com.foobnix.opds.Entry;
 import com.foobnix.opds.Link;
@@ -322,6 +323,9 @@ public class EntryAdapter extends AppRecycleAdapter<Entry, RecyclerView.ViewHold
 
 
         TxtUtils.setInkTextView(holder.title, holder.content, holder.author, holder.category, holder.expand);
+        if (LibraryTabs.isOn(context)) {
+            LibraryTabs.entry(holder);
+        }
     }
 
     @Override

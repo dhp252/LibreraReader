@@ -24,6 +24,7 @@ import com.foobnix.pdf.info.Clouds;
 import com.foobnix.pdf.info.FileMetaComparators;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
+import com.foobnix.canvas.library.LibraryTabs;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.view.MyPopupMenu;
 import com.foobnix.pdf.info.wrapper.PopupHelper;
@@ -216,6 +217,9 @@ public class CloudsFragment2 extends UIFragment<FileMeta> {
             gdrive.setBackgroundResource(R.drawable.bg_border_ltgray_oled);
             onedrive.setBackgroundResource(R.drawable.bg_border_ltgray_oled);
         }
+        if (LibraryTabs.isOn(getActivity())) {
+            LibraryTabs.clouds(view, panelRecent);
+        }
 
         return view;
     }
@@ -255,6 +259,9 @@ public class CloudsFragment2 extends UIFragment<FileMeta> {
     @Override
     public void onTintChanged() {
         TintUtil.setBackgroundFillColor(panelRecent, TintUtil.color);
+        if (LibraryTabs.isOn(getActivity()) && getView() != null) {
+            LibraryTabs.clouds(getView(), panelRecent);
+        }
     }
 
     public boolean onBackAction() {
