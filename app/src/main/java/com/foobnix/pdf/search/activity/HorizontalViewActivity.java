@@ -97,6 +97,7 @@ import com.foobnix.pdf.info.widget.ShareDialog;
 import com.foobnix.pdf.info.wrapper.DocumentController;
 import com.foobnix.pdf.info.wrapper.MagicHelper;
 import com.foobnix.pdf.info.wrapper.ReaderChrome;
+import com.foobnix.canvas.reader.ReaderLook;
 import com.foobnix.pdf.info.wrapper.UITab;
 import com.foobnix.pdf.search.activity.msg.FlippingStart;
 import com.foobnix.pdf.search.activity.msg.FlippingStop;
@@ -2063,6 +2064,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         } else {
             chapterView.setVisibility(View.GONE);
         }
+        ReaderLook.onPage(this, null, dc);
 
         LOG.d("_PAGE", "Update UI", page);
         dc.saveCurrentPage();
@@ -2273,6 +2275,7 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         ReaderChrome.paintBar(actionBar, AppState.get().transparencyUI, true);
         ReaderChrome.paintBar(bottomBar, AppState.get().transparencyUI, false);
         ReaderChrome.tint(parentParent, actionBar, bottomBar);
+        ReaderLook.apply(this);
         // TintUtil.setBackgroundFillColorBottomRight(ttsActive,
         // ColorUtils.setAlphaComponent(TintUtil.color, 230));
 

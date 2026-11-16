@@ -14,6 +14,7 @@ import android.widget.TextView;
 import androidx.core.view.ViewCompat;
 
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.reader.PopupLook;
 import com.foobnix.model.AppBookmark;
 import com.foobnix.model.AppSP;
 import com.foobnix.model.AppState;
@@ -121,6 +122,7 @@ public class BookmarksAdapter extends BaseAdapter {
                 }
             }
         });
+        PopupLook.bookmarkRow(view, textView, pageView, (ImageView) deleteView, parent);
 
         return view;
     }

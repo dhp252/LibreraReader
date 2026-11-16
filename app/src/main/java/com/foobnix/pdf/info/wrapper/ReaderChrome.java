@@ -158,8 +158,8 @@ public final class ReaderChrome {
             } else if (child instanceof ImageView) {
                 ImageView image = (ImageView) child;
                 if (image.getId() == R.id.closePopup || image.getId() == R.id.onIconAction) {
-                    // these stand on a dialog's header, which keeps the theme colour
-                    image.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+                    // these stand on a dialog's header: the theme colour, or the canvas's light head
+                    image.setImageTintList(ColorStateList.valueOf(com.foobnix.canvas.reader.PopupLook.headMark(image, Color.WHITE)));
                 } else {
                     image.setImageTintList(inkTint);
                     TintUtil.setRingColor(image, ink);

@@ -19,6 +19,7 @@ import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.TxtUtils;
 import com.foobnix.model.AppState;
+import com.foobnix.canvas.reader.PopupLook;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
 import com.foobnix.pdf.info.model.OutlineLinkWrapper;
@@ -196,6 +197,7 @@ public class OutlineAdapter extends BaseAdapter {
             TintUtil.setTintImageWithAlpha(btn, view.getCurrentTextColor());
 
         }
+        PopupLook.outlineRow(container, view, num, btn, currentId == id, parent);
 
         return container;
     }
