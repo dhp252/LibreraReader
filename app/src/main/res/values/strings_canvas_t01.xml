@@ -4,4 +4,5 @@
 <resources>
     <string name="canvas_t01_look">Canvas look</string>
     <string name="canvas_t01_look_info">The look of the Book That Reads You Back design. Off brings back the classic look.</string>
+    <string name="canvas_t01_section_answers">This section answers</string>
 </resources>
