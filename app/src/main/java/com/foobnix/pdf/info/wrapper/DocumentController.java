@@ -804,6 +804,8 @@ public abstract class DocumentController {
             final long lastRead = bs.t;
             bs.currentPageChanged(getCurentPageFirst1(), getPageCount());
             com.foobnix.stats.ReadingTracker.pageShown(this);
+            // before Study: its welcome back asks the recap whether it takes its place
+            if (com.foobnix.assist.Assist.RECAP.isOn()) com.foobnix.assist.recap.Recap.pageShown(this, lastRead);
             com.foobnix.study.StudySession.pageShown(this, lastRead);
             if (com.foobnix.assist.Assist.PRE_QUESTIONS.isOn()) {
                 com.foobnix.assist.prequestions.PreQSession.pageShown(this);
