@@ -66,6 +66,7 @@ public final class AiLegend {
         for (AiCategory category : AiCategory.values()) {
             addRow(list, category.color, a.getString(nameOf(category)), a.getString(meaningOf(category)));
         }
+        com.foobnix.assist.xray.XrayLegendView.addTo(list);
         new AlertDialog.Builder(a)
                 .setTitle(R.string.ai_colors)
                 .setView(list)

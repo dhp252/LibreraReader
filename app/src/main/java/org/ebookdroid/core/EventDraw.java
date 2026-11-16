@@ -204,7 +204,9 @@ public class EventDraw implements IEvent {
                 continue;
             }
             rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
-            canvas.drawRect(rect, highlights.paint(band));
+            if (!com.foobnix.assist.xray.XrayStyle.draw(canvas, rect, band)) {
+                canvas.drawRect(rect, highlights.paint(band));
+            }
         }
     }
 
