@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The book, updated (canvas T22, Assist.UPDATED). English only. -->
+<resources>
+    <string name="updated_title">The book, updated</string>
+    <string name="updated_back">Back to the text</string>
+    <string name="updated_close">Close</string>
+    <string name="updated_label">The book, updated</string>
+    <plurals name="updated_notes">
+        <item quantity="one">%1$d note</item>
+        <item quantity="other">%1$d notes</item>
+    </plurals>
+    <string name="updated_since">since %1$s</string>
+    <string name="updated_kind_source">Source check</string>
+    <string name="updated_kind_missed">Missed cause</string>
+    <string name="updated_kind_doubtful">Doubtful story</string>
+    <string name="updated_kind_newer">Newer view</string>
+    <string name="updated_settled_established">Well established</string>
+    <string name="updated_settled_debated">Debated</string>
+    <string name="updated_settled_speculative">Speculative</string>
+    <string name="updated_settled_unknown">Not stated</string>
+    <string name="updated_page">p. %1$d</string>
+    <string name="updated_details">Sources and details</string>
+    <string name="updated_go_to_page">Go to p. %1$d</string>
+    <string name="updated_go_to_sentence">Go to the sentence</string>
+    <string name="updated_go_to_passage">Go to the passage</string>
+    <string name="updated_in_your_terms">In your terms</string>
+    <string name="updated_how_settled">How settled</string>
+    <string name="updated_source">Source</string>
+    <string name="updated_no_source">No source given</string>
+    <!-- The honesty rule: fixed on every note sheet and on the objection screen. -->
+    <string name="updated_honesty">Written by the AI from its own knowledge. Check the source before you rely on it.</string>
+    <string name="updated_asking">Reading this chapter against what is known today…</string>
+    <string name="updated_asking_note">One request with this chapter\'s text (40,000 characters at most) goes to your AI provider. Close this screen to stop it.</string>
+    <string name="updated_none">The AI had nothing solid to add to this chapter.</string>
+    <string name="updated_none_of_kind">No notes of this kind in this chapter.</string>
+    <string name="updated_too_short">This chapter has too little text for notes.</string>
+    <string name="updated_unreadable">The answer could not be read. Try again.</string>
+    <string name="updated_failed">The notes could not be made</string>
+    <string name="updated_try_again">Try again</string>
+    <string name="updated_again">Check again</string>
+    <string name="updated_again_note">Checking again sends the chapter once more and replaces these notes.</string>
+    <string name="updated_not_saved">The notes could not be saved: %1$s</string>
+    <string name="updated_objection">Strongest objection</string>
+    <string name="updated_objection_sub">The book, updated · %1$s</string>
+    <string name="updated_claim_of">%1$s\'s claim</string>
+    <string name="updated_claim_author">The author\'s claim</string>
+    <string name="updated_the_objection">The objection</string>
+    <string name="updated_strength_strong">strong</string>
+    <string name="updated_strength_moderate">moderate</string>
+    <string name="updated_strength_weak">weak</string>
+    <string name="updated_twist">The twist</string>
+    <string name="updated_twist_head">The twist: %1$s</string>
+    <string name="updated_twist_memory">Quoted by the AI from memory, not found in this chapter. Check it in the book.</string>
+    <string name="updated_pushed">Pushed further</string>
+    <string name="updated_pushed_by">Pushed further · %1$s</string>
+    <string name="updated_disagree">Where they really disagree</string>
+    <string name="updated_side_author">The author</string>
+    <string name="updated_side_other">The objection</string>
+</resources>

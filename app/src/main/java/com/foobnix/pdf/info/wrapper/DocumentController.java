@@ -812,6 +812,9 @@ public abstract class DocumentController {
             }
             com.foobnix.eye.EyeMode.pageShown(this);
             com.foobnix.assist.skeleton.SkeletonOffer.pageShown(this, lastRead);
+            if (com.foobnix.assist.Assist.UPDATED.isOn()) {
+                com.foobnix.assist.updated.UpdatedSession.pageShown(this);
+            }
 
             handler2.removeCallbacks(saveCurrentPageRunnable);
             handler2.postDelayed(saveCurrentPageRunnable, 1000);

@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- The book, updated (canvas T22): a clock, what time has added since the book was written -->
+    <path
+        android:pathData="M3.5,12a8.5,8.5 0,1 0,17 0a8.5,8.5 0,1 0,-17 0M12,7.5V12l3,2"
+        android:strokeWidth="2"
+        android:strokeColor="@color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
