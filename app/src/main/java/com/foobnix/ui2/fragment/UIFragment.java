@@ -33,6 +33,7 @@ import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.library.LibraryBar;
 import com.foobnix.model.AppState;
 import com.foobnix.pdf.SlidingTabLayout;
 import com.foobnix.pdf.info.AppsConfig;
@@ -189,6 +190,9 @@ public abstract class UIFragment<T> extends Fragment {
             floatingHeader.getBackground()
                           .setAlpha(AppsConfig.APP_TRANSPARENCY);
         }
+        if (LibraryBar.isOn(getActivity())) {
+            LibraryBar.header(floatingHeader);
+        }
         // Every notice raised at the top of a page stands in the chrome, whichever it is.
         floatingNotices.clear();
         for (int id : new int[]{R.id.layoutOnGrant, R.id.layoutError}) {
@@ -213,6 +217,9 @@ public abstract class UIFragment<T> extends Fragment {
         column.getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
+                if (LibraryBar.isOn(getActivity())) {
+                    LibraryBar.keep(floatingHeader);
+                }
                 layOutAroundChrome(column);
             }
         });
@@ -328,6 +335,11 @@ public abstract class UIFragment<T> extends Fragment {
         if (floatingHeader == null) {
             return;
         }
+        if (LibraryBar.isOn(getActivity())) {
+            LibraryBar.header(floatingHeader);
+            paintFloatingNotice();
+            return;
+        }
         if (headerPainted) {
             floatingHeader.setBackgroundColor(TintUtil.color);
         }
@@ -340,6 +352,10 @@ public abstract class UIFragment<T> extends Fragment {
     }
 
     private void paintFloatingNotice() {
+        if (LibraryBar.isOn(getActivity())) {
+            LibraryBar.notices(floatingNotices);
+            return;
+        }
         boolean overPage = getActivity() instanceof MainTabs2;
         for (View notice : floatingNotices) {
             notice.setBackgroundColor(TintUtil.color);
