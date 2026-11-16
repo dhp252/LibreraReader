@@ -464,7 +464,8 @@ public final class StudySession {
             return;
         }
         final List<StudyCards.Card> cards = StudyCards.next(-1, page, false, 0, all, b);
-        if (StudyCards.welcomeBack(lastRead, System.currentTimeMillis())) {
+        if (StudyCards.welcomeBack(lastRead, System.currentTimeMillis())
+                && !com.foobnix.assist.recap.Recap.takeWelcome(path, () -> StudyMap.show(owner, this, true))) {
             welcome(cards);
         } else {
             showCards(cards);
