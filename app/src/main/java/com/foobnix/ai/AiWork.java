@@ -151,6 +151,8 @@ public final class AiWork extends Worker {
                 return new AiJobs.SummaryJob(app, task.target(), task.regenerate);
             case AiTask.STUDY_PREVIEW:
                 return new com.foobnix.study.StudyJobs.PreviewJob(app, task.target());
+            case AiTask.SKELETON:
+                return new com.foobnix.assist.skeleton.SkeletonJob(app, task.target());
             default:
                 return new AiJobs.HighlightJob(app, task.target(), task.wholeBook, task.chapter, task.redoBefore);
         }
