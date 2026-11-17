@@ -8,8 +8,15 @@ import java.io.File;
 
 public class MyPath {
 
-    final public static String INTERNAL_ROOT = Environment.getExternalStorageDirectory().getPath();
+    final public static String INTERNAL_ROOT = internalRoot();
     final public static String INTERNAL_PREFIX = "internal-storage:";
+
+    // Off a device (JVM unit tests, where android.jar returns null) the usual primary storage path
+    // stands in, so the class still loads.
+    private static String internalRoot() {
+        File dir = Environment.getExternalStorageDirectory();
+        return dir != null ? dir.getPath() : "/storage/emulated/0";
+    }
 
     private String path;
 
