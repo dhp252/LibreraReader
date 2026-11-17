@@ -153,6 +153,16 @@ public final class AiMenu {
                         return true;
                     });
         }
+        // Prose to pictures (canvas T27): the chapter as a process, a table or a causal loop
+        if (com.foobnix.assist.Assist.PICTURES.isOn()) {
+            menu.getMenu(R.drawable.canvas_t27_ic_picture, R.string.canvas_t27_as_picture,
+                    () -> com.foobnix.assist.pictures.PictureScreen.showHere(a, dc));
+        }
+        // Fiction companion (canvas T29, Assist.FICTION): who's who as of the reader's page
+        if (com.foobnix.assist.Assist.FICTION.isOn()) {
+            menu.getMenu(R.drawable.canvas_t29_ic_cast, R.string.canvas_t29_whos_who,
+                    () -> com.foobnix.assist.fiction.FictionScreen.show(a, dc));
+        }
         menu.show();
     }
 

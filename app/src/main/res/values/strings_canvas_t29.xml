@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spoiler-safe fiction companion (canvas task T29): tap a name, who's who as of the reader's page. -->
+<resources>
+    <string name="canvas_t29_whos_who">Who\'s who</string>
+    <string name="canvas_t29_back">Back to the book</string>
+    <string name="canvas_t29_more">More options</string>
+    <string name="canvas_t29_loading">Reading the contents…</string>
+
+    <!-- no cast yet -->
+    <string name="canvas_t29_spoiler_safe">Spoiler-safe</string>
+    <string name="canvas_t29_empty">Who\'s who, as far as you have read</string>
+    <string name="canvas_t29_empty_note">One tap sends the book\'s text from its start to the end of your page (%1$s, %2$d%% of the book) to the AI, and never anything after it. A long text goes in parts, in the background.</string>
+    <string name="canvas_t29_build">Build who\'s who up to here</string>
+    <string name="canvas_t29_again">Build again from the start</string>
+    <string name="canvas_t29_again_confirm">Build the who\'s who again from the start of the book? The text up to your page is sent to the AI again.</string>
+
+    <!-- the cast -->
+    <string name="canvas_t29_cast_as_of">Cast as of</string>
+    <string name="canvas_t29_your_page">%1$s · your page</string>
+    <string name="canvas_t29_back_in">%1$s · you are back in %2$s</string>
+    <string name="canvas_t29_back_note">People you met after %1$s, and what was written about the others since, are hidden.</string>
+    <string name="canvas_t29_read_on">You have read on to %1$s. What you see is behind your page.</string>
+    <plurals name="canvas_t29_read_on_pages">
+        <item quantity="one">You have read %d more page. What you see is behind your page.</item>
+        <item quantity="other">You have read %d more pages. What you see is behind your page.</item>
+    </plurals>
+    <string name="canvas_t29_update_to">Update to %1$s</string>
+    <string name="canvas_t29_update_page">Update to your page</string>
+    <string name="canvas_t29_ties">How they are tied</string>
+    <string name="canvas_t29_more_ahead">More people ahead</string>
+    <string name="canvas_t29_names_hidden">Names stay hidden until you meet them</string>
+    <string name="canvas_t29_met_after">You met them after %1$s</string>
+    <plurals name="canvas_t29_people_hidden">
+        <item quantity="one">%d person hidden</item>
+        <item quantity="other">%d people hidden</item>
+    </plurals>
+    <string name="canvas_t29_also_met">Also met</string>
+    <string name="canvas_t29_foot">Built only from the book\'s text up to your page. The descriptions are the AI\'s reading of it.</string>
+
+    <!-- the name card -->
+    <string name="canvas_t29_who_is">Who is %1$s?</string>
+    <string name="canvas_t29_first_met">First met in %1$s</string>
+    <string name="canvas_t29_as_of">AS OF %1$s</string>
+    <string name="canvas_t29_right_now">RIGHT NOW</string>
+    <string name="canvas_t29_then">AT THE END OF %1$s</string>
+    <string name="canvas_t29_card_behind">You have read on since: this is what was known at %1$s. Who\'s who offers the update.</string>
+    <string name="canvas_t29_written_ahead">This card was written at %1$s, ahead of where you are now (%2$s), so it is closed.</string>
+    <string name="canvas_t29_show_anyway">Show what was written at %1$s</string>
+    <string name="canvas_t29_shield">Spoiler shield: nothing past your page.</string>
+    <plurals name="canvas_t29_chapters_hidden">
+        <item quantity="one">%d chapter hidden.</item>
+        <item quantity="other">%d chapters hidden.</item>
+    </plurals>
+    <plurals name="canvas_t29_pages_hidden">
+        <item quantity="one">%d page hidden.</item>
+        <item quantity="other">%d pages hidden.</item>
+    </plurals>
+    <string name="canvas_t29_her_story">Her story so far</string>
+    <string name="canvas_t29_his_story">His story so far</string>
+    <string name="canvas_t29_their_story">Their story so far</string>
+    <string name="canvas_t29_story_so_far">STORY SO FAR</string>
+    <string name="canvas_t29_no_story">No story lines are stored for this name yet.</string>
+
+    <!-- the task -->
+    <string name="canvas_t29_asking">Asking the AI who is who up to your page…</string>
+    <string name="canvas_t29_asking_part">Part %1$d of %2$d · %3$s</string>
+    <string name="canvas_t29_cast_ready">Who\'s who is ready: %1$d people.</string>
+    <string name="canvas_t29_up_to_date">Who\'s who is up to date with your page.</string>
+    <string name="canvas_t29_unreadable">The AI\'s answer could not be read. Try again.</string>
+    <string name="canvas_t29_not_a_story">This text does not read as a story with people in it, so there is no who\'s who.</string>
+    <string name="canvas_t29_nobody">The AI found nobody in the text up to your page.</string>
+    <string name="canvas_t29_no_place">Your place in the book is not known yet. Open a page and try again.</string>
+    <string name="canvas_t29_switched_off">The fiction companion was switched off.</string>
+</resources>

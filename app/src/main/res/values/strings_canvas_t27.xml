@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Prose to pictures (canvas T27, Assist.PICTURES). English only. -->
+<resources>
+    <string name="canvas_t27_as_picture">As a picture</string>
+    <string name="canvas_t27_back">Back to the text</string>
+    <string name="canvas_t27_show_text">Show the passage in the text</string>
+    <!-- %1$s: the chapter's title, as the book has it -->
+    <string name="canvas_t27_sub">%1$s · as a picture</string>
+    <string name="canvas_t27_sub_passage">Selected passage · as a picture</string>
+
+    <string name="canvas_t27_intro_title">This chapter as a picture</string>
+    <string name="canvas_t27_intro_title_passage">This passage as a picture</string>
+    <plurals name="canvas_t27_sends_ideas">
+        <item quantity="one">Sends this chapter\'s %1$d key idea and the book\'s words that mark it, not the chapter\'s text.</item>
+        <item quantity="other">Sends this chapter\'s %1$d key ideas and the book\'s words that mark them, not the chapter\'s text.</item>
+    </plurals>
+    <string name="canvas_t27_sends_text">Sends this chapter\'s text to the AI (40,000 characters at most).</string>
+    <string name="canvas_t27_sends_passage">Sends the passage you selected to the AI (%1$d characters).</string>
+    <string name="canvas_t27_intro_rules">One request. The answer may hold up to three pictures: a process, a table, a causal loop, and only the kinds that fit. Each is drawn from the book\'s own words: a picture whose words are not found in the text sent is not shown, and neither is a number the text does not have.</string>
+    <string name="canvas_t27_draw">Draw this chapter</string>
+    <string name="canvas_t27_draw_passage">Draw this passage</string>
+    <string name="canvas_t27_draw_again">Draw again</string>
+    <string name="canvas_t27_again_confirm">Draw this chapter again? It costs a new request and replaces these pictures.</string>
+    <string name="canvas_t27_again_confirm_passage">Draw this passage again? It costs a new request.</string>
+    <string name="canvas_t27_drawing">Drawing…</string>
+    <string name="canvas_t27_too_short">There is too little text here to draw.</string>
+    <string name="canvas_t27_unreadable">The answer could not be read. Try again.</string>
+    <string name="canvas_t27_not_saved">The pictures were not saved: %1$s</string>
+
+    <string name="canvas_t27_none_title">No picture fits this chapter</string>
+    <string name="canvas_t27_none_title_passage">No picture fits this passage</string>
+    <string name="canvas_t27_none">Nothing here could be drawn from the book\'s own words as steps, a comparison or a loop.</string>
+    <plurals name="canvas_t27_left_out">
+        <item quantity="one">%1$d picture was left out: its words or numbers are not in the text sent.</item>
+        <item quantity="other">%1$d pictures were left out: their words or numbers are not in the text sent.</item>
+    </plurals>
+    <plurals name="canvas_t27_numbers_out">
+        <item quantity="one">%1$d line was left out: it showed a number the text sent does not have.</item>
+        <item quantity="other">%1$d lines were left out: they showed numbers the text sent does not have.</item>
+    </plurals>
+    <string name="canvas_t27_from_ideas">Drawn from this chapter\'s key ideas.</string>
+    <string name="canvas_t27_from_chapter">Drawn from this chapter\'s text.</string>
+    <string name="canvas_t27_from_passage">Drawn from the passage you selected. Not saved.</string>
+
+    <string name="canvas_t27_kind_process">Process</string>
+    <string name="canvas_t27_kind_table">Table</string>
+    <string name="canvas_t27_kind_loop">Loop</string>
+    <string name="canvas_t27_from_text">From the text</string>
+    <string name="canvas_t27_from_text_page">From the text · p. %1$d</string>
+    <string name="canvas_t27_go_to_passage">Go to the passage</string>
+    <string name="canvas_t27_the_point">The point</string>
+    <string name="canvas_t27_best">The best of its row, in the book\'s words</string>
+    <string name="canvas_t27_cell_empty">Not said in the text</string>
+    <!-- The mark in the middle of a causal loop -->
+    <string name="canvas_t27_loop_r">R</string>
+    <string name="canvas_t27_loop_b">B</string>
+    <string name="canvas_t27_loop_reinforcing">Reinforcing loop: it feeds itself</string>
+    <string name="canvas_t27_loop_balancing">Balancing loop: it holds itself in check</string>
+    <string name="canvas_t27_holds_back">What holds it back</string>
+    <string name="canvas_t27_holds_back_what">What holds it back: %1$s</string>
+    <string name="canvas_t27_why">Why it works</string>
+    <string name="canvas_t27_updated">The book, updated</string>
+    <string name="canvas_t27_updated_since">The book, updated · since %1$s</string>
+</resources>
