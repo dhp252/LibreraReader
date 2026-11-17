@@ -83,7 +83,7 @@ public class FictionCastTest {
     }
 
     @Test
-    public void theStoredItemReadsBackTheSame() {
+    public void theStoredItemReadsBackTheSame() throws Exception {
         final FictionCast cast = verneCast();
         cast.model = "m";
         final FictionCast back = FictionCast.fromJson(new JSONObject(cast.toJson().toString()));
