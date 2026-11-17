@@ -805,6 +805,9 @@ public abstract class DocumentController {
             bs.currentPageChanged(getCurentPageFirst1(), getPageCount());
             com.foobnix.stats.ReadingTracker.pageShown(this);
             com.foobnix.study.StudySession.pageShown(this, lastRead);
+            if (com.foobnix.assist.Assist.PRE_QUESTIONS.isOn()) {
+                com.foobnix.assist.prequestions.PreQSession.pageShown(this);
+            }
             com.foobnix.eye.EyeMode.pageShown(this);
 
             handler2.removeCallbacks(saveCurrentPageRunnable);

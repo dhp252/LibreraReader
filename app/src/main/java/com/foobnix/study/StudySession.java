@@ -136,6 +136,12 @@ public final class StudySession {
         return s != null && dc != null && dc.getCurrentBook() != null && s.path.equals(dc.getCurrentBook().getPath()) ? s : null;
     }
 
+    /** Whether a study card is on screen now (other features' cards keep out of its way). */
+    public static boolean cardShowing() {
+        final StudySession s = current;
+        return s != null && s.card != null && s.card.isShown();
+    }
+
     // ------------------------------------------------------------------ state
 
     public StudyBook book() {

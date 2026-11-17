@@ -168,6 +168,7 @@ public class EventDraw implements IEvent {
         drawSelectedText(page);
         drawMarks(page);
         drawAiHighlights(page);
+        drawPreQuestions(page);
         drawReadAloud(page);
 
         return res;
@@ -206,6 +207,17 @@ public class EventDraw implements IEvent {
             rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
             if (!com.foobnix.assist.xray.XrayStyle.draw(canvas, rect, band)) {
                 canvas.drawRect(rect, highlights.paint(band));
+            }
+        }
+    }
+
+    /** Underlines the answers of the reader's pre-questions (Assist.PRE_QUESTIONS; none when off). */
+    private void drawPreQuestions(final Page page) {
+        for (RectF line : com.foobnix.assist.prequestions.PreQMarks.underlines(page.index.docIndex, page.texts)) {
+            final RectF rect = page.getPageRegion(pageBounds, new RectF(line));
+            if (rect != null) {
+                rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
+                canvas.drawRect(rect, com.foobnix.assist.prequestions.PreQMarks.paint());
             }
         }
     }
