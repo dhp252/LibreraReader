@@ -33,6 +33,7 @@ import androidx.core.graphics.ColorUtils;
 
 import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.Dips;
+import com.foobnix.canvas.reader.ReaderLook;
 import com.foobnix.ai.AiHighlights;
 import com.foobnix.ai.AiMenu;
 import com.foobnix.ai.MessageAiHighlights;
@@ -882,6 +883,7 @@ public class DocumentWrapperUI {
         }
 
         showChapter();
+        ReaderLook.onPage(a, bookTitle, dc);
 
         hideShow();
         initNextType();
@@ -1529,6 +1531,7 @@ public class DocumentWrapperUI {
         hideShowPrevNext();
         dc.initAnchor(anchor);
         ReaderChrome.tint(parentParent, a.findViewById(R.id.menuLayout), a.findViewById(R.id.bottomBar1));
+        ReaderLook.apply(a);
     }
 
     public void updateSeekBarColorAndSize() {

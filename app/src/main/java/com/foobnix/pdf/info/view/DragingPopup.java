@@ -19,6 +19,7 @@ import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.Keyboards;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.reader.PopupLook;
 import com.foobnix.model.AppProfile;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
@@ -410,6 +411,7 @@ public abstract class DragingPopup {
         });
         TintUtil.setTintBg(left);
         TintUtil.setTintBg(right);
+        PopupLook.chrome(popupView);
         return this;
 
     }
