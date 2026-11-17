@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One topic, several books (canvas task T21): the chapters of 2 to 4 books on one topic merged into one path. -->
+<resources>
+    <string name="canvas_t21_menu">One topic, several books</string>
+    <string name="canvas_t21_title">One topic, several books</string>
+    <string name="canvas_t21_title_two">One topic, two books</string>
+    <string name="canvas_t21_title_three">One topic, three books</string>
+    <string name="canvas_t21_title_four">One topic, four books</string>
+    <string name="canvas_t21_subtitle">Merged reading path</string>
+    <string name="canvas_t21_topic">Topic</string>
+    <string name="canvas_t21_topic_hint">Splitting work: good for whom?</string>
+    <string name="canvas_t21_pick">Pick 2 to 4 books</string>
+    <string name="canvas_t21_no_books">A book can be picked once it has a skeleton or a study preview. Make one for at least two books first.</string>
+    <string name="canvas_t21_earlier">Earlier topics</string>
+    <string name="canvas_t21_books_chapters">%1$d books · %2$d chapters</string>
+    <string name="canvas_t21_note">One AI request with each book\'s chapter list, one line per chapter. The text of the books is not sent.</string>
+    <string name="canvas_t21_merge">Merge into one path</string>
+    <string name="canvas_t21_reading_contents">Reading the contents of %1$s…</string>
+    <string name="canvas_t21_merging">Merging the books…</string>
+    <string name="canvas_t21_too_few">Fewer than two of these books have chapter lines that can be read.</string>
+    <string name="canvas_t21_not_in_books">No chapter of these books seems to be about that. Try other words.</string>
+    <string name="canvas_t21_become">%1$d chapters become one path. Anything they repeat is said once.</string>
+    <string name="canvas_t21_become_one">1 chapter is the whole path.</string>
+    <string name="canvas_t21_agree">They agree · said once</string>
+    <string name="canvas_t21_disagree">They disagree · flagged</string>
+    <string name="canvas_t21_only">Mostly in one book</string>
+    <string name="canvas_t21_path">The merged path · tap a chapter to open it</string>
+    <string name="canvas_t21_read">Read the merged path</string>
+    <string name="canvas_t21_not_here">That book is not in the library on this device.</string>
+</resources>

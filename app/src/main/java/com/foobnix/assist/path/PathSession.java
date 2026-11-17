@@ -39,6 +39,11 @@ import java.util.Map;
 public final class PathSession {
 
     private static PathSession current;
+    /** A chapter to open a book at ("One topic, several books"): the book's path, the chapter's key, when asked. */
+    private static String openPath;
+    private static String openKey;
+    private static long openTime;
+    private static final long OPEN_WITHIN_MS = 120_000;
 
     private final String path;
     private final String name;
@@ -57,6 +62,8 @@ public final class PathSession {
     private WeakReference<View> card = new WeakReference<>(null);
     /** The view page the card was shown on. */
     private int cardPage;
+    /** The chapter to go to once the contents are read (the book was opened for it). */
+    private String goToKey;
 
     private PathSession(DocumentController dc, String path) {
         this.path = path;
@@ -90,6 +97,10 @@ public final class PathSession {
                     current.removeCard();
                 }
                 current = new PathSession(dc, path);
+                if (path.equals(openPath) && System.currentTimeMillis() - openTime < OPEN_WITHIN_MS) {
+                    current.goToKey = openKey;
+                }
+                openPath = null;
                 current.load(dc);
             } else if (current.dc() != dc) {
                 // the same book in a re-created reader: the card lived in the old one
@@ -121,6 +132,13 @@ public final class PathSession {
             current.rangesLayout = layoutOf(dc);
         }
         current.removeCard();
+    }
+
+    /** The book at {@code path} is about to be opened for one chapter: its reader goes there once it is up. */
+    static void openAt(String path, String key) {
+        openPath = path;
+        openKey = key;
+        openTime = System.currentTimeMillis();
     }
 
     // ------------------------------------------------------------------ the book's chapters
@@ -214,9 +232,16 @@ public final class PathSession {
         new Thread(() -> {
             final PathData stored = PathStore.load(name);
             // the table of contents is read only for a path with something left to read
-            final Ranges found = needsRanges(stored) ? read(target) : null;
+            final Ranges found = needsRanges(stored) || goToKey != null ? read(target) : null;
             post(() -> {
                 readingRanges = false;
+                final String key = goToKey;
+                goToKey = null;
+                final int[] place = key == null || found == null ? null : found.byKey.get(key);
+                final DocumentController reader = dc();
+                if (place != null && reader != null) {
+                    goTo(reader, place[0]);
+                }
                 if (data == null) {
                     // else a screen made a path meanwhile
                     data = stored;
