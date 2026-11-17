@@ -811,6 +811,7 @@ public abstract class DocumentController {
                 com.foobnix.assist.prequestions.PreQSession.pageShown(this);
             }
             com.foobnix.eye.EyeMode.pageShown(this);
+            com.foobnix.assist.path.PathSession.pageShown(this);
             com.foobnix.assist.skeleton.SkeletonOffer.pageShown(this, lastRead);
             if (com.foobnix.assist.Assist.UPDATED.isOn()) {
                 com.foobnix.assist.updated.UpdatedSession.pageShown(this);

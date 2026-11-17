@@ -134,6 +134,11 @@ public final class AiMenu {
             menu.getMenu(R.drawable.glyphicons_1020_head_voice, R.string.canvas_t18_title,
                     () -> com.foobnix.assist.teach.TeachScreen.showHere(a, dc));
         }
+        // Shortest path (canvas T20): the few chapters to read for one idea
+        if (com.foobnix.assist.Assist.PATH.isOn()) {
+            menu.getMenu(R.drawable.glyphicons_476_sort_attributes, R.string.canvas_t20_shortest_path,
+                    () -> com.foobnix.assist.path.PathScreen.show(a, dc));
+        }
         menu.show();
     }
 
