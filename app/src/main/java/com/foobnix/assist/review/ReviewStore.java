@@ -265,4 +265,62 @@ final class ReviewStore {
         }
         return out;
     }
+
+    // ------------------------------------------------------------------ connections
+
+    /** The library's connections, the latest found first. */
+    static List<ReviewLink> links() {
+        final List<ReviewLink> out = new ArrayList<>();
+        try {
+            for (Map.Entry<String, JSONObject> e : AssistStore.get().items(AssistStore.LIBRARY, ReviewLink.PREFIX).entrySet()) {
+                final ReviewLink link = ReviewLink.fromJson(e.getKey(), e.getValue());
+                if (link != null) {
+                    out.add(link);
+                }
+            }
+        } catch (Exception e) {
+            LOG.e(e);
+        }
+        java.util.Collections.sort(out, (x, y) -> {
+            final int byDay = y.day.compareTo(x.day);
+            return byDay != 0 ? byDay : x.id.compareTo(y.id);
+        });
+        return out;
+    }
+
+    /** The connections not looked at yet. */
+    static List<ReviewLink> waiting() {
+        final List<ReviewLink> out = new ArrayList<>();
+        for (ReviewLink link : links()) {
+            if (link.isNew()) {
+                out.add(link);
+            }
+        }
+        return out;
+    }
+
+    static void saveLink(ReviewLink link) throws IOException {
+        try {
+            AssistStore.get().put(AssistStore.LIBRARY, link.key(), link.toJson());
+        } catch (JSONException e) {
+            throw new IOException(e.getMessage());
+        }
+    }
+
+    /**
+     * Keeps the connections a request found: one already stored (added, rejected or still
+     * waiting) stays as it is, so nothing the reader decided is asked again.
+     *
+     * @return those that are new
+     */
+    static List<ReviewLink> keep(List<ReviewLink> found) throws IOException {
+        final List<ReviewLink> fresh = new ArrayList<>();
+        for (ReviewLink link : found) {
+            if (AssistStore.get().item(AssistStore.LIBRARY, link.key()) == null) {
+                saveLink(link);
+                fresh.add(link);
+            }
+        }
+        return fresh;
+    }
 }

@@ -52,6 +52,8 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
     /** The screen under this one, closed too when "Explain more" goes to the book; or null. */
     private final Dialog parent;
     private final String today = ReviewStore.today();
+    /** A connection waiting for a look, shown as the session's last card (canvas ReviewLink); or null. */
+    private ReviewLink link;
 
     private ReviewPage page;
     private ReviewViews.Progress progress;
@@ -85,10 +87,17 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
      */
     static void start(Activity a, DocumentController dc, List<ReviewQueue.Entry> due, String title, Runnable onDone,
                       Dialog parent) {
+        start(a, dc, due, title, onDone, parent, null);
+    }
+
+    /** @param link a connection to show after the last idea, or null */
+    static void start(Activity a, DocumentController dc, List<ReviewQueue.Entry> due, String title, Runnable onDone,
+                      Dialog parent, ReviewLink link) {
         if (!Assist.REVIEW.isOn() || a == null || Apps.isDestroyedActivity(a) || due == null || due.isEmpty()) {
             return;
         }
         final ReviewSessionScreen s = new ReviewSessionScreen(a, dc, due, onDone, parent);
+        s.link = link;
         s.page = new ReviewPage(a, title, "", true);
         s.progress = new ReviewViews.Progress(a);
         final LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -112,8 +121,8 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
 
     private void waiting() {
         page.clear();
-        page.setSubtitle(ReviewWords.about(a, due.size()));
-        progress.set(due.size(), -1);
+        page.setSubtitle(ReviewWords.about(a, due.size() + (link == null ? 0 : 1)));
+        progress.set(due.size() + (link == null ? 0 : 1), -1);
         final LinearLayout box = new LinearLayout(a);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -180,9 +189,10 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
         final ReviewCards.Card card = cards.get(index);
         final ReviewItem item = card.entry.item;
         page.clear();
-        progress.set(cards.size(), index);
-        page.setSubtitle(cards.size() == 1 ? card.entry.bookTitle
-                : a.getString(R.string.canvas_t24_n_of, index + 1, cards.size()) + " · " + ReviewWords.about(a, cards.size()));
+        final int total = total();
+        progress.set(total, index);
+        page.setSubtitle(total == 1 ? card.entry.bookTitle
+                : a.getString(R.string.canvas_t24_n_of, index + 1, total) + " · " + ReviewWords.about(a, total));
 
         if (!answered) {
             // why this idea is asked today: how it came here, and that it is fading now
@@ -236,7 +246,7 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
             page.add(feedback(card, picked == correct), 12);
         }
         if (answered && picked >= 0) {
-            page.add(comesBack(item), 12);
+            page.add(comesBack(card.entry), 12);
             foot(card);
         }
     }
@@ -382,7 +392,8 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
     }
 
     /** "Comes back   gaps grow as it sticks" over Today, the next review and the two after it. */
-    private View comesBack(ReviewItem item) {
+    private View comesBack(final ReviewQueue.Entry entry) {
+        final ReviewItem item = entry.item;
         final LinearLayout box = new LinearLayout(a);
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(14), dp(12), dp(14), dp(12));
@@ -400,6 +411,14 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
                 ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.topMargin = dp(10);
         box.addView(new ReviewViews.Ladder(a, words), lp);
+        // "This idea's memory": its estimated curve and its history (canvas ReviewHistory)
+        final TextView memory = ReviewPage.text(a, a.getString(R.string.canvas_t25_idea_memory), 13, 600, CanvasLook.accent());
+        memory.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
+        memory.setMinHeight(CanvasLook.target());
+        memory.setBackground(CanvasParts.ripple(null));
+        memory.setOnClickListener(v -> ReviewHistoryScreen.show(a, dc, entry, false, null));
+        box.addView(memory, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         return box;
     }
 
@@ -410,12 +429,15 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
 
     /** "Explain more" (only when the idea's passage is in the open book) and "Next card" or "Done". */
     private void foot(ReviewCards.Card card) {
-        final boolean last = index >= cards.size() - 1;
+        final boolean lastIdea = index >= cards.size() - 1;
+        final boolean last = lastIdea && link == null;
         final TextView next = ReviewPage.primary(a, a.getString(last ? R.string.canvas_t24_done : R.string.canvas_t24_next_card));
         next.setTextSize(14);
         next.setOnClickListener(v -> {
             if (last) {
                 finish();
+            } else if (lastIdea) {
+                showLink();
             } else {
                 show(index + 1);
             }
@@ -461,6 +483,29 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
             LOG.e(ex);
         }
         return null;
+    }
+
+    // ------------------------------------------------------------------ the connection
+
+    /** The ideas' cards and, when a connection waits, one more. */
+    private int total() {
+        return cards.size() + (link == null ? 0 : 1);
+    }
+
+    /** The session's last card: two ideas of two books, and the reader's sentence (canvas ReviewLink). */
+    private void showLink() {
+        if (!page.dialog.isShowing() || link == null) {
+            finish();
+            return;
+        }
+        final int total = total();
+        progress.set(total, total - 1);
+        page.setSubtitle(a.getString(R.string.canvas_t25_n_connection, a.getString(R.string.canvas_t24_n_of, total, total)));
+        ReviewLinkScreen.fill(page, link, () -> {
+            if (page.dialog.isShowing()) {
+                finish();
+            }
+        });
     }
 
     // ------------------------------------------------------------------ the end
