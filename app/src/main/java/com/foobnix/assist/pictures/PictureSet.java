@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * The pictures of one chapter (or of one selected passage): at most one of each kind, in the
- * order process, table, loop. Made from the model's one answer by {@link #parse}, which keeps
+ * order process, table, loop, and at most one small model to play with. Made from the model's one answer by {@link #parse}, which keeps
  * only pictures whose words are in the text sent; stored as the assist item
  * {@code picture:<chapter key>} of the book. Plain Java, no Android.
  */
@@ -20,6 +20,8 @@ public final class PictureSet {
     /** The chapter's title as the book has it. */
     public String title = "";
     public final List<Picture> pictures = new ArrayList<>();
+    /** The small model of a passage with numbers, to play with ("TRY IT"); null when the answer had none that holds. */
+    public SimModel sim;
     /** Drawn from the chapter's stored ideas and their marks, not from its text. */
     public boolean fromIdeas;
     /** When the model was asked. */
@@ -36,7 +38,7 @@ public final class PictureSet {
     }
 
     public boolean isEmpty() {
-        return pictures.isEmpty();
+        return pictures.isEmpty() && sim == null;
     }
 
     /** The picture of a kind, or null. */
@@ -68,8 +70,15 @@ public final class PictureSet {
         final Picture.Left left = new Picture.Left();
         final List<Picture> read = new ArrayList<>();
         final JSONArray list = PictureText.list(o, "pictures", "diagrams");
+        JSONObject model = PictureText.first(o, "sim", "model", "simulation");
         for (int i = 0; list != null && i < list.length(); i++) {
-            add(read, Picture.read(list.optJSONObject(i), null), list.optJSONObject(i) != null, left);
+            final JSONObject entry = list.optJSONObject(i);
+            if (entry != null && isSim(entry.optString("kind", ""))) {
+                // the model listed among the pictures
+                model = model == null ? entry : model;
+                continue;
+            }
+            add(read, Picture.read(entry, null), entry != null, left);
         }
         for (Picture.Kind kind : Picture.Kind.values()) {
             final JSONObject named = o.optJSONObject(kind.code);
@@ -85,10 +94,24 @@ public final class PictureSet {
                 }
             }
         }
+        if (model != null) {
+            final SimModel sim = SimModel.read(model);
+            if (sim == null) {
+                // a formula that cannot be read, or no input or output: no model
+                left.pictures++;
+            } else if (sim.check(source, left)) {
+                set.sim = sim;
+            }
+        }
         set.leftOut = left.pictures;
         set.numbersOut = left.numbers;
         set.fromIdeas = source.fromIdeas;
         return set;
+    }
+
+    private static boolean isSim(String kind) {
+        final String k = kind.trim().toLowerCase(java.util.Locale.US);
+        return k.equals("sim") || k.contains("simulation") || k.equals("model");
     }
 
     private static void add(List<Picture> read, Picture p, boolean given, Picture.Left left) {
@@ -110,6 +133,9 @@ public final class PictureSet {
             list.put(p.toJson());
         }
         o.put("pictures", list);
+        if (sim != null) {
+            o.put("sim", sim.toJson());
+        }
         o.put("from_ideas", fromIdeas);
         o.put("at", at);
         o.put("model", model);
@@ -131,6 +157,10 @@ public final class PictureSet {
             if (p != null && !p.quote.isEmpty() && set.of(p.kind) == null) {
                 set.pictures.add(p);
             }
+        }
+        final SimModel sim = SimModel.read(o.optJSONObject("sim"));
+        if (sim != null && !sim.quote.isEmpty()) {
+            set.sim = sim;
         }
         set.fromIdeas = o.optBoolean("from_ideas", false);
         set.at = o.optLong("at", 0);

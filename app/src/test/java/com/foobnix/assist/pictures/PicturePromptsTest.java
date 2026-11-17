@@ -43,7 +43,8 @@ public class PicturePromptsTest {
         final String system = PicturePrompts.system("", PicturePrompts.Sent.TEXT);
         final String example = system.substring(system.indexOf("{\"pictures\":[{"), system.indexOf("\ntitle: at most"));
         final String quote = "A sentence of the passage that every picture of this example is drawn from.";
-        final PictureSource source = PictureSource.ofPassage(quote + " Wagons carry 4 tons, ships 200 tons.", 0);
+        final PictureSource source = PictureSource.ofPassage(quote + " Wagons carry 4 tons, ships 200 tons. Ten people"
+                + " make 4800 pins each when the work is split, 20 when it is not.", 0);
         final PictureSet set = PictureSet.parse(example.replace("\"quote\":\"...\"", "\"quote\":\"" + quote + "\""), source);
         assertEquals(3, set.pictures.size());
         assertEquals(1, set.of(Picture.Kind.PROCESS).cards.size());
@@ -51,6 +52,31 @@ public class PicturePromptsTest {
         assertEquals(2, set.of(Picture.Kind.LOOP).quantities.size());
         assertEquals(1, set.of(Picture.Kind.LOOP).loopType);
         assertEquals(0, set.numbersOut);
+        assertEquals(0, set.leftOut);
+        // and so is its model: a switch, a slider, an output, a preset and a curve
+        final SimModel sim = set.sim;
+        assertEquals(2, sim.inputs.size());
+        assertTrue(sim.inputs.get(0).isSwitch);
+        assertEquals(1, sim.outputs.size());
+        assertEquals(1, sim.presets.size());
+        assertEquals("people", sim.curveX.id);
+        assertEquals(48000, sim.output(0, sim.start()), 0);
+        assertFalse(sim.illustration);
+    }
+
+    @Test
+    public void theSystemPromptStatesTheFormulaLanguage() {
+        final String text = PicturePrompts.system("", PicturePrompts.Sent.TEXT);
+        assertTrue(text.contains("\"sim\" (beside \"pictures\", at most one)"));
+        assertTrue(text.contains("+ - * / ^"));
+        assertTrue(text.contains("if(a < b, x, y) with < > <= >= =="));
+        assertTrue(text.contains("runs nothing"));
+        assertTrue(text.contains("a model with a formula it cannot read is thrown away"));
+        assertTrue(text.contains("shown as an illustration, not the book's numbers"));
+        for (String function : new String[]{"min(", "max(", "abs(", "sqrt(", "exp(", "ln(", "pow("}) {
+            assertTrue(function, text.contains(function));
+            assertTrue(function, SimFormula.isFunction(function.substring(0, function.length() - 1)));
+        }
     }
 
     @Test

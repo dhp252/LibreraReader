@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Prose to pictures: the small model to play with (canvas T28, Assist.PICTURES). English only. -->
+<resources>
+    <string name="canvas_t28_tab">Try it</string>
+    <string name="canvas_t28_title">Try it</string>
+    <string name="canvas_t28_try_slider">Try it · drag the slider</string>
+    <string name="canvas_t28_try_switch">Try it · flip the switch</string>
+    <string name="canvas_t28_illustration">Illustration, not the book\'s numbers</string>
+    <string name="canvas_t28_illustration_info">A start value or a figure of this model is not found in the text that was sent.</string>
+    <string name="canvas_t28_off">Off</string>
+    <string name="canvas_t28_on">On</string>
+    <!-- %1$s: the lowest value of the curve, %2$s: the highest -->
+    <string name="canvas_t28_range">%1$s to %2$s</string>
+    <!-- %1$s: what the curve shows, %2$s: the input along its axis -->
+    <string name="canvas_t28_curve">Curve: %1$s by %2$s</string>
+    <string name="canvas_t28_presets">Presets</string>
+    <string name="canvas_t28_local">Nothing is sent while you play: the numbers are worked out on this device from the model\'s formulas. They start at the values the text gives.</string>
+    <string name="canvas_t28_local_illustration">Nothing is sent while you play: the numbers are worked out on this device from the model\'s formulas. A start value or a figure here is not found in the text, so read it as an illustration.</string>
+    <string name="canvas_t28_intro">When the text gives numbers that depend on one another, the same answer may also hold one small model to try: sliders, switches and a curve. Its formulas are plain arithmetic worked out on this device; nothing is run, and nothing is sent while you play.</string>
+</resources>
