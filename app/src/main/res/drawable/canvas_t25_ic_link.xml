@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Connections (canvas T25): two ideas of two books, joined -->
+    <path
+        android:pathData="M6,7m-3,0a3,3 0,1 0,6 0a3,3 0,1 0,-6 0M18,17m-3,0a3,3 0,1 0,6 0a3,3 0,1 0,-6 0M8.3,9.1L15.7,14.9"
+        android:strokeWidth="1.8"
+        android:strokeColor="@color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

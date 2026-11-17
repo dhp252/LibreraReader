@@ -159,4 +159,37 @@ final class ReviewViews {
             }
         }
     }
+
+    /** What joins the two ideas of a connection card: a dashed line between them and the word beside it. */
+    static final class Connector extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final String word;
+
+        Connector(Context c, String word) {
+            super(c);
+            this.word = word;
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(CanvasLook.dp(2));
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setPathEffect(new DashPathEffect(new float[]{CanvasLook.dp(5), CanvasLook.dp(5)}, 0));
+            text.setTypeface(CanvasLook.ui(c, 600));
+            text.setTextSize(CanvasLook.dp(13) * c.getResources().getConfiguration().fontScale);
+            setContentDescription(word);
+        }
+
+        @Override
+        protected void onMeasure(int widthSpec, int heightSpec) {
+            setMeasuredDimension(getDefaultSize(0, widthSpec), CanvasLook.dp(48));
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            final float cx = getWidth() / 2f;
+            paint.setColor(CanvasLook.accent());
+            canvas.drawLine(cx, CanvasLook.dp(2), cx, getHeight() - CanvasLook.dp(2), paint);
+            text.setColor(CanvasLook.accent());
+            canvas.drawText(word, cx + CanvasLook.dp(12), getHeight() / 2f + text.getTextSize() * 0.35f, text);
+        }
+    }
 }

@@ -73,7 +73,10 @@ final class ReviewTodayScreen {
             final List<ReviewQueue.Entry> due = ReviewQueue.due(all, today);
             final int answered = ReviewQueue.answered(all, today);
             final int[] next = ReviewQueue.next(all, today);
-            ui(() -> fill(all, due, answered, next, today));
+            // a connection waiting for a look: the last card of today's session
+            final List<ReviewLink> waiting = ReviewStore.waiting();
+            final ReviewLink link = waiting.isEmpty() ? null : waiting.get(0);
+            ui(() -> fill(all, due, answered, next, link));
         });
     }
 
@@ -85,8 +88,11 @@ final class ReviewTodayScreen {
         page.add(t, 16);
     }
 
-    private void fill(List<ReviewQueue.Entry> all, List<ReviewQueue.Entry> due, int answered, int[] next, String today) {
+    private void fill(List<ReviewQueue.Entry> all, List<ReviewQueue.Entry> due, int answered, int[] next,
+                      final ReviewLink link) {
         page.clear();
+        // the session's cards: the due ideas and, after them, the connection
+        final int cards = due.isEmpty() ? 0 : due.size() + (link == null ? 0 : 1);
         final int books = ReviewQueue.books(due);
         page.setSubtitle(books > 1 ? a.getString(R.string.canvas_t24_mixed, books)
                 : books == 1 ? due.get(0).bookTitle : "");
@@ -98,13 +104,13 @@ final class ReviewTodayScreen {
         summary.setBackground(CanvasParts.round(CanvasLook.surface2(), 0, dp(16)));
         final LinearLayout head = new LinearLayout(a);
         head.setOrientation(LinearLayout.HORIZONTAL);
-        final TextView count = ReviewPage.text(a, ReviewWords.ideas(a, due.size()), 26, 700, CanvasLook.ink());
+        final TextView count = ReviewPage.text(a, ReviewWords.ideas(a, cards), 26, 700, CanvasLook.ink());
         head.addView(count);
         final TextView dueToday = ReviewPage.text(a, a.getString(R.string.canvas_t24_due_today), 15, 500, CanvasLook.ink2());
         dueToday.setPadding(dp(6), 0, 0, 0);
         head.addView(dueToday, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
         if (!due.isEmpty()) {
-            head.addView(ReviewPage.text(a, "~" + a.getString(R.string.canvas_t24_min, ReviewQueue.minutes(due.size())),
+            head.addView(ReviewPage.text(a, "~" + a.getString(R.string.canvas_t24_min, ReviewQueue.minutes(cards)),
                     13, 400, CanvasLook.ink2()));
         }
         summary.addView(head);
@@ -120,6 +126,9 @@ final class ReviewTodayScreen {
         final int notes = ReviewQueue.count(due, ReviewItem.NOTE);
         if (notes > 0) {
             chips.add(ReviewPage.chip(a, a.getString(R.string.canvas_t24_chip_notes, notes), ReviewPage.CHIP_PLAIN));
+        }
+        if (link != null) {
+            chips.add(ReviewPage.chip(a, a.getString(R.string.canvas_t25_chip_link_one), ReviewPage.CHIP_ACCENT));
         }
         if (!chips.isEmpty()) {
             final LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
@@ -147,7 +156,10 @@ final class ReviewTodayScreen {
             if (!order.contains(e.bookName)) {
                 order.add(e.bookName);
             }
-            page.add(row(e, order.indexOf(e.bookName), i < due.size() - 1), i == 0 ? 10 : 0);
+            page.add(row(e, order.indexOf(e.bookName), i < due.size() - 1 || link != null), i == 0 ? 10 : 0);
+        }
+        if (link != null) {
+            page.add(linkRow(link, order.size()), due.isEmpty() ? 10 : 0);
         }
 
         if (!all.isEmpty()) {
@@ -164,9 +176,9 @@ final class ReviewTodayScreen {
         }
 
         if (!due.isEmpty()) {
-            final TextView start = ReviewPage.primary(a, a.getString(R.string.canvas_t24_start, ReviewWords.about(a, due.size())));
+            final TextView start = ReviewPage.primary(a, a.getString(R.string.canvas_t24_start, ReviewWords.about(a, cards)));
             start.setOnClickListener(v -> ReviewSessionScreen.start(a, dc, due, a.getString(R.string.canvas_t24_today),
-                    this::load, page.dialog));
+                    this::load, page.dialog, link));
             page.actions.addView(start, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
         }
     }
@@ -204,6 +216,9 @@ final class ReviewTodayScreen {
         row.addView(bars);
         row.setContentDescription(e.item.idea + ". " + line.getText() + ". "
                 + a.getString(R.string.canvas_t24_memory, e.item.strength, ReviewItem.MAX_STRENGTH));
+        // a tap: this idea's memory, with "Review it now"
+        row.setForeground(CanvasParts.ripple(null));
+        row.setOnClickListener(v -> ReviewHistoryScreen.show(a, dc, e, true, this::load));
         box.addView(row);
         if (divider) {
             final View rule = new View(a);
@@ -211,6 +226,41 @@ final class ReviewTodayScreen {
             box.addView(rule, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, dp(1))));
         }
         return box;
+    }
+
+    /** A waiting connection: the second book's square, its idea over "Deep Work · new link to Smith". */
+    private View linkRow(final ReviewLink link, int tone) {
+        final LinearLayout row = new LinearLayout(a);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(dp(60));
+        row.setPadding(0, dp(8), 0, dp(8));
+        row.addView(ReviewPage.square(a, ReviewText.letter(link.b.author, link.b.bookTitle), tone, 28),
+                new LinearLayout.LayoutParams(dp(28), dp(28)));
+        final LinearLayout texts = new LinearLayout(a);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        final TextView idea = ReviewPage.text(a, link.b.idea, 14, 600, CanvasLook.ink());
+        idea.setMaxLines(2);
+        idea.setEllipsize(TextUtils.TruncateAt.END);
+        texts.addView(idea);
+        final String who = ReviewText.who(link.b.author, link.b.bookTitle) + " · ";
+        final String tail = a.getString(R.string.canvas_t25_new_link_to, ReviewText.who(link.a.author, link.a.bookTitle));
+        final SpannableString s = new SpannableString(who + tail);
+        s.setSpan(new ForegroundColorSpan(CanvasLook.accent()), who.length(), s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        final TextView line = ReviewPage.text(a, s, 12, 400, CanvasLook.muted());
+        line.setSingleLine(true);
+        line.setEllipsize(TextUtils.TruncateAt.END);
+        line.setPadding(0, dp(2), 0, 0);
+        texts.addView(line);
+        final LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+        tp.leftMargin = dp(12);
+        tp.rightMargin = dp(12);
+        row.addView(texts, tp);
+        row.addView(ReviewPage.text(a, "›", 20, 400, CanvasLook.muted()));
+        row.setContentDescription(link.b.idea + ". " + s);
+        row.setForeground(CanvasParts.ripple(null));
+        row.setOnClickListener(v -> ReviewLinkScreen.show(a, link, this::load));
+        return row;
     }
 
     /** "Smith · missed in recall" (the reason in orange), "Smith · fading, <chapter>". */

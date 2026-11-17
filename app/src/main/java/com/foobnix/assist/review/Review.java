@@ -38,6 +38,7 @@ public final class Review {
         }
         menu.getMenu(R.drawable.canvas_t24_ic_review, R.string.canvas_t24_today, () -> today(a, dc));
         menu.getMenu(R.drawable.canvas_t24_ic_add, R.string.canvas_t24_add_chapter, () -> addChapter(a, dc));
+        menu.getMenu(R.drawable.canvas_t25_ic_link, R.string.canvas_t25_connections, () -> ReviewLinksScreen.show(a, dc));
     }
 
     /** Today's review, over the open book ({@code dc}) or the main screen (null). */
