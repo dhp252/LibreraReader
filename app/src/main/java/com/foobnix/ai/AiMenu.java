@@ -111,6 +111,14 @@ public final class AiMenu {
                         return true;
                     });
         }
+        // Use it (canvas, Assist.USE_IT): one idea of the chapter as an experiment, and the book's experiments
+        if (com.foobnix.assist.Assist.USE_IT.isOn()) {
+            menu.getMenu().add(a.getString(R.string.canvas_t23_title)).setIcon(R.drawable.canvas_t23_ic_useit)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.useit.UseIt.open(a, dc);
+                        return true;
+                    });
+        }
         menu.show();
     }
 

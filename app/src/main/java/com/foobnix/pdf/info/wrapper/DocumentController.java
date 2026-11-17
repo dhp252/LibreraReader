@@ -815,6 +815,9 @@ public abstract class DocumentController {
             if (com.foobnix.assist.Assist.UPDATED.isOn()) {
                 com.foobnix.assist.updated.UpdatedSession.pageShown(this);
             }
+            if (com.foobnix.assist.Assist.USE_IT.isOn()) {
+                com.foobnix.assist.useit.UseIt.pageShown(this);
+            }
 
             handler2.removeCallbacks(saveCurrentPageRunnable);
             handler2.postDelayed(saveCurrentPageRunnable, 1000);
