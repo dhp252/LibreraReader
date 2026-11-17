@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Argument X-ray (canvas T12, Assist.XRAY). English only. -->
+<resources>
+    <string name="xray_title">Argument X-ray</string>
+    <string name="xray_back">Back to the text</string>
+    <string name="xray_tab_marks">Marks in text</string>
+    <string name="xray_tab_map">Argument map</string>
+    <string name="xray_legend_title">X-RAY</string>
+    <string name="xray_kind_claim">Claim</string>
+    <string name="xray_kind_evidence">Evidence</string>
+    <string name="xray_kind_example">Example</string>
+    <string name="xray_kind_caveat">Caveat</string>
+    <string name="xray_marks_on">X-ray on · marks show the job each phrase does</string>
+    <string name="xray_marks_off">X-ray marks off · key passages show their colours</string>
+    <string name="xray_marks_switch">X-ray marks on the page</string>
+    <string name="xray_hidden">Key passages are hidden now: ✦ › Key passages › Show AI highlights.</string>
+    <string name="xray_jump">Jump ↑</string>
+    <string name="xray_supported_by">Supported by %1$d · %2$d caveats</string>
+    <string name="xray_page">p. %1$d</string>
+    <string name="xray_tap_hint">Tap a box to jump to its place in the text.</string>
+    <string name="xray_role_main_claim">Main claim</string>
+    <string name="xray_role_claim">Claim</string>
+    <string name="xray_role_why">Why</string>
+    <string name="xray_role_evidence">Evidence</string>
+    <string name="xray_role_example">Example</string>
+    <string name="xray_role_caveat">Caveat</string>
+    <string name="xray_role_concept">Concept</string>
+    <string name="xray_role_apply">Apply</string>
+    <string name="xray_rating_strong">Strong</string>
+    <string name="xray_rating_fair">Fair</string>
+    <string name="xray_rating_observation">An observation</string>
+    <string name="xray_rating_questioned">Source questioned</string>
+    <string name="xray_rating_weak">Weak</string>
+    <string name="xray_rating_weak_spot">Weak spot</string>
+    <string name="xray_rate">Rate the support</string>
+    <string name="xray_rate_again">Rate again</string>
+    <string name="xray_rating">Rating the support…</string>
+    <string name="xray_rate_note">One AI request: this chapter\'s ideas and their marked words, not its text.</string>
+    <string name="xray_stale">The key passages were done again since these ratings: rate again.</string>
+    <string name="xray_unreadable">The AI\'s ratings could not be read. Try again.</string>
+    <string name="xray_weak_spot_button">Weak spot</string>
+    <string name="xray_weak_label">X-ray · weak spot</string>
+    <string name="xray_causes_title">How well each cause is supported</string>
+    <string name="xray_go_to_it">Go to it</string>
+    <plurals name="xray_weak_spots">
+        <item quantity="one">%1$d weak spot</item>
+        <item quantity="other">%1$d weak spots</item>
+    </plurals>
+    <plurals name="xray_questioned">
+        <item quantity="one">%1$d source questioned</item>
+        <item quantity="other">%1$d sources questioned</item>
+    </plurals>
+</resources>

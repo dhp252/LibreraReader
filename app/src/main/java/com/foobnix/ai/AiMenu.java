@@ -74,6 +74,14 @@ public final class AiMenu {
                     showKeyPassages(a, anchor, dc, target, data, chapter, highlightsBusy);
                     return true;
                 });
+        // Argument X-ray (canvas, Assist.XRAY): the chapter's argument map from its key passages
+        if (com.foobnix.assist.Assist.XRAY.isOn()) {
+            menu.getMenu().add(a.getString(R.string.xray_title)).setIcon(R.drawable.canvas_t12_ic_xray)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.xray.XrayScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
         menu.show();
     }
 
