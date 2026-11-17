@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- T10: re-entry recap (Assist.RECAP), canvas "Recap · back after 2 days / 3 weeks". English only. -->
+<resources>
+    <string name="recap_t10_welcome_back">Welcome back · %1$s away</string>
+    <string name="recap_t10_short_title">Your 20-second recap</string>
+    <string name="recap_t10_last_time">Last time</string>
+    <string name="recap_t10_stopped_at">You stopped at</string>
+    <string name="recap_t10_your_highlight">Your highlight</string>
+    <string name="recap_t10_your_note">Your note</string>
+    <string name="recap_t10_longer">Longer recap</string>
+    <string name="recap_t10_continue">Continue</string>
+    <string name="recap_t10_continue_at">Continue at %1$s</string>
+    <string name="recap_t10_sized_for">Sized for %1$s away. After 3 weeks you\'d get a fuller one.</string>
+    <string name="recap_t10_previously">Previously on… · away %1$s</string>
+    <string name="recap_t10_argument">The argument so far · away %1$s</string>
+    <string name="recap_t10_long_title">Here\'s where things stand</string>
+    <string name="recap_t10_30s">30 sec</string>
+    <string name="recap_t10_2m">2 min</string>
+    <string name="recap_t10_5m">5 min</string>
+    <string name="recap_t10_whos_who">Who\'s who</string>
+    <string name="recap_t10_key_ideas">Key ideas</string>
+    <string name="recap_t10_tap_card">Tap for a spoiler-free card</string>
+    <string name="recap_t10_warm_up_label">Warm up</string>
+    <string name="recap_t10_show_answer">Show answer</string>
+    <string name="recap_t10_as_of">As of page %1$d · nothing past your page</string>
+    <string name="recap_t10_open_map">Open map</string>
+    <string name="recap_t10_reading_back">Reading back to where you stopped…</string>
+    <string name="recap_t10_page_of">Page %1$d of %2$d</string>
+    <string name="recap_t10_no_ai">Set up AI to get a recap of the story so far.</string>
+    <string name="recap_t10_ai_settings">AI settings</string>
+    <string name="recap_t10_retry">Try again</string>
+    <string name="recap_t10_unreadable">The recap came back unreadable. Try again later.</string>
+
+    <plurals name="recap_t10_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <plurals name="recap_t10_weeks">
+        <item quantity="one">%d week</item>
+        <item quantity="other">%d weeks</item>
+    </plurals>
+    <plurals name="recap_t10_months">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
+    </plurals>
+    <plurals name="recap_t10_warm_up">
+        <item quantity="one">Warm up: %d question</item>
+        <item quantity="other">Warm up: %d questions</item>
+    </plurals>
+</resources>
