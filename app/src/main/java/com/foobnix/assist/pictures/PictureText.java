@@ -107,6 +107,17 @@ final class PictureText {
         return null;
     }
 
+    /** The first of {@code names} that holds an object; null when none does. */
+    static JSONObject first(JSONObject o, String... names) {
+        for (String name : names) {
+            final JSONObject found = o.optJSONObject(name);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
     /** A number given as a number or as text ("≈ 4", "48,000"); NaN when there is none. */
     static double number(Object v) {
         if (v instanceof Number) {

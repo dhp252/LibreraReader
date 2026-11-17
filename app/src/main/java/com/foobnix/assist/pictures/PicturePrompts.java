@@ -5,7 +5,8 @@ import java.util.List;
 /**
  * The one request of "Prose to pictures" for a chapter (or a selected passage): what is sent and
  * what the answer must look like. A chapter's stored key ideas with the book's words that mark
- * them are sent when it has them, else its text ({@link #MAX_CHARS} at most). Plain Java.
+ * them are sent when it has them, else its text ({@link #MAX_CHARS} at most). The same answer may
+ * carry one small model to play with ({@link SimPrompts}). Plain Java.
  */
 public final class PicturePrompts {
 
@@ -77,6 +78,7 @@ public final class PicturePrompts {
                         + "not there is thrown away.\n"
                         + "- \"why\": only when the text itself gives the reasons the thing works: up to 3 cards, each "
                         + "a title of 1 or 2 words and one short line; \"why_title\" names them. Else leave both out.\n"
+                        + SimPrompts.RULES
                         + "Answer with JSON only, no Markdown:\n"
                         + "{\"pictures\":[{\"kind\":\"process\",\"quote\":\"...\",\"title\":\"...\",\"steps\":[{\"label\":"
                         + "\"Draw wire\",\"note\":\"\"},{\"label\":\"Straighten\",\"note\":\"\"}],\"caption\":\"...\",\"why_title\":\"Why it works: three causes\","
@@ -89,7 +91,7 @@ public final class PicturePrompts {
                         + "more finely\",\"More output per worker\",\"Cheaper goods\"],\"type\":\"reinforcing\",\"label\":"
                         + "\"feeds itself\",\"holds_back\":{\"what\":\"Transport\",\"basis\":\"Same six-week round trip\","
                         + "\"compare\":[{\"label\":\"Wagon\",\"value\":\"4 tons\",\"number\":4},{\"label\":\"Ship\",\"value\":"
-                        + "\"200 tons\",\"number\":200}],\"note\":\"...\"}}]}\n"
+                        + "\"200 tons\",\"number\":200}],\"note\":\"...\"}}]," + SimPrompts.EXAMPLE + "}\n"
                         + "title: at most 8 words. caption, point, note: one short sentence. Write titles, labels, "
                         + "cells and notes in ").append(language(answerLanguage))
                 .append("; the quote stays as the text has it.");

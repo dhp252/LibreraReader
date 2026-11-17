@@ -40,6 +40,7 @@ import java.util.List;
  * screen says what will be sent and waits for "Draw this chapter", which asks the AI once. Every
  * picture stands under the book's words it is drawn from ("FROM THE TEXT", a tap goes there).
  * "Draw again" asks first. The same screen draws one selected passage, which is not stored.
+ * When the same answer brought a small model (canvas PictureSim), it gets a last tab, "Try it".
  */
 public final class PictureScreen implements PictureJob.Screen {
 
@@ -199,6 +200,9 @@ public final class PictureScreen implements PictureJob.Screen {
             for (Picture p : set.pictures) {
                 names.add(a.getString(kindName(p.kind)));
             }
+            if (set.sim != null) {
+                names.add(a.getString(R.string.canvas_t28_tab));
+            }
         }
         return names;
     }
@@ -289,6 +293,9 @@ public final class PictureScreen implements PictureJob.Screen {
         final TextView rules = PictureUi.text(a, a.getString(R.string.canvas_t27_intro_rules), 13, 400, CanvasLook.muted());
         rules.setLineSpacing(CanvasLook.dp(3), 1f);
         body.addView(rules, PictureUi.row(20, 10, 20, 0));
+        final TextView model = PictureUi.text(a, a.getString(R.string.canvas_t28_intro), 13, 400, CanvasLook.muted());
+        model.setLineSpacing(CanvasLook.dp(3), 1f);
+        body.addView(model, PictureUi.row(20, 10, 20, 0));
     }
 
     /** The answer held no picture that the text carries. */
@@ -306,6 +313,13 @@ public final class PictureScreen implements PictureJob.Screen {
 
     /** One tab: the book's words, the title, the picture, what it adds up to, why it works. */
     private void renderPage(int index) {
+        if (index >= set.pictures.size()) {
+            // the last tab: the small model, worked out on the device as the reader plays
+            final SimModel sim = set.sim;
+            body.addView(PictureViews.fromTheText(a, sim.quote, sim.page, () -> jump(sim.quote, sim.page)));
+            body.addView(SimBlock.build(a, sim));
+            return;
+        }
         final Picture p = set.pictures.get(index);
         body.addView(PictureViews.fromTheText(a, p.quote, p.page, () -> jump(p.quote, p.page)));
         body.addView(PictureViews.heading(a, p.title.isEmpty() ? a.getString(kindName(p.kind)) : p.title),
@@ -359,6 +373,8 @@ public final class PictureScreen implements PictureJob.Screen {
         if (set != null && !set.isEmpty() && tab < set.pictures.size()) {
             final Picture p = set.pictures.get(tab);
             jump(p.quote, p.page);
+        } else if (set != null && set.sim != null) {
+            jump(set.sim.quote, set.sim.page);
         } else {
             dialog.dismiss();
         }
