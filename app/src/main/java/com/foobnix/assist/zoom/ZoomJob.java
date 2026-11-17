@@ -38,15 +38,48 @@ final class ZoomJob extends AiJobs.Job {
         void onNeedSettings();
     }
 
+    /** Lets a long read stop between pages. */
+    interface Stop {
+        void check() throws AiJobs.Cancelled;
+    }
+
     private final BookChapters.Range range;
     private final Screen screen;
+    /** The reader's goal for the book, or null; {@code bookGoal} is the key passages' goal its words may follow. */
+    private final ZoomGoal goal;
+    private final String bookGoal;
     private int received;
     private int told;
 
-    ZoomJob(Activity activity, AiJobs.Target target, BookChapters.Range range, Screen screen) {
+    ZoomJob(Activity activity, AiJobs.Target target, BookChapters.Range range, ZoomGoal goal, String bookGoal, Screen screen) {
         super(activity, target);
         this.range = range;
+        this.goal = goal;
+        this.bookGoal = bookGoal;
         this.screen = screen;
+    }
+
+    /** Characters of a chapter sent at most with these settings. */
+    static int maxChars(com.foobnix.ai.AiSettings settings) {
+        return Math.min(MAX_CHARS, Math.max(MIN_CHARS, settings.maxChars - 4000));
+    }
+
+    /**
+     * The chapter's text from its first page on, up to {@code max} characters: what the request
+     * sends, and what the author's words are found in again later.
+     */
+    static ZoomText read(BookText text, BookChapters.Range range, int max, Stop stop) throws AiJobs.Cancelled {
+        final List<String> pages = new ArrayList<>();
+        final int from = Math.max(0, range.from);
+        final int to = Math.min(text.pageCount(), range.to);
+        int chars = 0;
+        for (int p = from; p < to && chars < max; p++) {
+            stop.check();
+            final String s = BookText.plain(text.body(p));
+            pages.add(s);
+            chars += s.length() + 2;
+        }
+        return ZoomText.of(pages);
     }
 
     @Override
@@ -60,30 +93,22 @@ final class ZoomJob extends AiJobs.Job {
             ui(screen::onNeedSettings);
             return;
         }
-        final List<String> pages = new ArrayList<>();
-        final int max = Math.min(MAX_CHARS, Math.max(MIN_CHARS, settings.maxChars - 4000));
         final int chapterPages;
+        final ZoomText chapter;
         try (BookText text = open()) {
-            final int from = Math.max(0, range.from);
-            final int to = Math.min(text.pageCount(), range.to);
-            chapterPages = Math.max(1, to - from);
-            int chars = 0;
-            for (int p = from; p < to && chars < max; p++) {
-                checkCancelled();
-                final String s = BookText.plain(text.body(p));
-                pages.add(s);
-                chars += s.length() + 2;
-            }
+            chapterPages = Math.max(1, Math.min(text.pageCount(), range.to) - Math.max(0, range.from));
+            chapter = read(text, range, maxChars(settings), this::checkCancelled);
         }
-        final ZoomText chapter = ZoomText.of(pages);
         if (chapter.chars() < MIN_CHARS) {
             failWith(string(R.string.zoom_too_short));
             return;
         }
-        final boolean partial = pages.size() < chapterPages;
-        final String system = AiPrompts.withMaster(settings.masterPrompt, ZoomPrompts.system(settings.answerLanguage));
-        final String answer = ask(system, ZoomPrompts.user(target.title, chapterTitle(range), chapter.plain(), partial),
-                delta -> progress(delta == null ? 0 : delta.length()));
+        final int pagesRead = Math.max(1, chapter.pageCount());
+        final boolean partial = pagesRead < chapterPages;
+        final String system = AiPrompts.withMaster(settings.masterPrompt,
+                ZoomPrompts.system(settings.answerLanguage, goal != null));
+        final String answer = ask(system, ZoomPrompts.user(target.title, chapterTitle(range), chapter.plain(), partial,
+                goal == null ? null : goal.prompt(bookGoal)), delta -> progress(delta == null ? 0 : delta.length()));
         checkCancelled();
         final ZoomData data = ZoomData.parse(answer);
         if (data == null) {
@@ -93,8 +118,13 @@ final class ZoomJob extends AiJobs.Job {
         data.place(chapter, chapterPages);
         data.title = chapterTitle(range);
         data.chars = chapter.chars();
-        data.fullChars = partial ? (long) chapter.chars() * chapterPages / pages.size() : chapter.chars();
+        data.fullChars = partial ? (long) chapter.chars() * chapterPages / pagesRead : chapter.chars();
         data.model = settings.model;
+        data.goal = goal == null ? "" : goal.id(bookGoal);
+        if (goal == null) {
+            data.kept.clear();
+            data.squeezed.clear();
+        }
         ZoomStore.save(target.name, range.key, data);
         ui(() -> screen.onDone(data));
     }

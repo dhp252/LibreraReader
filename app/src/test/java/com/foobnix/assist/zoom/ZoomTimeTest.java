@@ -42,6 +42,14 @@ public class ZoomTimeTest {
     }
 
     @Test
+    public void whatAGoalChanges() {
+        assertEquals("15 → 6 min", ZoomTime.change(15, 6));
+        assertEquals("1½ h → 45 min", ZoomTime.change(90, 45));
+        assertEquals("", ZoomTime.change(0, 6));
+        assertEquals("", ZoomTime.change(15, 0));
+    }
+
+    @Test
     public void aFoldsTimeComesFromItsWordsElseItsShare() {
         final ZoomData.Block fold = new ZoomData.Block();
         fold.fold = true;

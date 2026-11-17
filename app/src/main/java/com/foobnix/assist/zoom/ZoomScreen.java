@@ -2,7 +2,13 @@ package com.foobnix.assist.zoom;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextUtils;
+import android.text.method.LinkMovementMethod;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ClickableSpan;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,13 +17,17 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.foobnix.ai.AiJobs;
 import com.foobnix.ai.AiJump;
 import com.foobnix.ai.AiMenu;
 import com.foobnix.ai.AiSettingsDialog;
+import com.foobnix.ai.AiSettings;
 import com.foobnix.ai.BookChapters;
+import com.foobnix.ai.BookText;
 import com.foobnix.android.utils.Apps;
+import com.foobnix.android.utils.LOG;
 import com.foobnix.assist.Assist;
 import com.foobnix.canvas.CanvasCard;
 import com.foobnix.canvas.CanvasLook;
@@ -34,6 +44,11 @@ import com.foobnix.stats.ReadingSpeed;
  * chapter ({@link ZoomJob}), sent the first time the reader picks one and kept with the book's
  * assist data; later they open from the device. A claim, a one-line row or a folded part goes to
  * its place in the book. Opened from the ✦ menu, only when Assist.ZOOM is on.
+ * <p>
+ * Extras (canvas ZoomExpand, ZoomGoal): a tap on a Lean sentence shows the author's own passage
+ * under it, found again in the chapter's text; before a book's first request the reader says why
+ * they read it ({@link ZoomGoalScreen}), and that goal goes with every request of the book; with
+ * Assist.XRAY on the bar ends in an X-ray button.
  */
 public final class ZoomScreen implements ZoomJob.Screen {
 
@@ -54,11 +69,20 @@ public final class ZoomScreen implements ZoomJob.Screen {
     private ZoomJob job;
     private int received;
     private String error;
+    /** Why the reader reads this book, or null before they said; {@code bookGoal} is the key passages' goal. */
+    private ZoomGoal goal;
+    private String bookGoal = "";
+    /** The Lean sentence whose original is open, or null. */
+    private ZoomData.Sentence opened;
+    /** The chapter's text in this layout, read when the first original is asked for; null before. */
+    private ZoomText chapterText;
+    private boolean readingText;
 
     private Dialog dialog;
     private TextView subtitle;
     private CanvasSegmented bar;
     private TextView status;
+    private TextView goalLink;
     private ScrollView scroll;
     private LinearLayout body;
     /** The line under "Condensing this chapter…" while a request runs. */
@@ -109,6 +133,8 @@ public final class ZoomScreen implements ZoomJob.Screen {
         new Thread(() -> {
             final BookChapters.Range found = AiJobs.chapterAt(target);
             final ZoomData stored = found == null ? null : ZoomStore.load(target.name, found.key);
+            final ZoomGoal storedGoal = ZoomStore.loadGoal(target.name);
+            final String keyPassagesGoal = ZoomStore.bookGoal(target.name);
             if (Apps.isDestroyedActivity(a)) {
                 return;
             }
@@ -118,6 +144,8 @@ public final class ZoomScreen implements ZoomJob.Screen {
                 }
                 range = found;
                 data = stored;
+                goal = storedGoal;
+                bookGoal = keyPassagesGoal;
                 ready = true;
                 if (found == null) {
                     error = a.getString(R.string.ai_cannot_open);
@@ -175,12 +203,67 @@ public final class ZoomScreen implements ZoomJob.Screen {
         bar.getView().setContentDescription(a.getString(R.string.zoom_title));
         bar.setOnSelectListener(this::pick);
         row.addView(bar.getView(), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        if (Assist.XRAY.isOn()) {
+            // The Argument X-ray is another feature on another branch: until the two are joined this
+            // button only goes back to the book, where the X-ray's marks and its ✦ row are. To wire:
+            // call com.foobnix.assist.xray.XrayScreen.showHere(a, dc) after the dismiss.
+            final TextView xray = ZoomLook.text(a, a.getString(R.string.zoom_xray), 13, 600, CanvasLook.ink2());
+            xray.setGravity(Gravity.CENTER);
+            xray.setPadding(CanvasLook.dp(12), 0, CanvasLook.dp(12), 0);
+            xray.setBackground(CanvasParts.ripple(CanvasParts.round(CanvasLook.bg(), CanvasLook.line(), CanvasLook.dp(13))));
+            xray.setOnClickListener(v -> dialog.dismiss());
+            final LinearLayout.LayoutParams xlp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT);
+            xlp.leftMargin = CanvasLook.dp(8);
+            row.addView(xray, xlp);
+        }
         box.addView(row);
 
         status = ZoomLook.text(a, "", CanvasLook.TEXT_SMALL, 400, CanvasLook.muted());
         status.setPadding(0, CanvasLook.dp(8), 0, 0);
         box.addView(status);
+
+        // "Change it any time from the zoom bar": the book's reading goal
+        goalLink = ZoomLook.text(a, "", CanvasLook.TEXT_SMALL, 600, CanvasLook.accent());
+        goalLink.setGravity(Gravity.CENTER_VERTICAL);
+        goalLink.setMinHeight(CanvasLook.dp(32));
+        goalLink.setVisibility(View.GONE);
+        goalLink.setOnClickListener(v -> askGoal(-1));
+        box.addView(goalLink, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return box;
+    }
+
+    /**
+     * The goal screen. "Start reading" keeps the goal with the book; before the chapter's first
+     * request it then sends that request for the level the reader picked.
+     *
+     * @param wanted the level picked that needs the request, or -1 when opened from the zoom bar
+     */
+    private void askGoal(int wanted) {
+        if (!ready || range == null || job != null) {
+            return;
+        }
+        final int wpm = ReadingSpeed.wpm(target.name);
+        ZoomGoalScreen.show(a, target.title, goal, bookGoal, data, data == null ? 0 : ZoomTime.minutes(data.chars, wpm),
+                data == null ? 0 : ZoomTime.minutes(data.leanChars(), wpm), chosen -> {
+                    goal = chosen;
+                    new Thread(() -> {
+                        try {
+                            ZoomStore.saveGoal(target.name, chosen);
+                        } catch (Exception e) {
+                            LOG.e(e);
+                        }
+                    }, "@T Zoom goal").start();
+                    if (!dialog.isShowing()) {
+                        return;
+                    }
+                    if (data == null && wanted > FULL) {
+                        level = wanted;
+                        request();
+                    } else {
+                        render();
+                    }
+                });
     }
 
     /** The reader picked a level of the bar. */
@@ -194,8 +277,15 @@ public final class ZoomScreen implements ZoomJob.Screen {
             bar.select(level);
             return;
         }
+        if (data == null && job == null && goal == null) {
+            // the book's first request: why the reader reads it comes first
+            bar.select(level);
+            askGoal(index);
+            return;
+        }
         level = index;
         error = null;
+        opened = null;
         if (data == null && job == null) {
             request();
             return;
@@ -213,7 +303,8 @@ public final class ZoomScreen implements ZoomJob.Screen {
         }
         error = null;
         received = 0;
-        job = new ZoomJob(a, target, range, this);
+        opened = null;
+        job = new ZoomJob(a, target, range, goal, bookGoal, this);
         render();
         job.start();
     }
@@ -278,6 +369,9 @@ public final class ZoomScreen implements ZoomJob.Screen {
             subtitle.setText(TextUtils.isEmpty(range.title) ? a.getString(R.string.ai_pages, range.from + 1, range.to) : range.title);
         }
         status.setText(statusText());
+        goalLink.setVisibility(ready && range != null ? View.VISIBLE : View.GONE);
+        goalLink.setText(goal == null ? a.getString(R.string.zoom_goal_bar_none)
+                : a.getString(R.string.zoom_goal_bar, a.getString(ZoomGoalScreen.title(goal.kind))));
         body.removeAllViews();
         busyNote = null;
         if (error != null) {
@@ -293,6 +387,21 @@ public final class ZoomScreen implements ZoomJob.Screen {
         } else if (data == null || level == FULL) {
             intro();
         } else {
+            if (goal != null && !data.goal.equals(goal.id(bookGoal))) {
+                // condensed for another goal (or before one was set): made again only on a tap
+                final LinearLayout stale = new LinearLayout(a);
+                stale.setOrientation(LinearLayout.HORIZONTAL);
+                stale.setGravity(Gravity.CENTER_VERTICAL);
+                stale.addView(ZoomLook.text(a, a.getString(R.string.zoom_goal_stale), CanvasLook.TEXT_SMALL, 400, CanvasLook.ink2()),
+                        new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+                final TextView again = ZoomLook.text(a, a.getString(R.string.zoom_again), CanvasLook.TEXT_SMALL, 600, CanvasLook.accent());
+                again.setGravity(Gravity.CENTER);
+                again.setMinHeight(CanvasLook.target());
+                again.setPadding(CanvasLook.dp(12), 0, CanvasLook.dp(4), 0);
+                again.setOnClickListener(v -> request());
+                stale.addView(again);
+                body.addView(stale, matchWrap());
+            }
             if (data.partial()) {
                 final TextView part = ZoomLook.text(a, a.getString(R.string.zoom_partial, data.coveredPercent()),
                         CanvasLook.TEXT_SMALL, 400, CanvasLook.muted());
@@ -367,7 +476,7 @@ public final class ZoomScreen implements ZoomJob.Screen {
             body.addView(ZoomLook.text(a, a.getString(R.string.zoom_no_lean), CanvasLook.TEXT_BODY, 400, CanvasLook.ink2()));
             return;
         }
-        final TextView hint = ZoomLook.text(a, a.getString(R.string.zoom_lean_hint), CanvasLook.TEXT_SMALL, 400, CanvasLook.muted());
+        final TextView hint = ZoomLook.text(a, a.getString(R.string.zoom_t16_lean_hint), CanvasLook.TEXT_SMALL, 400, CanvasLook.muted());
         body.addView(hint);
         for (ZoomData.Section section : data.sections) {
             if (!section.hasLean()) {
@@ -390,6 +499,9 @@ public final class ZoomScreen implements ZoomJob.Screen {
                     body.addView(kept(block.label), wrapTop(12));
                 }
                 body.addView(paragraph(block), top(12));
+                if (opened != null && block.sentences.contains(opened)) {
+                    body.addView(original(opened), top(12));
+                }
             }
         }
     }
@@ -405,16 +517,145 @@ public final class ZoomScreen implements ZoomJob.Screen {
         return t;
     }
 
-    /** A paragraph of the lean version, in the book serif. */
+    /** A paragraph of the lean version, in the book serif; a tap on a sentence opens its original. */
     private View paragraph(ZoomData.Block block) {
-        final StringBuilder s = new StringBuilder();
-        for (ZoomData.Sentence x : block.sentences) {
+        final SpannableStringBuilder s = new SpannableStringBuilder();
+        for (final ZoomData.Sentence x : block.sentences) {
             if (s.length() > 0) {
                 s.append(' ');
             }
+            final int from = s.length();
             s.append(x.text);
+            s.setSpan(new ClickableSpan() {
+                @Override
+                public void onClick(View widget) {
+                    opened = opened == x ? null : x;
+                    render();
+                }
+
+                @Override
+                public void updateDrawState(TextPaint ds) {
+                    // a sentence of the book, not a link: no colour, no underline
+                }
+            }, from, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            if (x == opened) {
+                s.setSpan(new BackgroundColorSpan(CanvasLook.claimTint()), from, s.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
         }
-        return ZoomLook.book(a, s, 17, 1.5f, CanvasLook.ink());
+        final TextView t = ZoomLook.book(a, s, 17, 1.5f, CanvasLook.ink());
+        t.setMovementMethod(LinkMovementMethod.getInstance());
+        t.setHighlightColor(0);
+        return t;
+    }
+
+    /**
+     * "AUTHOR'S ORIGINAL · ¶3" (canvas ZoomExpand): the passage a Lean sentence condenses, in the
+     * author's own words as the chapter has them now, with Go to it and Copy quote. A sentence the
+     * model gave no findable words for says so instead.
+     */
+    private View original(final ZoomData.Sentence x) {
+        final LinearLayout card = new LinearLayout(a);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(CanvasLook.dp(14), CanvasLook.dp(4), CanvasLook.dp(4), CanvasLook.dp(14));
+        card.setBackground(CanvasParts.round(CanvasLook.isNight() ? CanvasLook.accentTint() : 0xFFF7F8FF,
+                CanvasLook.accentLine(), CanvasLook.dp(CanvasLook.RADIUS_LARGE_DP)));
+
+        ZoomText.Place place = null;
+        if (x.located() && chapterText != null) {
+            place = chapterText.locateFrom(x.quote, x.words);
+        }
+        final boolean missing = !x.located() || (chapterText != null && place == null);
+        final boolean finding = x.located() && chapterText == null;
+
+        final LinearLayout head = new LinearLayout(a);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        final String name = missing ? a.getString(R.string.zoom_original_missing)
+                : place == null ? a.getString(R.string.zoom_original)
+                : a.getString(R.string.zoom_original_para, para(place.para, place.paraTo));
+        head.addView(ZoomLook.mono(a, name, CanvasLook.TEXT_LABEL, missing ? CanvasLook.muted() : CanvasLook.accent(), true),
+                new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        final TextView collapse = ZoomLook.text(a, "✕", 14, 400, CanvasLook.ink2());
+        collapse.setGravity(Gravity.CENTER);
+        collapse.setContentDescription(a.getString(R.string.zoom_original_collapse));
+        collapse.setOnClickListener(v -> {
+            opened = null;
+            render();
+        });
+        head.addView(collapse, new LinearLayout.LayoutParams(CanvasLook.target(), CanvasLook.target()));
+        card.addView(head);
+
+        if (missing || finding) {
+            final TextView note = ZoomLook.text(a, a.getString(missing ? R.string.zoom_original_missing_note
+                    : R.string.zoom_original_finding), 13, 400, CanvasLook.ink2());
+            note.setPadding(0, 0, CanvasLook.dp(10), 0);
+            card.addView(note);
+            if (finding) {
+                readText();
+            }
+            return card;
+        }
+        final String passage = chapterText.passage(place);
+        final TextView words = ZoomLook.book(a, passage, 14, 1.5f, CanvasLook.ink());
+        words.setPadding(0, 0, CanvasLook.dp(10), 0);
+        words.setTextIsSelectable(true);
+        card.addView(words);
+
+        final LinearLayout buttons = new LinearLayout(a);
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+        buttons.setPadding(0, CanvasLook.dp(10), 0, 0);
+        final TextView go = ZoomLook.button(a, a.getString(R.string.zoom_go_to_it), false);
+        go.setTextColor(CanvasLook.accent());
+        go.setOnClickListener(v -> jump(x.quote, x.page));
+        buttons.addView(go);
+        final TextView copy = ZoomLook.button(a, a.getString(R.string.zoom_copy_quote), false);
+        copy.setOnClickListener(v -> {
+            final android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) a.getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText(target.title, passage));
+                Toast.makeText(a, R.string.copied_text, Toast.LENGTH_SHORT).show();
+            }
+        });
+        final LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        clp.leftMargin = CanvasLook.dp(8);
+        buttons.addView(copy, clp);
+        card.addView(buttons);
+        return card;
+    }
+
+    /** Reads the chapter's text once, off the main thread, for the originals: nothing is sent. */
+    private void readText() {
+        if (readingText || range == null) {
+            return;
+        }
+        readingText = true;
+        final BookChapters.Range chapter = range;
+        final int max = ZoomJob.maxChars(AiSettings.load(a));
+        new Thread(() -> {
+            ZoomText read = null;
+            try (BookText text = BookText.open(target.path, target.width, target.height, target.fontSize)) {
+                if (text != null) {
+                    read = ZoomJob.read(text, chapter, max, () -> {
+                    });
+                }
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+            // a book that cannot be read gives an empty text: its originals then say "not found"
+            final ZoomText done = read != null ? read : ZoomText.of(null);
+            if (Apps.isDestroyedActivity(a)) {
+                return;
+            }
+            a.runOnUiThread(() -> {
+                chapterText = done;
+                readingText = false;
+                if (dialog.isShowing() && opened != null && job == null) {
+                    render();
+                }
+            });
+        }, "@T Zoom text").start();
     }
 
     /** "Folded: other trades, and why farming lags · 2 min": a tap reads it in the book. */

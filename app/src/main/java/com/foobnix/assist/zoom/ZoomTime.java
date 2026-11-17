@@ -53,6 +53,17 @@ public final class ZoomTime {
         return "about " + duration(leanMinutes) + " instead of " + duration(fullMinutes);
     }
 
+    /** The goal screen's "what this changes": "15 → 6 min"; empty when a time is not known. */
+    public static String change(int fullMinutes, int leanMinutes) {
+        if (fullMinutes <= 0 || leanMinutes <= 0) {
+            return "";
+        }
+        if (fullMinutes < 60) {
+            return fullMinutes + " → " + duration(leanMinutes);
+        }
+        return duration(fullMinutes) + " → " + duration(leanMinutes);
+    }
+
     /** The Claims level: "the whole chapter in about 1 min". */
     public static String claims(int minutes, boolean partial) {
         return (partial ? "this part of the chapter in about " : "the whole chapter in about ") + duration(Math.max(1, minutes));

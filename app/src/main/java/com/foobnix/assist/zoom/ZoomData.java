@@ -19,6 +19,8 @@ public final class ZoomData {
     public static final String PREFIX = "zoom:";
     static final int MAX_SECTIONS = 9;
     static final int MAX_CLAIMS = 12;
+    /** Names of parts kept in full, or squeezed, shown at most. */
+    static final int MAX_CHANGES = 4;
     /** Characters of a claim's quote kept at most (cut at a word, so it is still found on its page). */
     static final int QUOTE_CHARS = 400;
 
@@ -127,6 +129,11 @@ public final class ZoomData {
     /** Pages of the chapter in the layout it was made in: what the {@code page} fields count in. */
     public int pages;
     public String model = "";
+    /** The reading goal it was condensed for ({@link ZoomGoal#id}); empty when made without one. */
+    public String goal = "";
+    /** What the goal kept in full and what it squeezed, as short names; empty without a goal. */
+    public final List<String> kept = new ArrayList<>();
+    public final List<String> squeezed = new ArrayList<>();
 
     /** Only the first part of a long chapter was sent. */
     public boolean partial() {
@@ -283,7 +290,21 @@ public final class ZoomData {
                 }
             }
         }
+        names(d.kept, arr(o, "kept", "kept_in_full"));
+        names(d.squeezed, arr(o, "squeezed", "folded"));
         return d.hasLean() || !d.claims.isEmpty() ? d : null;
+    }
+
+    /** Short names from a list of strings (or of objects with a name), at most {@link #MAX_CHANGES}. */
+    private static void names(List<String> into, JSONArray list) {
+        for (int i = 0; list != null && i < list.length() && into.size() < MAX_CHANGES; i++) {
+            final Object item = list.opt(i);
+            final String name = item instanceof String ? ((String) item).trim()
+                    : item instanceof JSONObject ? str((JSONObject) item, "name", "title", "text") : "";
+            if (!name.isEmpty() && !into.contains(name)) {
+                into.add(name);
+            }
+        }
     }
 
     private static JSONObject object(String answer) {
@@ -577,6 +598,15 @@ public final class ZoomData {
         o.put("fullChars", fullChars);
         o.put("pages", pages);
         o.put("model", model);
+        if (!goal.isEmpty()) {
+            o.put("goal", goal);
+        }
+        if (!kept.isEmpty()) {
+            o.put("kept", new JSONArray(kept));
+        }
+        if (!squeezed.isEmpty()) {
+            o.put("squeezed", new JSONArray(squeezed));
+        }
         final JSONArray list = new JSONArray();
         for (Section s : sections) {
             final JSONObject so = new JSONObject();
@@ -644,6 +674,9 @@ public final class ZoomData {
         d.fullChars = o.optLong("fullChars");
         d.pages = o.optInt("pages");
         d.model = o.optString("model", "");
+        d.goal = o.optString("goal", "");
+        names(d.kept, o.optJSONArray("kept"));
+        names(d.squeezed, o.optJSONArray("squeezed"));
         final JSONArray list = o.optJSONArray("sections");
         for (int i = 0; list != null && i < list.length(); i++) {
             final JSONObject so = list.optJSONObject(i);

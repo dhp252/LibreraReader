@@ -9,7 +9,7 @@ public class ZoomPromptsTest {
 
     @Test
     public void theRequestAsksForEveryLevelAsOneObject() {
-        final String s = ZoomPrompts.system("");
+        final String s = ZoomPrompts.system("", false);
         for (String key : new String[]{"\"line\"", "\"sections\"", "\"lean\"", "\"sentences\"", "\"quote\"", "\"end\"",
                 "\"folded\"", "\"kept\"", "\"claims\"", "\"kind\"", "\"example\"", "\"start\"", "\"question\""}) {
             assertTrue(key, s.contains(key));
@@ -24,14 +24,14 @@ public class ZoomPromptsTest {
 
     @Test
     public void theAnswerLanguageIsTheReaders() {
-        final String s = ZoomPrompts.system(" Vietnamese ");
+        final String s = ZoomPrompts.system(" Vietnamese ", false);
         assertTrue(s.contains("in Vietnamese."));
         assertFalse(s.contains("the language the text is written in"));
     }
 
     @Test
     public void theExampleInTheRequestIsReadable() {
-        final String s = ZoomPrompts.system("");
+        final String s = ZoomPrompts.system("", false);
         final String example = s.substring(s.indexOf("{\"line\""), s.indexOf('\n', s.indexOf("{\"line\"")));
         final ZoomData d = ZoomData.parse(example);
         assertTrue(d.hasLean());
@@ -40,10 +40,30 @@ public class ZoomPromptsTest {
     }
 
     @Test
+    public void aGoalAsksWhatWasKeptAndSqueezed() {
+        final String plain = ZoomPrompts.system("", false);
+        assertFalse(plain.contains("\"squeezed\""));
+        final String s = ZoomPrompts.system("", true);
+        assertTrue(s.contains("\"kept\": up to 3"));
+        assertTrue(s.contains("\"squeezed\""));
+        final String example = s.substring(s.indexOf("{\"line\""), s.indexOf('\n', s.indexOf("{\"line\"")));
+        final ZoomData d = ZoomData.parse(example);
+        assertTrue(d.hasLean());
+        assertFalse(d.kept.isEmpty());
+        assertFalse(d.squeezed.isEmpty());
+
+        final ZoomGoal goal = new ZoomGoal(ZoomGoal.Kind.WORK, "running an ML team");
+        final String u = ZoomPrompts.user("Book", "Chapter", "The text.", false, goal.prompt(""));
+        assertTrue(u.contains("\nThe reader's goal: The reader wants to use the book at work"));
+        assertTrue(u.contains("they read it for: running an ML team"));
+        assertTrue(u.endsWith("\n\nThe text."));
+    }
+
+    @Test
     public void theTextComesWithItsBookAndChapter() {
-        final String u = ZoomPrompts.user("The Wealth of Nations", "CHAPTER I", "The text.", false);
+        final String u = ZoomPrompts.user("The Wealth of Nations", "CHAPTER I", "The text.", false, null);
         assertTrue(u.startsWith("Book: The Wealth of Nations\nChapter: CHAPTER I\n\nThe text."));
-        final String part = ZoomPrompts.user(null, null, "The text.", true);
+        final String part = ZoomPrompts.user(null, null, "The text.", true, "");
         assertTrue(part.contains("Only the first part"));
         assertTrue(part.endsWith("The text."));
     }

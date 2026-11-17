@@ -13,7 +13,8 @@ public final class ZoomPrompts {
     private ZoomPrompts() {
     }
 
-    public static String system(String answerLanguage) {
+    /** @param withGoal the request states the reader's goal: the answer then also says what it kept and squeezed */
+    public static String system(String answerLanguage, boolean withGoal) {
         final String lang = answerLanguage == null || answerLanguage.trim().isEmpty()
                 ? "the language the text is written in" : answerLanguage.trim();
         return "You prepare a chapter of a book for a reader who chooses how closely to read it: in full, lean, "
@@ -38,6 +39,11 @@ public final class ZoomPrompts {
                 + "\"text\" (one short sentence), \"example\" (the best example in a few words, or empty) and "
                 + "\"quote\" (the one sentence of the chapter that says it, copied exactly).\n"
                 + "4. \"line\": the whole chapter in one sentence.\n"
+                + (withGoal ? "5. The reader's goal, given with the text, decides what the lean version keeps in full "
+                + "and what it squeezes or folds; the claims and the lines stay true to the chapter whatever the goal. "
+                + "Say what the goal changed: \"kept\": up to 3 parts of the chapter you kept in full or nearly, each "
+                + "named in at most 5 words; \"squeezed\": up to 3 parts you squeezed or folded, named the same way.\n"
+                : "")
                 + "Write everything except the copied words in " + lang + ". Copied words are taken character for "
                 + "character from the text, in the text's own language: no changes, no ellipses, no quotation marks "
                 + "added, never from a heading or a caption.\n"
@@ -45,13 +51,18 @@ public final class ZoomPrompts {
                 + "{\"line\": \"...\", \"sections\": [{\"title\": \"...\", \"line\": \"...\", \"question\": \"...\", "
                 + "\"start\": \"...\", \"lean\": [{\"kept\": \"\", \"sentences\": [{\"text\": \"...\", \"quote\": \"...\", "
                 + "\"end\": \"...\"}]}, {\"folded\": \"...\", \"quote\": \"...\"}]}], \"claims\": [{\"kind\": \"claim\", "
-                + "\"text\": \"...\", \"example\": \"\", \"quote\": \"...\"}]}\n"
+                + "\"text\": \"...\", \"example\": \"\", \"quote\": \"...\"}]"
+                + (withGoal ? ", \"kept\": [\"...\"], \"squeezed\": [\"...\"]" : "") + "}\n"
                 + AiPrompts.SIDE_MATTER;
     }
 
-    /** @param partial only the first part of the chapter is given */
-    public static String user(String bookTitle, String chapterTitle, String text, boolean partial) {
+    /**
+     * @param partial only the first part of the chapter is given
+     * @param goal    the reader's goal as {@link ZoomGoal#prompt} states it; null or empty for none
+     */
+    public static String user(String bookTitle, String chapterTitle, String text, boolean partial, String goal) {
         return "Book: " + safe(bookTitle) + "\nChapter: " + safe(chapterTitle)
+                + (safe(goal).isEmpty() ? "" : "\nThe reader's goal: " + safe(goal))
                 + (partial ? "\n(Only the first part of this long chapter is given: treat it as the whole text.)" : "")
                 + "\n\n" + safe(text);
     }

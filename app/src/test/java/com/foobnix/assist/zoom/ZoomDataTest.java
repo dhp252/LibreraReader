@@ -231,6 +231,25 @@ public class ZoomDataTest {
     }
 
     @Test
+    public void whatTheGoalKeptAndSqueezedIsReadAndStored() throws Exception {
+        final ZoomData d = ZoomData.parse("{\"claims\": [{\"text\": \"A claim.\"}], \"kept\": [\"The pin workshop\", "
+                + "\" The three causes \", \"The pin workshop\", {\"name\": \"Workers inventing machines\"}, 7, \"\", \"a\", \"b\"], "
+                + "\"squeezed\": [\"Farming vs factories\"]}");
+        assertEquals(java.util.Arrays.asList("The pin workshop", "The three causes", "Workers inventing machines", "a"), d.kept);
+        assertEquals(java.util.Collections.singletonList("Farming vs factories"), d.squeezed);
+        d.goal = "work|running an ML team";
+        final ZoomData back = ZoomData.fromJson(new JSONObject(d.toJson().toString()));
+        assertEquals("work|running an ML team", back.goal);
+        assertEquals(d.kept, back.kept);
+        assertEquals(d.squeezed, back.squeezed);
+        // levels made without a goal keep none
+        final ZoomData plain = ZoomData.fromJson(new JSONObject(placed().toJson().toString()));
+        assertEquals("", plain.goal);
+        assertTrue(plain.kept.isEmpty());
+        assertFalse(placed().toJson().has("goal"));
+    }
+
+    @Test
     public void nothingStoredIsNothing() throws Exception {
         assertNull(ZoomData.fromJson(null));
         assertNull(ZoomData.fromJson(new JSONObject("{\"t\": 5}")));
