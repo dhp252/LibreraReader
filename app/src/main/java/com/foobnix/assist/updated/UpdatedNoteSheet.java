@@ -133,6 +133,15 @@ final class UpdatedNoteSheet {
 
         final ScrollView scroll = new ScrollView(a);
         scroll.addView(box);
+        if (com.foobnix.assist.Assist.EDITION.isOn()) {
+            // "Add to my edition" (Your edition): keeps this note's title, body and how settled it is for the edition
+            final TextView add = UpdatedParts.button(a, "", true);
+            com.foobnix.assist.edition.EditionNotes.bind(a, add, note.quote, note.title, note.body, note.settled.code,
+                    note.settledNote);
+            final LinearLayout.LayoutParams lp = UpdatedParts.wide(8);
+            lp.height = CanvasLook.dp(48);
+            box.addView(add, lp);
+        }
         dialog[0] = CanvasSheet.show(a, scroll);
         return dialog[0];
     }

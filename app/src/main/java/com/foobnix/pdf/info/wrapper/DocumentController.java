@@ -822,6 +822,9 @@ public abstract class DocumentController {
             if (com.foobnix.assist.Assist.RECALL.isOn()) {
                 com.foobnix.assist.recall.RecallSession.pageShown(this);
             }
+            if (com.foobnix.assist.Assist.EDITION.isOn()) {
+                com.foobnix.assist.edition.Edition.pageShown(this);
+            }
 
             handler2.removeCallbacks(saveCurrentPageRunnable);
             handler2.postDelayed(saveCurrentPageRunnable, 1000);
