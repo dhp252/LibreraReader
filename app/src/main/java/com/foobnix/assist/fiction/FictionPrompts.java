@@ -140,6 +140,147 @@ public final class FictionPrompts {
         }
     }
 
+    // ------------------------------------------------------------------ timeline and places
+
+    /** Moments one request is asked for at most. */
+    static final int MOMENTS_PER_PART = 12;
+    /** Names of the stored cast a timeline request carries at most. */
+    static final int MAX_NAMES = 40;
+    /** Moments of the stored timeline a later request carries (the latest ones). */
+    static final int BRIEF_MOMENTS = 12;
+
+    /**
+     * @param update the request carries a timeline made from the earlier text
+     */
+    public static String timelineSystem(String answerLanguage, boolean update) {
+        final StringBuilder s = new StringBuilder();
+        s.append("You keep a spoiler-free timeline and list of places for someone who is in the middle of reading a "
+                + "story. ");
+        s.append(shield(answerLanguage));
+        if (update) {
+            s.append("You also get the timeline so far, made from the earlier text. The text given now is the part "
+                    + "of the book right after it. Answer only what this part adds: its own moments, the places "
+                    + "newly reached in it, \"here\" as of the end of this part, and, if the book has a plan, the "
+                    + "plan again whole with what this part changed.\n");
+        }
+        s.append("Answer with one JSON object only, no Markdown around it, with these fields:\n"
+                + "- \"story\": true; or false when the text is not a story (a textbook, an essay), and then "
+                + "nothing else.\n"
+                + "- \"moments\": the key moments of the text in order, at most " + MOMENTS_PER_PART + ", each "
+                + "{\"ch\": chapter number, \"time\": the time as the book itself gives it, such as \"Day 7\" or "
+                + "a date, or \"\" when it gives none (never work a time out yourself), \"place\": where it "
+                + "happens, as the book names it, or \"\", \"line\": one short sentence, \"quote\": up to 20 "
+                + "words copied exactly from the text at that moment}.\n"
+                + "- \"places\": the places the story has been to, in the order it reaches them (a place that is "
+                + "only talked about does not count), each {\"name\": as the book names it, \"ch\": the number of "
+                + "the chapter it is first reached in, \"real\": true for a place of the real world, false when "
+                + "the book invented it or you are not sure, \"lat\" and \"lon\": for a real place only, its "
+                + "rough latitude and longitude in degrees from your own knowledge of the world (the reader is told "
+                + "they are rough), \"quote\": up to 20 words copied exactly from the text where the story reaches "
+                + "it}.\n"
+                + "- \"here\": {\"time\": the time at the end of the text as the book gives it, or \"\", "
+                + "\"line\": where the story is at the end of the text, in a few words}.\n"
+                + "- \"plan\": only when the book itself states a plan, a schedule or a deadline the story is "
+                + "measured against (a journey in legs with planned times, a countdown); otherwise null. {\"what\": "
+                + "the plan in a few words, \"source\": where the book states it, in a few words, \"source_ch\": "
+                + "the number of the chapter that states it, \"unit\": what it counts in, such as \"day\", "
+                + "\"total\": the whole planned amount, \"now\": how far the count is at the end of the text, "
+                + "\"status\": a few words such as \"On schedule\" or \"Two days behind\", \"note\": one "
+                + "sentence on why, \"legs\": every leg in the plan's order as the book's plan lists them, each "
+                + "{\"from\", \"to\", \"plan\": the planned amount, \"actual\": what it really took, only for "
+                + "a leg finished or under way at the end of the text, \"state\": \"done\", \"here\" or "
+                + "\"ahead\", \"note\": a word or two on what changed it, or \"\"}}. Give the legs ahead only as "
+                + "the plan states them, and nothing about how they will really go.\n"
+                + "- \"plan_places\": only with a plan: the places the plan names that the story has not reached "
+                + "yet, each {\"name\", \"real\", \"lat\", \"lon\"} as above.\n"
+                + "- \"next\": only with a plan: one sentence starting \"Next, by the plan:\" with the next leg "
+                + "as the plan states it; otherwise \"\".\n"
+                + "Plain text in every string.");
+        return s.toString();
+    }
+
+    /**
+     * @param names the names of the stored cast the reader has met by this part, for the model to use
+     * @param soFar the stored timeline the request builds on, or null for the first request
+     */
+    public static String timelineUser(String bookTitle, java.util.List<String> names, FictionTimeline soFar, int part,
+                                      int parts, String text) {
+        final StringBuilder out = new StringBuilder();
+        head(out, bookTitle, part, parts);
+        if (names != null && !names.isEmpty()) {
+            out.append("The people met so far, by the names to use for them: ");
+            for (int i = 0; i < names.size() && i < MAX_NAMES; i++) {
+                out.append(i == 0 ? "" : "; ").append(names.get(i));
+            }
+            out.append(".\n");
+        }
+        if (soFar != null) {
+            out.append("The timeline so far (up to the end of chapter ").append(soFar.mark.ch).append("):\n")
+                    .append(brief(soFar)).append("\n\n");
+            out.append("The next part of the text:\n\n");
+        } else {
+            out.append("The text, from the start of the book:\n\n");
+        }
+        out.append(text);
+        return out.toString();
+    }
+
+    /** The names of a cast for a timeline request: the people first met by chapter {@code lastIndex}, main ones first. */
+    public static java.util.List<String> names(FictionCast cast, FictionChapters chapters, int lastIndex) {
+        final java.util.List<String> out = new java.util.ArrayList<>();
+        for (int pass = 0; pass < 2; pass++) {
+            for (FictionCast.Person p : cast.people) {
+                final int first = FictionView.firstIndex(cast, chapters, p);
+                // a person met after the text that is sent is no part of the request
+                if (p.minor != (pass == 1) || first < 0 || first > lastIndex || out.size() >= MAX_NAMES) {
+                    continue;
+                }
+                out.add(p.name);
+            }
+        }
+        return out;
+    }
+
+    /** The timeline so far as a later request carries it: its latest moments, the places, the plan, where it stands. */
+    static String brief(FictionTimeline t) {
+        try {
+            final JSONObject o = new JSONObject();
+            final JSONArray moments = new JSONArray();
+            for (int i = Math.max(0, t.moments.size() - BRIEF_MOMENTS); i < t.moments.size(); i++) {
+                final FictionTimeline.Moment m = t.moments.get(i);
+                moments.put(new JSONObject().put("ch", m.ch).put("time", m.time).put("place", m.place).put("line", m.line));
+            }
+            o.put("latest_moments", moments);
+            final JSONArray places = new JSONArray();
+            for (FictionTimeline.Place p : t.places) {
+                places.put(p.name);
+            }
+            o.put("places_so_far", places);
+            if (!t.here.isEmpty()) {
+                o.put("here", new JSONObject().put("time", t.hereTime).put("line", t.here));
+            }
+            if (t.plan != null) {
+                final JSONObject p = new JSONObject().put("what", t.plan.what).put("source", t.plan.source)
+                        .put("source_ch", t.plan.sourceCh).put("unit", t.plan.unit).put("total", t.plan.total)
+                        .put("now", t.plan.now).put("status", t.plan.status);
+                final JSONArray legs = new JSONArray();
+                for (FictionTimeline.Leg l : t.plan.legs) {
+                    final JSONObject j = new JSONObject().put("from", l.from).put("to", l.to).put("plan", l.plan)
+                            .put("state", l.state);
+                    if (l.actual >= 0) {
+                        j.put("actual", l.actual);
+                    }
+                    legs.put(j);
+                }
+                p.put("legs", legs);
+                o.put("plan", p);
+            }
+            return o.toString();
+        } catch (JSONException e) {
+            return "{}";
+        }
+    }
+
     static String language(String answerLanguage) {
         return answerLanguage == null || answerLanguage.trim().isEmpty()
                 ? "the language the text is written in"

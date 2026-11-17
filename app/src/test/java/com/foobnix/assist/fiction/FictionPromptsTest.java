@@ -44,4 +44,37 @@ public class FictionPromptsTest {
         assertEquals(18_000, FictionPrompts.cap(24_000));
         assertEquals(FictionPrompts.MIN_BLOCK, FictionPrompts.cap(1000));
     }
+
+    @Test
+    public void theTimelineRequestCarriesTheShieldAndAsksForAPlanOnlyWhenTheBookStatesOne() {
+        for (boolean update : new boolean[]{false, true}) {
+            final String s = FictionPrompts.timelineSystem("", update);
+            assertTrue(s.contains("only up to the page the reader is on"));
+            assertTrue(s.contains("Never use what you know of this book from anywhere else"));
+            assertTrue(s.contains("only when the book itself states a plan"));
+            assertTrue(s.contains("otherwise null"));
+            assertTrue(s.contains("for a real place only"));
+            assertTrue(s.contains("never work a time out yourself"));
+        }
+        assertTrue(FictionPrompts.timelineSystem("", true).contains("timeline so far"));
+    }
+
+    @Test
+    public void theTimelineRequestUsesTheNamesOfPeopleMetByThen() {
+        final FictionChapters c = FictionChaptersTest.verne();
+        final FictionCast cast = FictionCastTest.verneCast();
+        // by the book's chapter 5 only Fogg has been met
+        assertEquals(java.util.Arrays.asList("Phileas Fogg"), FictionPrompts.names(cast, c, 5));
+        // by chapter 14 everyone, the main people first
+        assertEquals(java.util.Arrays.asList("Phileas Fogg", "Aouda", "The Parsee guide"), FictionPrompts.names(cast, c, 14));
+        final String first = FictionPrompts.timelineUser("T", FictionPrompts.names(cast, c, 5), null, 1, 1, "<chapter n=\"1\">x</chapter>");
+        assertTrue(first.contains("by the names to use for them: Phileas Fogg."));
+        assertFalse(first.contains("Aouda"));
+        final FictionTimeline t = FictionTimelineTest.verneTimeline();
+        final String next = FictionPrompts.timelineUser("T", null, t, 2, 2, "<chapter n=\"16\">y</chapter>");
+        assertTrue(next.contains("timeline so far (up to the end of chapter 15)"));
+        assertTrue(next.contains("\"places_so_far\""));
+        assertTrue(next.contains("Round the world in eighty days"));
+        assertTrue(next.contains("Aouda rescued at dawn"));
+    }
 }

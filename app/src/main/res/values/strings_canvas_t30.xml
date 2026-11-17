@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spoiler-safe fiction companion (canvas task T30): the timeline and the map of places as of the reader's page. -->
+<resources>
+    <string name="canvas_t30_timeline">Timeline</string>
+    <string name="canvas_t30_map">Map</string>
+    <string name="canvas_t30_task">Timeline and map</string>
+    <string name="canvas_t30_as_of">As of %1$s · no spoilers</string>
+    <string name="canvas_t30_as_of_back">As of %1$s · later parts hidden</string>
+
+    <!-- nothing stored yet -->
+    <string name="canvas_t30_empty">The story so far, in time and place</string>
+    <string name="canvas_t30_empty_note">One tap sends the book\'s text from its start to the end of your page (%1$s, %2$d%% of the book) to the AI, and never anything after it, with the names from your who\'s who. It gives back the key moments and the places so far. A long text goes in parts, in the background.</string>
+    <string name="canvas_t30_build">Build the timeline up to here</string>
+    <string name="canvas_t30_again">Build the timeline again from the start</string>
+    <string name="canvas_t30_again_confirm">Build the timeline and the places again from the start of the book? The text up to your page is sent to the AI again.</string>
+    <string name="canvas_t30_back_note">You are back in %1$s. Moments and places after it are hidden, and so are the plan\'s progress and where the story stood at %2$s.</string>
+    <plurals name="canvas_t30_hidden">
+        <item quantity="one">%d later moment or place is hidden.</item>
+        <item quantity="other">%d later moments and places are hidden.</item>
+    </plurals>
+
+    <!-- the timeline -->
+    <string name="canvas_t30_of_total">of %1$s</string>
+    <string name="canvas_t30_plan_legs">Plan vs actual, by leg</string>
+    <string name="canvas_t30_plan_source">Plan: %1$s, %2$s</string>
+    <string name="canvas_t30_plan_stated">Plan: stated in %1$s</string>
+    <string name="canvas_t30_legend_plan">plan</string>
+    <string name="canvas_t30_legend_actual">actual</string>
+    <string name="canvas_t30_leg_here">you\'re here</string>
+    <string name="canvas_t30_moments">Key moments so far</string>
+    <string name="canvas_t30_no_moments">No key moments are stored for the part you have read.</string>
+    <string name="canvas_t30_moment_jump">Go to this moment in the book</string>
+
+    <!-- the map -->
+    <string name="canvas_t30_route">Route so far</string>
+    <string name="canvas_t30_plan_layer">Plan</string>
+    <string name="canvas_t30_plan_from">Plan from %1$s</string>
+    <string name="canvas_t30_rough">Places placed roughly by the AI</string>
+    <string name="canvas_t30_rough_note">Where the places lie is what the AI knows of the world, not something the book says. Invented places are not on the map.</string>
+    <string name="canvas_t30_schematic">The places in the order the story reaches them. This is not a map: fewer than three of them are real places the AI could place.</string>
+    <string name="canvas_t30_here">You are here</string>
+    <string name="canvas_t30_here_time">You are here · %1$s</string>
+    <string name="canvas_t30_places">Places so far</string>
+    <string name="canvas_t30_no_places">No places are stored for the part you have read.</string>
+    <string name="canvas_t30_place_jump">%1$s: go to it in the book</string>
+    <string name="canvas_t30_map_desc">Route through the places so far: %1$s</string>
+    <string name="canvas_t30_foot">Built only from the book\'s text up to your page. Quotes are the book\'s own words; the rest is the AI\'s reading of it.</string>
+
+    <!-- the task -->
+    <string name="canvas_t30_asking">Asking the AI for the timeline and the places up to your page…</string>
+    <string name="canvas_t30_ready">The timeline is ready: %1$d moments, %2$d places.</string>
+    <string name="canvas_t30_up_to_date">The timeline is up to date with your page.</string>
+    <string name="canvas_t30_not_a_story">This text does not read as a story, so there is no timeline.</string>
+    <string name="canvas_t30_nothing">The AI found no moments or places in the text up to your page.</string>
+</resources>

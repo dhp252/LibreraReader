@@ -17,8 +17,11 @@ public final class AiTask {
     public static final String SKELETON = "skeleton";
     /** Fiction companion (canvas T29): the who's who of a story up to the reader's page. */
     public static final String FICTION_CAST = "fictionCast";
+    /** Fiction companion (canvas T30): the timeline and the places of a story up to the reader's page. */
+    public static final String FICTION_TIMELINE = "fictionTimeline";
     /** Every kind of long task. */
-    public static final String[] KINDS = {HIGHLIGHTS, MAP, BOOK_SUMMARY, STUDY_PREVIEW, SKELETON, FICTION_CAST};
+    public static final String[] KINDS = {HIGHLIGHTS, MAP, BOOK_SUMMARY, STUDY_PREVIEW, SKELETON, FICTION_CAST,
+            FICTION_TIMELINE};
 
     public final String kind;
     public final String path;
@@ -90,6 +93,12 @@ public final class AiTask {
                 again ? System.currentTimeMillis() : 0);
     }
 
+    /** The timeline and places of a story; {@code upTo} and {@code again} as for {@link #fictionCast}. */
+    public static AiTask fictionTimeline(AiJobs.Target t, BookChapters.Range upTo, boolean again) {
+        return new AiTask(FICTION_TIMELINE, t.path, t.title, t.width, t.height, t.fontSize, t.page, false, upTo, false,
+                false, again ? System.currentTimeMillis() : 0);
+    }
+
     private static AiTask of(String kind, AiJobs.Target t, boolean wholeBook, BookChapters.Range chapter,
                              boolean bookOnly, boolean regenerate) {
         return new AiTask(kind, t.path, t.title, t.width, t.height, t.fontSize, t.page, wholeBook, chapter,
@@ -98,7 +107,7 @@ public final class AiTask {
 
     public static boolean isKind(String kind) {
         return HIGHLIGHTS.equals(kind) || MAP.equals(kind) || BOOK_SUMMARY.equals(kind) || STUDY_PREVIEW.equals(kind)
-                || SKELETON.equals(kind) || FICTION_CAST.equals(kind);
+                || SKELETON.equals(kind) || FICTION_CAST.equals(kind) || FICTION_TIMELINE.equals(kind);
     }
 
     /** The book and the layout the task reads it in. */
