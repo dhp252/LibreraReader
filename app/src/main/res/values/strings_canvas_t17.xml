@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of blank-page recall (task t17, canvas "Recall: blank page", "Recall: listening",
+     "Blank-page recall"). English only, kept out of strings.xml and strings_fork.xml so parallel
+     work does not conflict. -->
+<resources>
+    <string name="canvas_t17_title">Blank-page recall</string>
+    <string name="canvas_t17_bar_sub">%1$s · recall</string>
+    <string name="canvas_t17_close">Close recall</string>
+    <string name="canvas_t17_question">What did this chapter say?</string>
+    <string name="canvas_t17_blank_sub">No peeking. Talk or type for about 30 seconds.</string>
+    <string name="canvas_t17_blank_sub_type">No peeking. Type for about 30 seconds.</string>
+    <string name="canvas_t17_guess">First, a guess: how much will you remember?</string>
+    <string name="canvas_t17_percent">%1$d%%</string>
+    <string name="canvas_t17_your_words">Your words</string>
+    <string name="canvas_t17_hint">Start anywhere. Half-remembered is fine.</string>
+    <string name="canvas_t17_hold">Hold to talk</string>
+    <string name="canvas_t17_or_type">or type in the box above</string>
+    <string name="canvas_t17_nudge">Need a nudge? First word of each idea</string>
+    <string name="canvas_t17_nudge_label">First word of each idea</string>
+    <string name="canvas_t17_nudge_busy">Finding the chapter\'s ideas…</string>
+    <string name="canvas_t17_skip">Skip (you\'ll forget more)</string>
+    <string name="canvas_t17_check">Check my recall</string>
+
+    <string name="canvas_t17_listening">Listening</string>
+    <string name="canvas_t17_keep_going">Keep going</string>
+    <string name="canvas_t17_of_about">of about %1$s</string>
+    <string name="canvas_t17_live">Live transcript</string>
+    <string name="canvas_t17_release">Release to finish</string>
+    <string name="canvas_t17_tap_finish">Tap to finish</string>
+    <string name="canvas_t17_finishing">Finishing…</string>
+    <string name="canvas_t17_start_over">Start over</string>
+    <string name="canvas_t17_voice_denied">Talking needs the microphone. You can keep typing.</string>
+    <string name="canvas_t17_voice_failed">Voice input stopped. What it heard is in the box; you can keep typing.</string>
+
+    <string name="canvas_t17_results_sub">In your own words, before you look. Voice is fine.</string>
+    <string name="canvas_t17_record_again">Record again</string>
+    <string name="canvas_t17_transcribed">%1$s · transcribed</string>
+    <string name="canvas_t17_spoken">Transcribed</string>
+    <string name="canvas_t17_typed">Typed</string>
+    <string name="canvas_t17_edit">Edit</string>
+    <string name="canvas_t17_checking">Checking it against the chapter\'s key ideas…</string>
+    <plurals name="canvas_t17_ideas_of">
+        <item quantity="one">%1$d of %2$d key idea</item>
+        <item quantity="other">%1$d of %2$d key ideas</item>
+    </plurals>
+    <string name="canvas_t17_plus_half">, plus %1$d half-remembered</string>
+    <string name="canvas_t17_remembered">remembered</string>
+    <string name="canvas_t17_unsure">unsure</string>
+    <string name="canvas_t17_missed">missed</string>
+    <string name="canvas_t17_confidence">Confidence check</string>
+    <string name="canvas_t17_expected_got">You expected %1$d%%. You got %2$d%%.</string>
+    <string name="canvas_t17_earlier">Earlier tries: %1$s</string>
+    <string name="canvas_t17_tap_hint">Tap an idea you missed to see it in the book.</string>
+    <string name="canvas_t17_finish">Finish chapter</string>
+
+    <string name="canvas_t17_offer_label">End of chapter</string>
+    <string name="canvas_t17_offer_line">Blank-page recall: say it in your own words before you look, about 30 seconds.</string>
+    <string name="canvas_t17_offer_go">Recall it</string>
+    <string name="canvas_t17_not_now">Not now</string>
+
+    <string name="canvas_t17_too_short">This chapter has too little text to recall.</string>
+    <string name="canvas_t17_unreadable">The answer could not be read. Try again.</string>
+</resources>
