@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of "The book reads you back" without the camera (task t31; canvas "Gentle offer of
+     help", "Struggle detected, help offered", "Fatigue: take a break", the READING YOU strip).
+     English only, kept out of strings.xml and strings_fork.xml so parallel work does not conflict.
+     Every signal named here is one the app measures from page turns and page times. -->
+<resources>
+    <!-- the switch page: what the feature does, now that it works from page times and can ask the AI on a tap -->
+    <string name="canvas_t31_assist_info">Page times notice re-reads, long pages and slowing down (and Eye mode\'s camera, when you turn it on, looking away) and offer help. The signals stay in the book\'s file; the AI gets a passage only when you tap for help.</string>
+
+    <string name="canvas_t31_back">Back</string>
+
+    <!-- the strip in the reader's bottom bar -->
+    <string name="canvas_t31_strip">READING YOU · %1$s</string>
+    <string name="canvas_t31_state_learning">getting your pace</string>
+    <string name="canvas_t31_state_steady">steady</string>
+    <string name="canvas_t31_state_reread">re-read of this page</string>
+    <string name="canvas_t31_state_long">long on this page</string>
+    <string name="canvas_t31_state_slowing">slowing down</string>
+
+    <!-- the ✦ menu -->
+    <string name="canvas_t31_menu_help">Say this page another way</string>
+
+    <!-- the chip and the help sheet -->
+    <string name="canvas_t31_chip">Say it another way?</string>
+    <string name="canvas_t31_help_label_reread">You came back to this page</string>
+    <string name="canvas_t31_help_label_dwell">%1$s on this page · longer than your pace</string>
+    <string name="canvas_t31_help_label_hand">This page</string>
+    <string name="canvas_t31_help_title">Want it another way?</string>
+    <string name="canvas_t31_help_plain">Plain</string>
+    <string name="canvas_t31_help_example">Example</string>
+    <string name="canvas_t31_help_field">%1$s terms</string>
+    <string name="canvas_t31_help_reading">Reading the page…</string>
+    <string name="canvas_t31_help_no_text">This page has no text the app can read.</string>
+    <string name="canvas_t31_help_sent_page">What a tab sends · this page\'s text</string>
+    <string name="canvas_t31_help_sent_page_cut">What a tab sends · the first 2,000 characters of this page</string>
+    <string name="canvas_t31_help_sent_selection">What a tab sends · the text you selected</string>
+    <string name="canvas_t31_help_sent_note">Nothing has been sent. Tapping a tab sends this passage, with the book\'s title and author, to your AI provider, once per tab.</string>
+    <string name="canvas_t31_help_sent_done">This passage was sent to your AI provider, once for each tab you tapped.</string>
+    <string name="canvas_t31_help_asking">Asking the AI…</string>
+    <string name="canvas_t31_help_by_ai_plain">In plain words · by the AI</string>
+    <string name="canvas_t31_help_by_ai_example">An example by the AI · not from the book</string>
+    <string name="canvas_t31_help_by_ai_field">In your terms · by the AI</string>
+    <string name="canvas_t31_help_fuzzy">Still fuzzy</string>
+    <string name="canvas_t31_help_got_it">Got it</string>
+    <string name="canvas_t31_help_fuzzy_first">Tap a tab above to have this passage said another way.</string>
+    <string name="canvas_t31_help_fuzzy_more">Try another tab. The page stays marked as a spot to review.</string>
+    <string name="canvas_t31_help_fuzzy_all">That was every way this sheet has. The page stays marked as a spot to review.</string>
+    <string name="canvas_t31_help_foot">Either way, this page is kept as a spot to review.</string>
+    <string name="canvas_t31_help_need_key">Set up an AI provider first.</string>
+    <string name="canvas_t31_help_no_lens">Set up your lens first (✦ › In your terms).</string>
+    <string name="canvas_t31_help_unreadable">The AI gave no answer that could be shown. Tap the tab to ask again.</string>
+
+    <!-- the break card -->
+    <string name="canvas_t31_break_card_label">Reading you · long session</string>
+    <string name="canvas_t31_break_card_title">Time for a break?</string>
+    <string name="canvas_t31_break_card_line">You\'ve read for %1$d minutes without a break, and your pace is dropping.</string>
+    <string name="canvas_t31_chip_slower">Reading %1$d%% slower</string>
+    <string name="canvas_t31_take_five">Take 5 minutes</string>
+    <string name="canvas_t31_listen">Listen to the next part</string>
+    <string name="canvas_t31_listen_sub">Read-aloud starts from this page</string>
+    <string name="canvas_t31_keep_reading">Keep reading</string>
+    <string name="canvas_t31_before_you_go">Before you go: say one thing you remember</string>
+
+    <!-- the 5-minute break -->
+    <string name="canvas_t31_break_label">Break</string>
+    <string name="canvas_t31_break_line">Look away from the screen. The book waits where you left it.</string>
+    <string name="canvas_t31_break_end">I\'m back</string>
+    <string name="canvas_t31_break_over">Five minutes are up.</string>
+    <string name="canvas_t31_break_back">Back to the book</string>
+
+    <!-- "What is stored" -->
+    <string name="canvas_t31_stored_title">What is stored</string>
+    <string name="canvas_t31_stored_intro">“The book reads you back” keeps only the items below, in this book\'s assist file on this phone. They are counters per page: no text of the book, no picture and no face data. No video is saved or sent. The file leaves this phone only through your own sync, if you set one up. The AI gets a passage only when you tap a tab of “Say it another way?”.</string>
+    <string name="canvas_t31_stored_session">This session · in memory, not stored</string>
+    <string name="canvas_t31_session">%1$d min of reading without a break · %2$s</string>
+    <string name="canvas_t31_session_pace">pace %1$d words a minute</string>
+    <string name="canvas_t31_session_no_pace">pace not known yet</string>
+    <string name="canvas_t31_stored_none">Nothing is stored for this book.</string>
+    <string name="canvas_t31_stored_pace">Your pace in this book: %1$d words a minute (median of %2$d pages)</string>
+    <string name="canvas_t31_stored_pace_none">Your pace in this book: not known yet</string>
+    <string name="canvas_t31_stored_snooze">No break card before %1$s (you chose to keep reading)</string>
+    <string name="canvas_t31_stored_snooze_none">No break card is held back</string>
+    <string name="canvas_t31_stored_breaks">Break card shown: %1$d · break taken: %2$d · read-aloud started from it: %3$d</string>
+    <string name="canvas_t31_stored_signals">Pages with counters: %1$d of %2$d\nTime on screen: %3$s\nRe-reads: %4$d · long pages: %5$d\nHelp offered: %6$d · AI asked: %7$d\nBreak card: %8$d · drift marks: %9$d\nPer page it also keeps the page\'s word count, to judge pace.</string>
+    <string name="canvas_t31_stored_raw_show">Show the raw data</string>
+    <string name="canvas_t31_stored_raw_hide">Hide the raw data</string>
+    <string name="canvas_t31_stored_delete">Delete these signals</string>
+    <string name="canvas_t31_stored_delete_ask">Delete everything “The book reads you back” stored for this book? Other features\' data stays.</string>
+    <string name="canvas_t31_stored_deleted">Signals deleted</string>
+</resources>
