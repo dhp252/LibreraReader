@@ -145,6 +145,14 @@ public final class AiMenu {
         if (com.foobnix.assist.Assist.REVIEW.isOn()) {
             com.foobnix.assist.review.Review.menu(a, dc, menu);
         }
+        // Your edition (canvas, Assist.EDITION): the book in a few pages, from what the reader made of it
+        if (com.foobnix.assist.Assist.EDITION.isOn()) {
+            menu.getMenu().add(a.getString(R.string.canvas_t26_title)).setIcon(R.drawable.canvas_t26_ic_edition)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.edition.Edition.open(a, dc);
+                        return true;
+                    });
+        }
         menu.show();
     }
 

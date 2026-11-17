@@ -22,8 +22,8 @@ import com.foobnix.pdf.info.R;
  * One note of "The book, updated" as a bottom sheet (canvas UpdatedNote): its kind and title, the
  * note, "In your terms" when the reader has a lens and the note has it, how settled it is, its
  * source or "No source given", and always the line that the AI wrote it from its own knowledge.
- * "Quiz me later" is Spaced review's and shows only while that switch is on; the canvas's "Add
- * to my edition" belongs to Your edition and is not here yet; "Go to the sentence" stands in.
+ * "Quiz me later" is Spaced review's and shows only while that switch is on; "Add to my edition"
+ * is Your edition's and shows only while that switch is on.
  */
 final class UpdatedNoteSheet {
 
@@ -150,6 +150,15 @@ final class UpdatedNoteSheet {
 
         final ScrollView scroll = new ScrollView(a);
         scroll.addView(box);
+        if (com.foobnix.assist.Assist.EDITION.isOn()) {
+            // "Add to my edition" (Your edition): keeps this note's title, body and how settled it is for the edition
+            final TextView add = UpdatedParts.button(a, "", true);
+            com.foobnix.assist.edition.EditionNotes.bind(a, add, note.quote, note.title, note.body, note.settled.code,
+                    note.settledNote);
+            final LinearLayout.LayoutParams lp = UpdatedParts.wide(8);
+            lp.height = CanvasLook.dp(48);
+            box.addView(add, lp);
+        }
         dialog[0] = CanvasSheet.show(a, scroll);
         return dialog[0];
     }

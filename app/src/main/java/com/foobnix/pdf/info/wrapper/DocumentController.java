@@ -825,6 +825,9 @@ public abstract class DocumentController {
             if (com.foobnix.assist.Assist.REVIEW.isOn()) {
                 com.foobnix.assist.review.Review.pageShown(this);
             }
+            if (com.foobnix.assist.Assist.EDITION.isOn()) {
+                com.foobnix.assist.edition.Edition.pageShown(this);
+            }
 
             handler2.removeCallbacks(saveCurrentPageRunnable);
             handler2.postDelayed(saveCurrentPageRunnable, 1000);
