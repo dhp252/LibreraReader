@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of "How you read it" (task t32; canvas artboard "How you read the chapter").
+     English only, kept out of strings.xml and strings_fork.xml so parallel work does not conflict.
+     Every number on the screen is a stored page counter; a section is rated from page times. -->
+<resources>
+    <string name="canvas_t32_title">How you read it</string>
+    <string name="canvas_t32_menu">How you read this chapter</string>
+    <string name="canvas_t32_nothing">No page times are stored for this chapter yet.</string>
+
+    <!-- the card after a chapter's end -->
+    <string name="canvas_t32_card_label">Reading you · chapter finished</string>
+    <string name="canvas_t32_card_line">%1$s · %2$d min of reading</string>
+    <string name="canvas_t32_card_line_spots">%1$s · %2$d min of reading · spots to review: %3$d</string>
+    <string name="canvas_t32_card_open">See how you read it</string>
+    <string name="canvas_t32_card_later">Not now</string>
+
+    <!-- the numbers -->
+    <string name="canvas_t32_min">%1$d min</string>
+    <string name="canvas_t32_under_min">&lt; 1 min</string>
+    <string name="canvas_t32_time">reading time, pages on screen</string>
+    <string name="canvas_t32_help">times help was offered · taken: %1$d</string>
+    <string name="canvas_t32_spots">spots to review</string>
+
+    <!-- attention, section by section -->
+    <string name="canvas_t32_attention">Attention, section by section</string>
+    <string name="canvas_t32_source_times">PAGE TIMES</string>
+    <string name="canvas_t32_steady">Steady</string>
+    <string name="canvas_t32_skimmed">Skimmed</string>
+    <string name="canvas_t32_struggled">Struggled</string>
+    <string name="canvas_t32_drifted">Drifted</string>
+    <string name="canvas_t32_not_timed">Not timed</string>
+    <string name="canvas_t32_marks">review marks: %1$d</string>
+    <string name="canvas_t32_legend">Skimmed: much faster than your pace. Struggled: a page read again, or far longer on a page than your pace. A review mark is a page you struggled on or asked help for.</string>
+    <string name="canvas_t32_legend_pace">Your pace in this book: %1$d words a minute.</string>
+    <string name="canvas_t32_legend_no_pace">Your pace is not known yet, so nothing is rated as skimmed.</string>
+
+    <!-- the review queue -->
+    <string name="canvas_t32_review_none">No spot was marked in this chapter.</string>
+    <string name="canvas_t32_review_no_ideas">Marked spots: %1$d. Nothing is stored for their pages (no key passage, no zoom line), so there is no idea to put in your review. Nothing was asked of the AI.</string>
+    <string name="canvas_t32_review_off">Ideas stored for your marked spots: %1$d. Spaced review is off, so they were not added to it.</string>
+    <string name="canvas_t32_review_adding">Adding the ideas of your marked spots to your review…</string>
+    <string name="canvas_t32_review_done">Ideas of your marked spots added to tomorrow\'s review: %1$d. Already in your review: %2$d.</string>
+    <string name="canvas_t32_review_without">Spots with nothing stored for their page: %1$d.</string>
+
+    <string name="canvas_t32_recall">Recall this chapter</string>
+</resources>

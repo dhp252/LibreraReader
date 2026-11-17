@@ -15,10 +15,12 @@ import com.foobnix.ai.AiHighlights;
 import com.foobnix.ai.AiJobs;
 import com.foobnix.ai.BookChapters;
 import com.foobnix.ai.BookText;
+import com.foobnix.ai.SideMatter;
 import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.annotation.AnnotationSession;
 import com.foobnix.assist.Assist;
+import com.foobnix.assist.recall.Recall;
 import com.foobnix.canvas.CanvasLook;
 import com.foobnix.canvas.CanvasParts;
 import com.foobnix.canvas.CanvasStatusStrip;
@@ -37,7 +39,9 @@ import com.foobnix.tts.TTSService;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * "The book reads you back" in the open book (Assist.READS_YOU), without the camera: what the
@@ -60,6 +64,8 @@ public final class ReadsYou {
     private static final long CHIP_MS = 30_000;
     /** Less reading than this, with no event, is not worth opening the book's file for. */
     private static final int WORTH_SECONDS = 20;
+    /** "How you read it" is offered this long after the turn past a chapter's end, so another feature's card comes first. */
+    private static final long MAP_CARD_MS = 1500;
     /** Room for the page's own footer line (time, page, battery) under the chip. */
     private static final int FOOTER_DP = 40;
     /** Room for the annotation toolbar when it is shown (as the other cards). */
@@ -93,6 +99,8 @@ public final class ReadsYou {
     private int chipWhy;
     private ReadsCard card;
     private boolean breakCard;
+    /** The chapters "How you read it" was offered for in this session. */
+    private final Set<String> mapOffered = new HashSet<>();
 
     private final Runnable ticker = this::tick;
     private final Runnable chipGone = this::hideChip;
@@ -147,7 +155,23 @@ public final class ReadsYou {
                 ReadsHelpSheet.show(a, dc, ReadsHelpSheet.BY_HAND, 0, null);
             }
         });
+        menu.getMenu(R.drawable.canvas_t32_ic_map, R.string.canvas_t32_menu, () -> showMap(a, dc));
         menu.getMenu(R.drawable.canvas_t31_ic_stored, R.string.canvas_t31_stored_title, () -> showStored(a, dc));
+    }
+
+    /** "How you read it" for the chapter at the reader's page. */
+    static void showMap(Activity a, DocumentController dc) {
+        try {
+            final ReadsYou s = of(dc);
+            if (s != null) {
+                // what the session measured so far is written first (the store's thread keeps the order)
+                s.flush(true);
+            }
+            final int page = ReadingTracker.realPages(dc, dc.getCurentPageFirst1())[0] - 1;
+            ReadsMapScreen.show(a, dc, Math.max(0, page), s == null ? 0 : s.model.pace());
+        } catch (Exception e) {
+            LOG.e(e);
+        }
     }
 
     /** "What is stored" for the open book. */
@@ -259,6 +283,7 @@ public final class ReadsYou {
         final boolean turned = view != model.page();
         final boolean first = model.page() < 0;
         final int[] real = ReadingTracker.realPages(dc, view);
+        final int before = model.tag();
         model.tick(now, isActive(a, dc));
         model.page(now, view, real[0] - 1, words(dc, real));
         if (turned) {
@@ -272,6 +297,7 @@ public final class ReadsYou {
             }
             if (!first) {
                 afterTurn(a, dc);
+                offerMap(before, real[0] - 1);
             }
         }
         updateStrip(a, dc);
@@ -287,6 +313,59 @@ public final class ReadsYou {
                 && !otherCardShowing(a)) {
             showBreakCard(a, dc);
         }
+    }
+
+    /**
+     * "How you read it", offered when the reader pages past the end of a chapter of the table of
+     * contents that has page times stored: once per chapter in a session, a moment after the
+     * turn, and not while another card shows.
+     *
+     * @param prev the book's page (0-based) shown before the turn
+     * @param page the one shown now
+     */
+    private void offerMap(final int prev, final int page) {
+        final BookChapters.Range r = ReadsStore.chapterAt(chapters, prev);
+        if (r == null || prev < 0 || page < r.to || prev < r.to - 2 || page - prev > 4 || mapOffered.contains(r.key)
+                || !Recall.offerable(r.key, r.title, SideMatter.isSideTitle(r.title), false)) {
+            return;
+        }
+        mapOffered.add(r.key);
+        flush(true);
+        ReadsStore.IO.execute(() -> {
+            final ReadsSignals stored = ReadsStore.signals(book, r.key);
+            final int seconds = stored.total().seconds;
+            final int spots = stored.spots();
+            if (seconds >= ReadsRules.MAP_MIN_SECONDS) {
+                handler.postDelayed(() -> showMapCard(r, seconds, spots, page), MAP_CARD_MS);
+            }
+        });
+    }
+
+    private void showMapCard(final BookChapters.Range r, int seconds, int spots, int page) {
+        final Activity a = owner();
+        final DocumentController dc = dc();
+        if (ended || a == null || dc == null || model.tag() != page || AppState.get().isEditMode || dc.isVisibleDialog()
+                || (card != null && card.isShown()) || otherCardShowing(a)) {
+            return;
+        }
+        hideChip();
+        if (card == null) {
+            card = new ReadsCard(a);
+        }
+        final ReadsCard v = card;
+        breakCard = false;
+        final int minutes = Math.max(1, ReadsRules.minutes(seconds * 1000L));
+        v.clear();
+        v.label(a.getString(R.string.canvas_t32_card_label));
+        v.title(a.getString(R.string.canvas_t32_title));
+        v.line(spots > 0 ? a.getString(R.string.canvas_t32_card_line_spots, r.title.trim(), minutes, spots)
+                : a.getString(R.string.canvas_t32_card_line, r.title.trim(), minutes));
+        v.button(a.getString(R.string.canvas_t32_card_open), null, true, () -> {
+            v.hide();
+            ReadsMapScreen.show(a, dc, r.from, model.pace());
+        });
+        v.link(a.getString(R.string.canvas_t32_card_later), false, v::hide);
+        v.show(AnnotationSession.isShownFor(dc));
     }
 
     private void tick() {

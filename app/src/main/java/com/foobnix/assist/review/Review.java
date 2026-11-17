@@ -89,6 +89,46 @@ public final class Review {
         });
     }
 
+    /** Told, on the main thread, how many ideas {@link #addSpots} added and how many were in the queue already. */
+    public interface SpotsAdded {
+        void done(int added, int already);
+    }
+
+    /**
+     * The ideas of the spots "The book reads you back" marked in a chapter enter the queue, due
+     * tomorrow ({@link ReviewSources#fromSpots}). Nothing is sent to the AI and nothing is shown
+     * here: the caller says what happened. False while the switch is off (then nothing is done).
+     */
+    public static boolean addSpots(final Activity a, final DocumentController dc, final String chapterKey,
+                                   final String chapterTitle, final List<Recall.Idea> ideas, final SpotsAdded then) {
+        if (!Assist.REVIEW.isOn() || a == null || dc == null || dc.getCurrentBook() == null || chapterKey == null
+                || ideas == null || ideas.isEmpty()) {
+            return false;
+        }
+        final String book = ReviewStore.name(dc.getCurrentBook().getPath());
+        final ReviewStore.Meta meta = meta(dc);
+        ReviewStore.IO.execute(() -> {
+            int added = 0;
+            try {
+                final List<ReviewItem> items = ReviewSources.fromSpots(chapterKey, chapterTitle, ideas,
+                        ReviewStore.items(book), ReviewStore.today());
+                for (ReviewItem item : items) {
+                    ReviewStore.save(book, item, meta);
+                    added++;
+                }
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+            final int n = added;
+            a.runOnUiThread(() -> {
+                if (then != null && !Apps.isDestroyedActivity(a)) {
+                    then.done(n, Math.max(0, ideas.size() - n));
+                }
+            });
+        });
+        return true;
+    }
+
     /**
      * "Review this chapter's ideas": the key-passage ideas of the chapter at the reader's page
      * enter the queue, due today; then Today's review opens. Nothing is sent to the AI; a chapter
