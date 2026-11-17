@@ -20,10 +20,16 @@ import com.foobnix.android.utils.Apps;
 import com.foobnix.android.utils.LOG;
 import com.foobnix.annotation.AnnotationSession;
 import com.foobnix.assist.Assist;
+import com.foobnix.assist.AssistStore;
 import com.foobnix.assist.recall.Recall;
+import com.foobnix.assist.recall.RecallChapter;
+import com.foobnix.assist.review.Review;
+import com.foobnix.assist.zoom.ZoomData;
 import com.foobnix.canvas.CanvasLook;
 import com.foobnix.canvas.CanvasParts;
 import com.foobnix.canvas.CanvasStatusStrip;
+import com.foobnix.eye.EyeMode;
+import com.foobnix.eye.PresenceDetector;
 import com.foobnix.model.AppSP;
 import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.ExtUtils;
@@ -101,6 +107,18 @@ public final class ReadsYou {
     private boolean breakCard;
     /** The chapters "How you read it" was offered for in this session. */
     private final Set<String> mapOffered = new HashSet<>();
+
+    // with Eye mode's camera (T33): fed only while Eye mode runs; nothing here starts the camera
+    private final ReadsEye eye = new ReadsEye();
+    private final ReadsBlink blink = new ReadsBlink();
+    private ReadsModel.Visit lastVisit;
+    private long sessionSeen;
+    /** The page (0-based) the last drift mark is on, and when the last drift card came up. */
+    private int driftTag = -1;
+    private long driftCardAt;
+    private Object driftShown;
+    /** The page help was last offered on. */
+    private int offeredTag = -1;
 
     private final Runnable ticker = this::tick;
     private final Runnable chipGone = this::hideChip;
@@ -232,6 +250,32 @@ public final class ReadsYou {
             }
         }, SETTLE_MS);
         handler.postDelayed(ticker, TICK_MS);
+        EyeMode.setFrameWatcher(ReadsYou::eyeFrame);
+    }
+
+    /**
+     * What Eye mode's camera says of a frame (EyeMode.FrameWatcher): only while Eye mode is on and
+     * running in this reader, and only while the page is being read. Nothing of the frame is kept.
+     */
+    private static void eyeFrame(Activity owner, long t, PresenceDetector.State state, boolean closed, float gazeY) {
+        try {
+            final ReadsYou s = current;
+            if (s == null || s.ended || !s.ready || Looper.myLooper() != Looper.getMainLooper()
+                    || s.ownerRef.get() != owner || !Assist.READS_YOU.isOn()) {
+                return;
+            }
+            final DocumentController dc = s.dc();
+            if (dc == null || !isActive(owner, dc)) {
+                return;
+            }
+            final int st = state == PresenceDetector.State.SEES ? ReadsEye.SEES
+                    : state == PresenceDetector.State.AWAY ? ReadsEye.AWAY : ReadsEye.CANT_SEE;
+            // a second pass needs a page that stands still: book mode only
+            s.eye.frame(t, st, dc.isBookMode() ? gazeY : Float.NaN);
+            s.blink.frame(t, st == ReadsEye.SEES, closed);
+        } catch (Exception e) {
+            LOG.e(e);
+        }
     }
 
     private static String layoutOf(DocumentController dc) {
@@ -287,6 +331,26 @@ public final class ReadsYou {
         model.tick(now, isActive(a, dc));
         model.page(now, view, real[0] - 1, words(dc, real));
         if (turned) {
+            final ReadsEye.Page seen = eye.turn();
+            if (!first) {
+                lastVisit = null;
+                collect();
+                final ReadsModel.Visit v = lastVisit;
+                if (seen.watchedMs > 0 || seen.passes > 0) {
+                    final ReadsDelta d = new ReadsDelta(Math.max(0, before));
+                    d.watched = (int) Math.round(seen.watchedMs / 1000.0);
+                    d.away = (int) Math.round(seen.awayMs / 1000.0);
+                    d.passes = seen.passes;
+                    if (!d.isEmpty()) {
+                        pending.add(d);
+                    }
+                }
+                if (v != null && v.tag == before && view > v.page && view - v.page <= ReadsRules.TURN_MAX
+                        && ReadsRules.isDriftFast(v.ms, v.words, model.pace(), seen.longestAwayMs)) {
+                    // looked away, then passed the page far too fast
+                    drift(v.tag, v.page, seen.longestAwayMs, v.ms);
+                }
+            }
             hideChip();
             if (card != null && card.isShown()) {
                 // reading on is an answer too
@@ -309,7 +373,8 @@ public final class ReadsYou {
             readChapters();
         }
         flush(false);
-        if (stateLoaded && model.wantsBreak(System.currentTimeMillis(), state.snoozeUntil) && !AppState.get().isEditMode
+        if (stateLoaded && ReadsRules.wantsBreak(model.sessionMs(), model.slowdown(), blink.more(),
+                System.currentTimeMillis(), state.snoozeUntil) && !AppState.get().isEditMode
                 && !otherCardShowing(a)) {
             showBreakCard(a, dc);
         }
@@ -389,6 +454,19 @@ public final class ReadsYou {
                 if (help != ReadsModel.Help.NONE) {
                     offerHelp(a, dc, help == ReadsModel.Help.REREAD ? ReadsHelpSheet.REREAD : ReadsHelpSheet.DWELL);
                 }
+                if (model.sessionMs() < sessionSeen) {
+                    // the unbroken session started again: so does the blink baseline
+                    blink.reset();
+                }
+                sessionSeen = model.sessionMs();
+                final long back = eye.returned();
+                if (ReadsRules.isDriftAway(back) && isActive(a, dc)) {
+                    // the eyes were off this page for a long stretch and are back
+                    drift(model.tag(), model.page(), back, 0);
+                }
+                if (eye.passed() && offeredTag != model.tag()) {
+                    offerHelp(a, dc, ReadsHelpSheet.PASS);
+                }
                 updateStrip(a, dc);
             }
         } catch (Exception e) {
@@ -405,7 +483,20 @@ public final class ReadsYou {
         ended = true;
         handler.removeCallbacks(ticker);
         handler.removeCallbacks(chipGone);
+        if (current == this) {
+            EyeMode.setFrameWatcher(null);
+        }
         try {
+            final ReadsEye.Page seen = eye.turn();
+            if (seen.watchedMs > 0 || seen.passes > 0) {
+                final ReadsDelta d = new ReadsDelta(Math.max(0, model.tag()));
+                d.watched = (int) Math.round(seen.watchedMs / 1000.0);
+                d.away = (int) Math.round(seen.awayMs / 1000.0);
+                d.passes = seen.passes;
+                if (!d.isEmpty() && model.tag() >= 0) {
+                    pending.add(d);
+                }
+            }
             model.end(SystemClock.elapsedRealtime());
             flush(true);
         } catch (Exception e) {
@@ -421,6 +512,7 @@ public final class ReadsYou {
 
     private void collect() {
         for (ReadsModel.Visit v : model.drain()) {
+            lastVisit = v;
             final ReadsDelta d = ReadsDelta.of(v);
             if (!d.isEmpty()) {
                 pending.add(d);
@@ -454,7 +546,7 @@ public final class ReadsYou {
         boolean event = false;
         for (ReadsDelta d : pending) {
             seconds += d.seconds;
-            event |= d.rereads + d.longs + d.offers + d.helps + d.breaks + d.drifts > 0;
+            event |= d.rereads + d.longs + d.offers + d.helps + d.breaks + d.drifts + d.passes > 0;
         }
         final boolean worth = event || seconds >= WORTH_SECONDS;
         if (!worth && !(stateDirty && stateLoaded)) {
@@ -569,6 +661,11 @@ public final class ReadsYou {
             stripText = text;
             strip.setStatus(text);
         }
+        final boolean camera = eye.live(SystemClock.uptimeMillis());
+        if (camera != strip.isSensor()) {
+            // the eye in the sensor colour only while Eye mode's camera results arrive
+            strip.setSensor(camera);
+        }
         final int pages = dc.getPageCount();
         final int percent = pages > 0 ? Math.round(100f * dc.getCurentPageFirst1() / pages) : 0;
         if (percent != stripPercent) {
@@ -580,6 +677,12 @@ public final class ReadsYou {
     private int stateWord() {
         if (!ready) {
             return R.string.canvas_t31_state_learning;
+        }
+        if (eye.away(SystemClock.uptimeMillis())) {
+            return R.string.canvas_t33_state_away;
+        }
+        if (eye.passes() > 0) {
+            return R.string.canvas_t33_state_pass;
         }
         switch (model.state(SystemClock.elapsedRealtime())) {
             case REREAD:
@@ -602,7 +705,9 @@ public final class ReadsYou {
                 : a.getString(R.string.canvas_t31_session_no_pace);
         final int slower = ReadsRules.percent(model.slowdown());
         final String line = a.getString(R.string.canvas_t31_session, ReadsRules.minutes(model.sessionMs()), pace);
-        return slower > 0 ? line + " · " + a.getString(R.string.canvas_t31_chip_slower, slower) : line;
+        final String all = slower > 0 ? line + " · " + a.getString(R.string.canvas_t31_chip_slower, slower) : line;
+        return blink.watchedMs() > 0 ? all + "\n" + a.getString(R.string.canvas_t33_session_camera,
+                ReadsUi.clock(blink.watchedMs()), blink.baseline(), blink.recent()) : all;
     }
 
     // ------------------------------------------------------------------ "Say it another way?"
@@ -637,6 +742,7 @@ public final class ReadsYou {
             return;
         }
         model.helpOffered();
+        offeredTag = model.tag();
         mark().offers = 1;
         chipWhy = why;
         if (chip == null) {
@@ -711,8 +817,17 @@ public final class ReadsYou {
         v.clear();
         v.label(a.getString(R.string.canvas_t31_break_card_label));
         v.title(a.getString(R.string.canvas_t31_break_card_title));
-        v.line(a.getString(R.string.canvas_t31_break_card_line, minutes));
-        v.chips(Collections.singletonList(a.getString(R.string.canvas_t31_chip_slower, slower)));
+        final boolean slowing = ReadsRules.isSlowdown(model.slowdown());
+        v.line(a.getString(slowing ? R.string.canvas_t31_break_card_line : R.string.canvas_t33_break_line_blink, minutes));
+        final List<String> chips = new ArrayList<>();
+        if (slowing) {
+            chips.add(a.getString(R.string.canvas_t31_chip_slower, slower));
+        }
+        if (blink.more()) {
+            // only with Eye mode's camera, against this session's own first minutes
+            chips.add(a.getString(R.string.canvas_t33_chip_blinking));
+        }
+        v.chips(chips);
         v.button(a.getString(R.string.canvas_t31_take_five), null, true, () -> {
             v.hide();
             state.breaksTaken++;
@@ -721,6 +836,7 @@ public final class ReadsYou {
             ReadsBreak.show(a, () -> {
                 // the break is a pause: the session starts again
                 model.breakTaken();
+                blink.reset();
             });
         });
         if (canListen(dc)) {
@@ -746,6 +862,97 @@ public final class ReadsYou {
         v.onClose(this::snooze);
         v.show(AnnotationSession.isShownFor(dc));
         flush(true);
+    }
+
+    // ------------------------------------------------------------------ "You drifted on this page" (T33)
+
+    /**
+     * A drift on a page, from Eye mode's camera: the page gets a drift mark, and a card comes up
+     * with what is stored for that page (a key passage's idea or the zoom section's line; the AI
+     * is not asked). The card is skipped when one was up a moment ago or something else is shown.
+     *
+     * @param tag      the book's page, 0-based
+     * @param viewPage the reader's page number "Reread it" goes to
+     * @param awayMs   how long the eyes were off the page in one stretch
+     * @param passedMs how fast the page was then passed; 0 when the reader is still on it
+     */
+    private void drift(final int tag, final int viewPage, final long awayMs, final long passedMs) {
+        if (tag < 0 || tag == driftTag) {
+            return;
+        }
+        driftTag = tag;
+        final ReadsDelta d = new ReadsDelta(tag);
+        d.drifts = 1;
+        pending.add(d);
+        flush(true);
+        final long now = SystemClock.elapsedRealtime();
+        if (driftCardAt > 0 && now - driftCardAt < ReadsRules.DRIFT_QUIET_MS) {
+            return;
+        }
+        final List<BookChapters.Range> known = chapters;
+        final AiJobs.Target t = target;
+        ReadsStore.IO.execute(() -> {
+            Recall.Idea idea = null;
+            BookChapters.Range in = null;
+            try {
+                in = ReadsStore.chapterAt(known != null ? known : chaptersOf(t), tag);
+                if (in != null) {
+                    final ZoomData zoom = ZoomData.fromJson(AssistStore.get().item(book, ZoomData.key(in.key)));
+                    idea = ReadsSpots.ideaAt(tag - in.from, in.pages(), in.from, RecallChapter.fromPassages(book, in.key), zoom);
+                }
+            } catch (Exception e) {
+                LOG.e(e);
+            }
+            final Recall.Idea said = idea;
+            final BookChapters.Range chapter = in;
+            handler.post(() -> showDriftCard(tag, viewPage, awayMs, passedMs, chapter, said));
+        });
+    }
+
+    private void showDriftCard(int tag, final int viewPage, long awayMs, long passedMs, BookChapters.Range chapter,
+                               Recall.Idea said) {
+        final Activity a = owner();
+        final DocumentController dc = dc();
+        if (ended || a == null || dc == null || AppState.get().isEditMode || dc.isVisibleDialog()
+                || (passedMs == 0 && model.tag() != tag) || (card != null && card.isShown()) || otherCardShowing(a)) {
+            return;
+        }
+        hideChip();
+        if (card == null) {
+            card = new ReadsCard(a);
+        }
+        final ReadsCard v = card;
+        breakCard = false;
+        driftCardAt = SystemClock.elapsedRealtime();
+        final Object shown = new Object();
+        driftShown = shown;
+        v.clear();
+        v.label(a.getString(R.string.canvas_t33_drift_label));
+        v.title(a.getString(passedMs > 0 ? R.string.canvas_t33_drift_title_last : R.string.canvas_t33_drift_title));
+        v.line(passedMs > 0 ? a.getString(R.string.canvas_t33_drift_line_fast, ReadsUi.clock(awayMs), ReadsUi.clock(passedMs))
+                : a.getString(R.string.canvas_t33_drift_line, ReadsUi.clock(awayMs)));
+        if (said != null) {
+            // only what is already stored for that page; nothing is asked of the AI
+            v.said(a.getString(R.string.canvas_t33_it_said), said.text);
+        }
+        v.button(a.getString(R.string.canvas_t33_reread), null, true, () -> {
+            v.hide();
+            dc.onGoToPage(viewPage);
+        });
+        v.link(a.getString(R.string.canvas_t33_got_it), false, v::hide);
+        v.link(a.getString(R.string.canvas_t33_stays_link), false, () -> showStored(a, dc));
+        v.onClose(() -> driftShown = null);
+        v.show(AnnotationSession.isShownFor(dc));
+        if (said != null && chapter != null) {
+            // the spot's idea goes to the review queue as "How you read it" adds them (only with Spaced review on)
+            final String title = chapter.title != null && !chapter.title.trim().isEmpty() ? chapter.title.trim()
+                    : a.getString(R.string.ai_pages, chapter.from + 1, chapter.to);
+            Review.addSpots(a, dc, chapter.key, title, Collections.singletonList(said), (added, already) -> {
+                if (driftShown == shown && card == v && v.isShown()) {
+                    v.note(a.getString(added > 0 ? R.string.canvas_t33_saved : R.string.canvas_t33_saved_already));
+                }
+            });
+        }
     }
 
     /** Read-aloud can start from this page: one page at a time in view, text on it, and not playing already. */

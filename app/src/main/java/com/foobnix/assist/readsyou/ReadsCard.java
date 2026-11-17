@@ -93,6 +93,25 @@ final class ReadsCard {
         body.addView(t);
     }
 
+    /** A block of stored words under a label ("IT SAID"), in the book serif. */
+    void said(String label, String text) {
+        final LinearLayout box = new LinearLayout(activity);
+        box.setOrientation(LinearLayout.VERTICAL);
+        final int pad = CanvasLook.dp(10);
+        box.setPadding(pad, pad, pad, pad);
+        box.setBackground(CanvasParts.round(CanvasLook.surface2(), 0, CanvasLook.dp(CanvasLook.RADIUS_SMALL_DP)));
+        box.addView(ReadsUi.mono(activity, label, CanvasLook.muted()));
+        final TextView t = ReadsUi.book(activity, text, 15, CanvasLook.ink());
+        t.setLineSpacing(CanvasLook.dp(2), 1f);
+        t.setPadding(0, CanvasLook.dp(4), 0, 0);
+        box.addView(t);
+        final LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = CanvasLook.dp(10);
+        lp.rightMargin = CanvasLook.dp(10);
+        body.addView(box, lp);
+    }
+
     /** What was measured, one chip each; nothing for an empty list. */
     void chips(List<String> texts) {
         if (texts == null || texts.isEmpty()) {

@@ -97,6 +97,10 @@ final class ReadsStoredScreen {
         final TextView intro = ReadsUi.text(a, a.getString(R.string.canvas_t31_stored_intro), 13, 400, CanvasLook.ink2());
         intro.setLineSpacing(CanvasLook.dp(2), 1f);
         body.addView(intro);
+        // T33: what Eye mode's camera adds, and that it stays here
+        final TextView camera = ReadsUi.text(a, a.getString(R.string.canvas_t33_stays), 13, 400, CanvasLook.ink2());
+        camera.setLineSpacing(CanvasLook.dp(2), 1f);
+        body.addView(camera, ReadsUi.matchWrap(8));
 
         if (sessionLine != null) {
             body.addView(card(a.getString(R.string.canvas_t31_stored_session), null, sessionLine), ReadsUi.matchWrap(14));
@@ -215,7 +219,9 @@ final class ReadsStoredScreen {
 
     private String signalsText(ReadsSignals s) {
         final ReadsSignals.Page t = s.total();
-        return a.getString(R.string.canvas_t31_stored_signals, s.byPage.size(), s.pages, ReadsUi.clock(t.seconds * 1000L),
-                t.rereads, t.longs, t.offers, t.helps, t.breaks, t.drifts);
+        final String text = a.getString(R.string.canvas_t31_stored_signals, s.byPage.size(), s.pages,
+                ReadsUi.clock(t.seconds * 1000L), t.rereads, t.longs, t.offers, t.helps, t.breaks, t.drifts);
+        return t.watched > 0 || t.away > 0 || t.passes > 0 ? text + "\n" + a.getString(R.string.canvas_t33_stored_camera,
+                ReadsUi.clock(t.watched * 1000L), ReadsUi.clock(t.away * 1000L), t.passes) : text;
     }
 }
