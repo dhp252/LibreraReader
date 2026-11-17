@@ -141,6 +141,10 @@ public final class AiMenu {
             menu.getMenu(R.drawable.glyphicons_422_book_library, R.string.canvas_t21_menu,
                     () -> com.foobnix.assist.path.TopicScreen.show(a, dc));
         }
+        // Spaced review (canvas, Assist.REVIEW): today's scenario questions; this chapter's ideas into the queue
+        if (com.foobnix.assist.Assist.REVIEW.isOn()) {
+            com.foobnix.assist.review.Review.menu(a, dc, menu);
+        }
         menu.show();
     }
 
