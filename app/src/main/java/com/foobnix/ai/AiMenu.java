@@ -145,6 +145,10 @@ public final class AiMenu {
         if (com.foobnix.assist.Assist.REVIEW.isOn()) {
             com.foobnix.assist.review.Review.menu(a, dc, menu);
         }
+        // The book reads you back (canvas, Assist.READS_YOU): help for this page, and what is stored
+        if (com.foobnix.assist.Assist.READS_YOU.isOn()) {
+            com.foobnix.assist.readsyou.ReadsYou.menu(a, dc, menu);
+        }
         menu.show();
     }
 
