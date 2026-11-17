@@ -96,16 +96,18 @@ public final class AssistPage {
             case FICTION:
                 return R.string.canvas_t01_assist_fiction_info;
             default:
-                return R.string.canvas_t01_assist_reads_you_info;
+                // T31: it works from page times, and its help button asks the AI
+                return R.string.canvas_t31_assist_info;
         }
     }
 
     /**
-     * Whether a feature sends book text to the AI provider. Only "The book reads you back" works
-     * on the phone alone (the camera's readings never leave it).
+     * Whether a feature sends book text to the AI provider. Every one can: "The book reads you
+     * back" measures on the phone alone (its signals and the camera's readings never leave it),
+     * but its "Say it another way?" sends the passage on the reader's tap.
      */
     public static boolean sendsText(Assist f) {
-        return f != Assist.READS_YOU;
+        return true;
     }
 
     /** How many features are on. */

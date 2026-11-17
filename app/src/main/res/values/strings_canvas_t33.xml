@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of "The book reads you back" with Eye mode's camera (task t33; canvas artboards
+     "Zone-out caught", "Auto-zoom", and the camera chips of "Fatigue"). English only, kept out of
+     strings.xml and strings_fork.xml. Every signal named here is one Eye mode's frame results
+     give: looking or not, eyes closed or not, and with a calibrated gaze where on the page. -->
+<resources>
+    <!-- the strip -->
+    <string name="canvas_t33_state_away">eyes off the page</string>
+    <string name="canvas_t33_state_pass">second pass over this page</string>
+
+    <!-- the help sheet after a second pass -->
+    <string name="canvas_t33_help_label_pass">A second pass over this page</string>
+
+    <!-- the break card -->
+    <string name="canvas_t33_chip_blinking">Blinking more</string>
+    <string name="canvas_t33_break_line_blink">You\'ve read for %1$d minutes without a break, and you blink more than in your first minutes.</string>
+
+    <!-- the drift card -->
+    <string name="canvas_t33_drift_label">Reading you · eyes off the page</string>
+    <string name="canvas_t33_drift_title">You drifted on this page</string>
+    <string name="canvas_t33_drift_title_last">You drifted on the last page</string>
+    <string name="canvas_t33_drift_line">Your eyes were off this page for %1$s.</string>
+    <string name="canvas_t33_drift_line_fast">You looked away for %1$s, then passed the page in %2$s: much faster than your pace.</string>
+    <string name="canvas_t33_it_said">It said</string>
+    <string name="canvas_t33_reread">Reread it</string>
+    <string name="canvas_t33_got_it">Got it, continue</string>
+    <string name="canvas_t33_saved">Saved to tomorrow\'s review</string>
+    <string name="canvas_t33_saved_already">Already in your review</string>
+    <string name="canvas_t33_stays_link">Stays on this phone · What is stored</string>
+
+    <!-- "What is stored" and "How you read it" -->
+    <string name="canvas_t33_stays">With Eye mode on, its camera results are read frame by frame in memory: is someone looking, are the eyes closed and, with a calibrated gaze, where on the page. No frame is kept or sent. From them only counters are stored: seconds the camera watched a page, seconds your eyes were off it, second passes and drift marks. Stays on this phone. This feature never turns the camera on.</string>
+    <string name="canvas_t33_stored_camera">Camera (Eye mode): watched %1$s · eyes off the page %2$s · second passes: %3$d</string>
+    <string name="canvas_t33_session_camera">Camera (Eye mode) watched %1$s · blinks it caught in your first 5 minutes: %2$d, in the last 5: %3$d</string>
+    <string name="canvas_t33_source_camera">PAGE TIMES + CAMERA</string>
+    <string name="canvas_t33_legend_camera">Drifted: your eyes were off a page for a long stretch, seen by Eye mode\'s camera. Eyes off the page in this chapter: %1$s of the %2$s the camera watched.</string>
+
+    <!-- auto-zoom, in the zoom screen -->
+    <string name="canvas_t33_auto">Auto-zoom · from your page times</string>
+    <string name="canvas_t33_auto_on">Auto-zoom is on · tap to undo</string>
+    <string name="canvas_t33_auto_head">Auto-zoom · sections changed: %1$d</string>
+    <string name="canvas_t33_auto_undo">Undo</string>
+    <string name="canvas_t33_auto_note">Squeezes what you read fast, opens up where you slowed. From the stored page times of this chapter; the AI is not asked.</string>
+    <string name="canvas_t33_auto_note_none">You read every timed section at your pace, so each stays lean. From the stored page times of this chapter; the AI is not asked.</string>
+    <string name="canvas_t33_auto_no_pace">Your pace is not known yet: only re-reads and long pages open a section.</string>
+    <string name="canvas_t33_auto_why_fast">read fast</string>
+    <string name="canvas_t33_auto_why_reread">read again</string>
+    <string name="canvas_t33_auto_why_long">long on a page</string>
+    <string name="canvas_t33_auto_why_slow">read slowly</string>
+    <string name="canvas_t33_auto_now_line">now 1 line</string>
+    <string name="canvas_t33_auto_now_full">opened to full text</string>
+    <string name="canvas_t33_auto_now_lean">text not found, lean shown</string>
+    <string name="canvas_t33_auto_now_all">shown in full</string>
+    <string name="canvas_t33_auto_show_all">Show all</string>
+    <string name="canvas_t33_auto_reading">Reading the chapter…</string>
+</resources>

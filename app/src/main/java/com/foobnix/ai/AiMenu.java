@@ -163,6 +163,10 @@ public final class AiMenu {
             menu.getMenu(R.drawable.canvas_t29_ic_cast, R.string.canvas_t29_whos_who,
                     () -> com.foobnix.assist.fiction.FictionScreen.show(a, dc));
         }
+        // The book reads you back (canvas, Assist.READS_YOU): help for this page, and what is stored
+        if (com.foobnix.assist.Assist.READS_YOU.isOn()) {
+            com.foobnix.assist.readsyou.ReadsYou.menu(a, dc, menu);
+        }
         menu.show();
     }
 
