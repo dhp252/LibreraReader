@@ -2326,6 +2326,10 @@ public class DragingDialogs {
                 if (com.foobnix.assist.Assist.LENS.isOn()) {
                     com.foobnix.assist.lens.LensSentence.addTo(dictLayout, controller, editText, () -> closeDialog());
                 }
+                // Prose to pictures (canvas, Assist.PICTURES): "As a picture" for a selected passage
+                if (com.foobnix.assist.Assist.PICTURES.isOn()) {
+                    com.foobnix.assist.pictures.PictureSelection.addTo(dictLayout, controller, editText, () -> closeDialog());
+                }
 
                 view.findViewById(R.id.onUnderline).
 
