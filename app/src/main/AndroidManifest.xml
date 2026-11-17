@@ -28,6 +28,12 @@
     <uses-feature
         android:name="android.hardware.camera.front"
         android:required="false" />
+    <!-- Blank-page recall and teach-back (Assist.RECALL): talking instead of typing, only while
+         the reader holds the talk button; asked for at the first use -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
 
 
 
@@ -45,6 +51,10 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+        <!-- the device's speech recognition, for the talk button of recall and teach-back -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
         <!-- The paid app, looked for by name to keep the ads out of this one while it is
              installed. Since Android 11 another app's package cannot be looked up unless it is

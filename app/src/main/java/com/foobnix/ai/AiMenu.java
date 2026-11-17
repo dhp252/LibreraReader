@@ -127,6 +127,11 @@ public final class AiMenu {
                         return true;
                     });
         }
+        // Blank-page recall (canvas, Assist.RECALL): the chapter in the reader's own words, then what was missed
+        if (com.foobnix.assist.Assist.RECALL.isOn()) {
+            menu.getMenu(R.drawable.glyphicons_151_square_edit, R.string.canvas_t17_title,
+                    () -> com.foobnix.assist.recall.RecallScreen.showHere(a, dc));
+        }
         menu.show();
     }
 
