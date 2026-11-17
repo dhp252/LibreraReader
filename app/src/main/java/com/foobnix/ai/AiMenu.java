@@ -74,10 +74,12 @@ public final class AiMenu {
                     showKeyPassages(a, anchor, dc, target, data, chapter, highlightsBusy);
                     return true;
                 });
-        // Blank-page recall (canvas, Assist.RECALL): the chapter in the reader's own words, then what was missed
+        // Blank-page recall and teach-back (canvas, Assist.RECALL): the chapter in the reader's own words
         if (com.foobnix.assist.Assist.RECALL.isOn()) {
             menu.getMenu(R.drawable.glyphicons_151_square_edit, R.string.canvas_t17_title,
                     () -> com.foobnix.assist.recall.RecallScreen.showHere(a, dc));
+            menu.getMenu(R.drawable.glyphicons_1020_head_voice, R.string.canvas_t18_title,
+                    () -> com.foobnix.assist.teach.TeachScreen.showHere(a, dc));
         }
         menu.show();
     }
