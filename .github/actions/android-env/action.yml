@@ -1,0 +1,105 @@
+# Shared setup of the Gradle jobs: JDK 21 and Gradle (cached), the global gradle.properties that
+# app/build.gradle reads without defaults, a dummy app/google-services.json, and the signing key.
+#
+# It mirrors the local setup_env.sh of the dev-build-apk skill: the per-flavor Google Drive and AdMob
+# keys are empty, except for the "librera" flavor, whose ads SDK stops the app at start when the
+# AdMob app id is empty: it gets Google's public sample ids, which only ever show test ads.
+# The repository secret LIBRERA_GRADLE_PROPERTIES (optional, lines of key=value) is appended last,
+# so real keys there take precedence.
+name: Android build environment
+description: JDK, Gradle, gradle.properties, google-services.json and the signing key for LibreraReader
+inputs:
+  ndk-dir:
+    description: The NDK folder, for the native build (link_to_mupdf_*.sh reads librera_ndk_dir)
+    default: ""
+  keystore-base64:
+    description: The signing keystore, base64; empty makes a throwaway key
+    default: ""
+  store-password:
+    default: ""
+  key-alias:
+    default: ""
+  key-password:
+    default: ""
+  extra-properties:
+    description: Lines appended to gradle.properties (the LIBRERA_GRADLE_PROPERTIES secret)
+    default: ""
+outputs:
+  own-key:
+    description: true when the APKs are signed with the repository's key
+    value: ${{ steps.env.outputs.own-key }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+
+    - uses: gradle/actions/setup-gradle@v4
+
+    - id: env
+      shell: bash
+      env:
+        NDK_DIR: ${{ inputs.ndk-dir }}
+        KEYSTORE_BASE64: ${{ inputs.keystore-base64 }}
+        STORE_PASSWORD: ${{ inputs.store-password }}
+        KEY_ALIAS: ${{ inputs.key-alias }}
+        KEY_PASSWORD: ${{ inputs.key-password }}
+        EXTRA_PROPERTIES: ${{ inputs.extra-properties }}
+      run: |
+        KEYSTORE="$RUNNER_TEMP/signing.keystore"
+        STORE_PASSWORD="${STORE_PASSWORD:-android}"
+        KEY_ALIAS="${KEY_ALIAS:-androiddebugkey}"
+        KEY_PASSWORD="${KEY_PASSWORD:-android}"
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE"
+          keytool -list -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null \
+            || { echo "::error::SIGNING_KEYSTORE_BASE64 does not open with the given password and alias"; exit 1; }
+          echo "own-key=true" >> "$GITHUB_OUTPUT"
+        else
+          keytool -genkeypair -keystore "$KEYSTORE" -storetype PKCS12 -alias "$KEY_ALIAS" \
+            -storepass "$STORE_PASSWORD" -keypass "$KEY_PASSWORD" -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Librera CI throwaway key" >/dev/null 2>&1
+          echo "own-key=false" >> "$GITHUB_OUTPUT"
+        fi
+        chmod 600 "$KEYSTORE"
+
+        mkdir -p ~/.gradle
+        {
+          echo "librera_ndk_dir=$NDK_DIR"
+          echo "librera_java_home=$JAVA_HOME"
+          echo "pro_appGdriveKey="
+          for flavor in librera pdf_classic ebooka pdf_v2 tts_reader epub_reader; do
+            for key in appGdriveKey admobAppId admobBannerId admobFullId admobRewardId; do
+              echo "${flavor}_${key}="
+            done
+          done
+          # Google's public AdMob sample ids (test ads only); later lines win
+          echo "librera_admobAppId=ca-app-pub-3940256099942544~3347511713"
+          echo "librera_admobBannerId=ca-app-pub-3940256099942544/6300978111"
+          echo "librera_admobFullId=ca-app-pub-3940256099942544/1033173712"
+          echo "librera_admobRewardId=ca-app-pub-3940256099942544/5224354917"
+          echo "RELEASE_STORE_FILE=$KEYSTORE"
+          echo "RELEASE_STORE_PASSWORD=$STORE_PASSWORD"
+          echo "RELEASE_KEY_ALIAS=$KEY_ALIAS"
+          echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
+          [ -z "$EXTRA_PROPERTIES" ] || printf '%s\n' "$EXTRA_PROPERTIES"
+        } >> ~/.gradle/gradle.properties
+        chmod 600 ~/.gradle/gradle.properties
+
+        # The Google services plugin is applied to every flavor and needs a client for each
+        # application id; the app reads none of these values (Firebase is not linked).
+        if [ ! -f app/google-services.json ]; then
+          client() {
+            printf '{"client_info":{"mobilesdk_app_id":"1:0:android:%016d","android_client_info":{"package_name":"%s"}},"oauth_client":[],"api_key":[{"current_key":"none"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}' "$1" "$2"
+          }
+          IDS=$(sed -n 's/^ *applicationId *= *"\([^"]*\)".*/\1/p' app/build.gradle | sort -u)
+          CLIENTS=""; N=0
+          for id in $IDS; do
+            N=$((N + 1)); CLIENTS="${CLIENTS:+$CLIENTS,}$(client "$N" "$id")"
+          done
+          printf '{"project_info":{"project_number":"0","project_id":"librera-ci","storage_bucket":"librera-ci.appspot.com"},"client":[%s],"configuration_version":"1"}\n' \
+            "$CLIENTS" > app/google-services.json
+        fi
+        chmod +x gradlew
