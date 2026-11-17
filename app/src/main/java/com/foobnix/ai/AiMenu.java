@@ -79,6 +79,11 @@ public final class AiMenu {
                     showKeyPassages(a, anchor, dc, target, data, chapter, highlightsBusy);
                     return true;
                 });
+        // Shortest path (canvas T20): the few chapters to read for one idea
+        if (com.foobnix.assist.Assist.PATH.isOn()) {
+            menu.getMenu(R.drawable.glyphicons_476_sort_attributes, R.string.canvas_t20_shortest_path,
+                    () -> com.foobnix.assist.path.PathScreen.show(a, dc));
+        }
         menu.show();
     }
 

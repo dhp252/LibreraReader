@@ -806,6 +806,7 @@ public abstract class DocumentController {
             com.foobnix.stats.ReadingTracker.pageShown(this);
             com.foobnix.study.StudySession.pageShown(this, lastRead);
             com.foobnix.eye.EyeMode.pageShown(this);
+            com.foobnix.assist.path.PathSession.pageShown(this);
             com.foobnix.assist.skeleton.SkeletonOffer.pageShown(this, lastRead);
 
             handler2.removeCallbacks(saveCurrentPageRunnable);

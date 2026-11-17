@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shortest path (canvas task T20): the few chapters to read, in order, for one idea of a book. -->
+<resources>
+    <string name="canvas_t20_shortest_path">Shortest path</string>
+    <string name="canvas_t20_back">Back to the book</string>
+    <string name="canvas_t20_i_want">I want to understand</string>
+    <string name="canvas_t20_goal_hint">one idea of this book</string>
+    <string name="canvas_t20_find">Find the shortest path</string>
+    <string name="canvas_t20_loading">Reading the contents…</string>
+    <string name="canvas_t20_reading_contents">Reading the book\'s contents…</string>
+    <string name="canvas_t20_finding">Finding the shortest path…</string>
+    <string name="canvas_t20_empty">Name one idea of this book. You get the few chapters to read for it, in order, instead of the whole book.</string>
+    <string name="canvas_t20_empty_note">One AI request with the book\'s chapter list, one line per chapter. The text of the book is not sent.</string>
+    <string name="canvas_t20_need_skeleton">This book has no chapter lines yet.</string>
+    <string name="canvas_t20_need_skeleton_note">The path is picked from the skeleton\'s one line per chapter. Make the skeleton first, then come back.</string>
+    <string name="canvas_t20_need_skeleton_off">The path is picked from one line per chapter. Turn on Skeleton first (Preferences, Assisted reading) and make the skeleton, or study this book to get its preview.</string>
+    <string name="canvas_t20_make_skeleton">Make the skeleton</string>
+    <string name="canvas_t20_not_in_book">No chapter of this book seems to be about that. Try other words.</string>
+    <string name="canvas_t20_unreadable">The AI\'s answer could not be read. Try again.</string>
+    <string name="canvas_t20_no_place">That chapter was not found in the book\'s contents.</string>
+    <string name="canvas_t20_of_chapters">%1$d of %2$d chapters</string>
+    <string name="canvas_t20_of_chapter">%1$d of %2$d chapter</string>
+    <string name="canvas_t20_instead_of">instead of about %1$s for the whole book</string>
+    <string name="canvas_t20_read_in_order">Read in this order · each one is needed for the next</string>
+    <string name="canvas_t20_read_this">Read this</string>
+    <string name="canvas_t20_reading">reading</string>
+    <string name="canvas_t20_goal">goal</string>
+    <string name="canvas_t20_done">read</string>
+    <string name="canvas_t20_chapter">Chapter</string>
+    <string name="canvas_t20_skipped">%1$d chapters skipped</string>
+    <string name="canvas_t20_skipped_one">1 chapter skipped</string>
+    <string name="canvas_t20_you_know_it">You know this one: the 2-minute check took it off.</string>
+    <string name="canvas_t20_put_back">Put back</string>
+    <string name="canvas_t20_check_button">Know some already? 2-minute check</string>
+    <string name="canvas_t20_read_in_this_order">Read in this order</string>
+    <string name="canvas_t20_read_goal_again">Read the goal chapter again</string>
+
+    <string name="canvas_t20_card_next_label">Next on your path</string>
+    <string name="canvas_t20_card_go">Go there</string>
+    <string name="canvas_t20_card_not_now">Not now</string>
+    <string name="canvas_t20_card_done_label">Your path</string>
+    <string name="canvas_t20_card_done">You read the whole path to: %1$s</string>
+    <string name="canvas_t20_card_see_path">See the path</string>
+
+    <string name="canvas_t20_check_title">2-minute check</string>
+    <string name="canvas_t20_check_subtitle">Skip what you already know</string>
+    <string name="canvas_t20_check_intro">One quick question per chapter of your path. A right answer takes the chapter off; a wrong one costs nothing.</string>
+    <string name="canvas_t20_making_questions">Making the questions…</string>
+    <string name="canvas_t20_time_left">%1$d:%2$02d left</string>
+    <string name="canvas_t20_question_of">Question %1$d of %2$d</string>
+    <string name="canvas_t20_checks">checks</string>
+    <string name="canvas_t20_not_sure">Not sure, keep this chapter on my path</string>
+    <string name="canvas_t20_check">Check</string>
+    <string name="canvas_t20_you_know">You know %1$s</string>
+    <string name="canvas_t20_skipped_saves">Skipped. That saves %1$s.</string>
+    <string name="canvas_t20_skipped_plain">Skipped.</string>
+    <string name="canvas_t20_undo">Undo</string>
+    <string name="canvas_t20_stays">%1$s stays on your path</string>
+    <string name="canvas_t20_stays_note">Worth reading.</string>
+    <string name="canvas_t20_path_now">Your path now</string>
+    <string name="canvas_t20_chapters">%1$d chapters</string>
+    <string name="canvas_t20_chapters_one">1 chapter</string>
+    <string name="canvas_t20_check_done">Check done</string>
+    <string name="canvas_t20_time_up">Time is up</string>
+    <string name="canvas_t20_time_up_note">The chapters not asked stay on your path.</string>
+    <string name="canvas_t20_check_none">Every chapter stays on your path.</string>
+    <string name="canvas_t20_check_off_one">1 chapter is off your path. Put it back from the path screen at any time.</string>
+    <string name="canvas_t20_check_off">%1$d chapters are off your path. Put them back from the path screen at any time.</string>
+    <string name="canvas_t20_back_to_path">Back to my path</string>
+
+    <string name="canvas_t20_block_title">Shortest path to one idea</string>
+    <string name="canvas_t20_block_hint">I want to understand…</string>
+    <string name="canvas_t20_block_skips">Skips the %1$d you don\'t need for this.</string>
+    <string name="canvas_t20_open_path">Open the path</string>
+</resources>
