@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Spaced review (canvas T24): an idea coming round again, the arrow of a loop over a dot -->
+    <path
+        android:pathData="M20,12a8,8 0,1 1,-2.6 -5.9M20,4v4.5h-4.5"
+        android:strokeWidth="1.8"
+        android:strokeColor="@color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M12,12m-1.6,0a1.6,1.6 0,1 0,3.2 0a1.6,1.6 0,1 0,-3.2 0"
+        android:fillColor="@color/black" />
+</vector>

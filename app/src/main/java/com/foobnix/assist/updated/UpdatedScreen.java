@@ -399,7 +399,9 @@ public final class UpdatedScreen implements UpdatedJob.Screen {
     }
 
     private void openNote(UpdatedNote note) {
-        UpdatedNoteSheet.show(a, note, lens, () -> jump(note.quote, note.page));
+        UpdatedNoteSheet.show(a, note, lens, () -> jump(note.quote, note.page),
+                // "Quiz me later" (Spaced review, Assist.REVIEW): null, and no button, while that switch is off
+                com.foobnix.assist.review.Review.quizLater(a, dc, range.key, chapterTitle(), note.title, note.quote, note.page));
     }
 
     // ------------------------------------------------------------------ actions

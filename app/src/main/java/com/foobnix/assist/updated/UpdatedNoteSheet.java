@@ -22,8 +22,8 @@ import com.foobnix.pdf.info.R;
  * One note of "The book, updated" as a bottom sheet (canvas UpdatedNote): its kind and title, the
  * note, "In your terms" when the reader has a lens and the note has it, how settled it is, its
  * source or "No source given", and always the line that the AI wrote it from its own knowledge.
- * The canvas's "Quiz me later" and "Add to my edition" belong to Spaced review and Your edition
- * and are not here yet; "Go to the sentence" stands in.
+ * "Quiz me later" is Spaced review's and shows only while that switch is on; "Add to my edition"
+ * is Your edition's and shows only while that switch is on.
  */
 final class UpdatedNoteSheet {
 
@@ -35,6 +35,11 @@ final class UpdatedNoteSheet {
      * @param go   goes to the note's sentence, or null for no button
      */
     static Dialog show(Activity a, UpdatedNote note, boolean lens, Runnable go) {
+        return show(a, note, lens, go, null);
+    }
+
+    /** @param quiz "Quiz me later" (Spaced review, only while its switch is on), or null for no such button */
+    static Dialog show(Activity a, UpdatedNote note, boolean lens, Runnable go, Runnable quiz) {
         final LinearLayout box = UpdatedParts.column(a);
         final Dialog[] dialog = new Dialog[1];
 
@@ -131,8 +136,29 @@ final class UpdatedNoteSheet {
             box.addView(button, lp);
         }
 
+        if (quiz != null) {
+            final TextView button = UpdatedParts.button(a, a.getString(R.string.canvas_t24_quiz_later), false);
+            button.setOnClickListener(v -> {
+                button.setEnabled(false);
+                button.setAlpha(0.4f);
+                quiz.run();
+            });
+            final LinearLayout.LayoutParams lp = UpdatedParts.wide(go != null ? 8 : 14);
+            lp.height = CanvasLook.dp(48);
+            box.addView(button, lp);
+        }
+
         final ScrollView scroll = new ScrollView(a);
         scroll.addView(box);
+        if (com.foobnix.assist.Assist.EDITION.isOn()) {
+            // "Add to my edition" (Your edition): keeps this note's title, body and how settled it is for the edition
+            final TextView add = UpdatedParts.button(a, "", true);
+            com.foobnix.assist.edition.EditionNotes.bind(a, add, note.quote, note.title, note.body, note.settled.code,
+                    note.settledNote);
+            final LinearLayout.LayoutParams lp = UpdatedParts.wide(8);
+            lp.height = CanvasLook.dp(48);
+            box.addView(add, lp);
+        }
         dialog[0] = CanvasSheet.show(a, scroll);
         return dialog[0];
     }

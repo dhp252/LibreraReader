@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of "Your edition" (canvas task t26, Assist.EDITION): the cover and contents, the page
+     reader, "Tidy my words", the PDF export, the finished and refresher cards, and "Add to my
+     edition" on a note of The book, updated. English only, kept out of strings.xml and
+     strings_fork.xml so parallel work does not conflict. -->
+<resources>
+    <string name="canvas_t26_title">Your edition</string>
+    <string name="canvas_t26_back">Back</string>
+    <string name="canvas_t26_loading">Putting your edition together…</string>
+    <string name="canvas_t26_cannot_read">Your edition could not be read. Close it and try again.</string>
+
+    <!-- the cover and contents (canvas "Your edition") -->
+    <string name="canvas_t26_finished_subtitle">%1$s · finished</string>
+    <plurals name="canvas_t26_in_pages">
+        <item quantity="one">in %d page, in your own words</item>
+        <item quantity="other">in %d pages, in your own words</item>
+    </plurals>
+    <plurals name="canvas_t26_from_chapters">
+        <item quantity="one">From %d chapter</item>
+        <item quantity="other">From %d chapters</item>
+    </plurals>
+    <string name="canvas_t26_from_your">%1$s · your %2$s</string>
+    <string name="canvas_t26_kind_recalls">recalls</string>
+    <string name="canvas_t26_kind_misses">misses</string>
+    <string name="canvas_t26_kind_experiments">experiments</string>
+    <string name="canvas_t26_kind_links">links</string>
+    <string name="canvas_t26_kind_questions">questions</string>
+    <string name="canvas_t26_contents">Contents</string>
+    <plurals name="canvas_t26_pages_short">
+        <item quantity="one">%d p</item>
+        <item quantity="other">%d pp</item>
+    </plurals>
+    <string name="canvas_t26_page_short">P. %1$d</string>
+    <string name="canvas_t26_read_it_minutes">Read it · %1$d min</string>
+    <string name="canvas_t26_export_pdf">Export PDF</string>
+    <string name="canvas_t26_next_weeks">Next refresher in %1$d weeks</string>
+    <string name="canvas_t26_next_days">Next refresher in %1$d days</string>
+    <string name="canvas_t26_next_tomorrow">Next refresher tomorrow</string>
+    <string name="canvas_t26_next_now">Your refresher is ready.</string>
+    <string name="canvas_t26_next_on">%1$s · %2$s.</string>
+
+    <!-- the five sections and the labels of their blocks -->
+    <string name="canvas_t26_section_skeleton">The skeleton</string>
+    <string name="canvas_t26_section_words">In your words</string>
+    <string name="canvas_t26_section_wrong">What you got wrong, and the fix</string>
+    <string name="canvas_t26_section_connections">Connections</string>
+    <string name="canvas_t26_section_open">Questions still open</string>
+    <string name="canvas_t26_label_line">The book in one line</string>
+    <string name="canvas_t26_label_tidied">In your words · tidied</string>
+    <string name="canvas_t26_label_explained">You explained · teach-back</string>
+    <string name="canvas_t26_label_tried">Tried it</string>
+    <string name="canvas_t26_label_tried_dates">Tried it · %1$s</string>
+    <string name="canvas_t26_label_note">The book, updated</string>
+    <string name="canvas_t26_label_open">Still open</string>
+    <string name="canvas_t26_label_guess">You guessed wrong</string>
+
+    <!-- sentence frames of the blocks -->
+    <string name="canvas_t26_missed">You missed: %1$s</string>
+    <string name="canvas_t26_unsure">You were unsure of: %1$s</string>
+    <string name="canvas_t26_left_out">You did not get to explain: %1$s</string>
+    <string name="canvas_t26_book_says">The book: “%1$s”</string>
+    <string name="canvas_t26_right_since">Right on every review since %1$s.</string>
+    <string name="canvas_t26_not_yet">Not right yet at the last review, %1$s.</string>
+    <string name="canvas_t26_missed_short">Missed “%1$s” at first</string>
+    <string name="canvas_t26_unsure_short">Unsure of “%1$s” at first</string>
+    <string name="canvas_t26_right_since_short">right on every review since</string>
+    <string name="canvas_t26_measure">%1$s: %2$s → %3$s</string>
+    <string name="canvas_t26_verdict_held">It held.</string>
+    <string name="canvas_t26_verdict_mostly">It mostly held.</string>
+    <string name="canvas_t26_verdict_didnt">It didn\'t hold.</string>
+    <string name="canvas_t26_same">Same idea</string>
+    <string name="canvas_t26_disagrees">Disagrees</string>
+    <string name="canvas_t26_extends">Extends</string>
+    <string name="canvas_t26_debate_on">From your debate on: %1$s</string>
+    <string name="canvas_t26_guess">You guessed %1$s. The book: %2$s.</string>
+    <string name="canvas_t26_how_settled">How settled: %1$s</string>
+    <string name="canvas_t26_settled_established">well established</string>
+    <string name="canvas_t26_settled_debated">debated</string>
+    <string name="canvas_t26_settled_speculative">speculative</string>
+    <string name="canvas_t26_front">Before the first chapter</string>
+    <string name="canvas_t26_pages_from">From page %1$s</string>
+    <string name="canvas_t26_continued">%1$s (continued)</string>
+    <string-array name="canvas_t26_months">
+        <item>Jan</item>
+        <item>Feb</item>
+        <item>Mar</item>
+        <item>Apr</item>
+        <item>May</item>
+        <item>Jun</item>
+        <item>Jul</item>
+        <item>Aug</item>
+        <item>Sep</item>
+        <item>Oct</item>
+        <item>Nov</item>
+        <item>Dec</item>
+    </string-array>
+
+    <!-- the page reader (canvas "Edition page") -->
+    <string name="canvas_t26_page_of">Page %1$d of %2$d</string>
+    <string name="canvas_t26_previous_page">‹ p. %1$d</string>
+    <string name="canvas_t26_next_page">p. %1$d ›</string>
+    <string name="canvas_t26_minute_refresher">%1$d-minute refresher</string>
+
+    <!-- Tidy my words: the one optional AI request -->
+    <string name="canvas_t26_tidy">Tidy my words</string>
+    <string name="canvas_t26_tidy_again">Tidy again</string>
+    <string name="canvas_t26_tidying">Tidying…</string>
+    <plurals name="canvas_t26_tidy_sends">
+        <item quantity="one">Optional. Sends your own recall notes of %d chapter and that chapter\'s idea lines to your AI, once, when you tap the button. No book text is sent. It keeps your wording and adds nothing new.</item>
+        <item quantity="other">Optional. Sends your own recall notes of %d chapters and those chapters\' idea lines to your AI, once, when you tap the button. No book text is sent. It keeps your wording and adds nothing new.</item>
+    </plurals>
+    <string name="canvas_t26_tidied_shown">Tidied, %1$d of %2$d: %3$s</string>
+    <string name="canvas_t26_tidied_hidden">Showing your raw words. Tidied and kept, %1$d of %2$d: %3$s</string>
+    <string name="canvas_t26_show_raw">Back to my raw words</string>
+    <string name="canvas_t26_show_tidied">Show the tidied words</string>
+    <plurals name="canvas_t26_tidy_rejected">
+        <item quantity="one">%d passage came back with words that are not yours and stays as you wrote it.</item>
+        <item quantity="other">%d passages came back with words that are not yours and stay as you wrote them.</item>
+    </plurals>
+    <string name="canvas_t26_tidy_part">Only the first %1$d of %2$d chapters fit one request; the rest stay as you wrote them.</string>
+    <string name="canvas_t26_tidy_unreadable">The AI\'s answer could not be read. Try again.</string>
+
+    <!-- Export PDF -->
+    <string name="canvas_t26_pdf_making">Making the PDF…</string>
+    <string name="canvas_t26_pdf_failed">The PDF could not be made: %1$s</string>
+
+    <!-- nothing in the edition yet: what feeds it -->
+    <string name="canvas_t26_empty_title">Nothing in your edition yet</string>
+    <string name="canvas_t26_empty_text">Your edition is this book in a few pages, made only of what you do in it. These feed it:</string>
+    <string name="canvas_t26_feed_recall">Blank-page recall</string>
+    <string name="canvas_t26_feed_recall_text">What you remembered of a chapter, in your own words, and what you missed with the book\'s words for it.</string>
+    <string name="canvas_t26_feed_teach">Teach-back</string>
+    <string name="canvas_t26_feed_teach_text">The ideas you could explain, and the gaps the book settled.</string>
+    <string name="canvas_t26_feed_use">Use it</string>
+    <string name="canvas_t26_feed_use_text">Experiments you finished: what you tried, your numbers before and during, and the verdict.</string>
+    <string name="canvas_t26_feed_debate">Debate the author</string>
+    <string name="canvas_t26_feed_debate_text">Where you and the author really disagree, as a question still open.</string>
+    <string name="canvas_t26_feed_review">Spaced review</string>
+    <string name="canvas_t26_feed_review_text">How your misses went since, and the connections to other books you added.</string>
+    <string name="canvas_t26_empty_note">Each has its own switch in Preferences > Assisted reading and its row in this menu. Making the edition sends nothing to the AI.</string>
+
+    <!-- the cards over the page -->
+    <string name="canvas_t26_finished">You finished it. Your edition is ready.</string>
+    <string name="canvas_t26_finished_line">The book in a few pages, from your own recalls, misses and links.</string>
+    <string name="canvas_t26_open_it">Open it</string>
+    <string name="canvas_t26_not_now">Not now</string>
+    <string name="canvas_t26_refresher_ready">Your %1$d-minute refresher is ready</string>
+    <string name="canvas_t26_refresher_line">Six weeks on: read your edition again before it fades.</string>
+    <string name="canvas_t26_read_it">Read it</string>
+    <string name="canvas_t26_later">Later</string>
+
+    <!-- on a note of The book, updated -->
+    <string name="canvas_t26_add_note">Add to my edition</string>
+    <string name="canvas_t26_note_added">In my edition ✓</string>
+    <string name="canvas_t26_note_failed">The note could not be saved.</string>
+</resources>

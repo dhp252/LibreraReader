@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of "Spaced review", second part (canvas task t25, Assist.REVIEW): the connection
+     card, the Connections list and "One idea's memory". English only, kept out of strings.xml
+     and strings_fork.xml so parallel work does not conflict. -->
+<resources>
+    <!-- the ✦ menu's row, the Connections list -->
+    <string name="canvas_t25_connections">Connections</string>
+    <string name="canvas_t25_a_connection">a connection</string>
+    <string name="canvas_t25_section_new">New</string>
+    <string name="canvas_t25_section_map">On your map</string>
+    <string name="canvas_t25_empty">No connections yet. “Find connections” looks for ideas of this book that meet ideas of other books you read. You decide which ones are real.</string>
+    <string name="canvas_t25_sends">Sends this book\'s stored key ideas and the stored ideas or chapter lines of up to 8 other books to your AI, once. No text of a book is sent.</string>
+    <string name="canvas_t25_find">Find connections</string>
+    <string name="canvas_t25_finding">Looking for connections…</string>
+    <string name="canvas_t25_none_found">No connection was found between this book and your other books.</string>
+    <string name="canvas_t25_none_new">Nothing new: what was found is already on this list or was set aside by you.</string>
+    <string name="canvas_t25_no_ideas_here">This book has no stored ideas yet. Mark a chapter\'s key passages first (✦ → Key passages), then look for connections.</string>
+    <string name="canvas_t25_no_other_books">No other book of your library has stored ideas yet, so there is nothing to connect this book to.</string>
+    <string name="canvas_t25_no_ai">No AI is set up. Set up AI in Preferences to look for connections.</string>
+
+    <!-- the connection card -->
+    <string name="canvas_t25_from_library">From your library</string>
+    <string name="canvas_t25_same_years">Same idea, %1$d years apart</string>
+    <string name="canvas_t25_same_two">Same idea, two books</string>
+    <string name="canvas_t25_disagree_head">Two books disagree</string>
+    <string name="canvas_t25_extends_head">One idea builds on the other</string>
+    <string name="canvas_t25_word_same">same idea</string>
+    <string name="canvas_t25_word_disagrees">disagrees</string>
+    <string name="canvas_t25_word_extends">builds on</string>
+    <string name="canvas_t25_ai_says">The AI\'s reading of your two stored ideas: %1$s</string>
+    <string name="canvas_t25_ask_same">In one sentence, how are they the same?</string>
+    <string name="canvas_t25_ask_disagrees">In one sentence, where do they disagree?</string>
+    <string name="canvas_t25_ask_extends">In one sentence, what does one add to the other?</string>
+    <string name="canvas_t25_hint_same">Both say that…</string>
+    <string name="canvas_t25_hint_disagrees">One says…, the other says…</string>
+    <string name="canvas_t25_hint_extends">The second one adds that…</string>
+    <string name="canvas_t25_also">Also linked to this idea</string>
+    <string name="canvas_t25_also_honest">Not from your library: this is what the AI knows about other works. It is not a quote and may be wrong.</string>
+    <string name="canvas_t25_tag_disagrees">Disagrees</string>
+    <string name="canvas_t25_tag_extends">Extends</string>
+    <string name="canvas_t25_not_same">Not the same</string>
+    <string name="canvas_t25_not_linked">Not linked</string>
+    <string name="canvas_t25_add_to_map">Add to my map</string>
+    <string name="canvas_t25_added">Added to your map</string>
+    <string name="canvas_t25_not_saved">This connection could not be saved</string>
+
+    <!-- Today's review and the session -->
+    <string name="canvas_t25_chip_link_one">1 new connection</string>
+    <string name="canvas_t25_new_link_to">new link to %1$s</string>
+    <string name="canvas_t25_n_connection">%1$s · a connection</string>
+    <string name="canvas_t25_idea_memory">This idea\'s memory ›</string>
+
+    <!-- One idea's memory -->
+    <string name="canvas_t25_memory_title">One idea\'s memory</string>
+    <string name="canvas_t25_idea">Idea</string>
+    <string name="canvas_t25_chance">estimated chance you\'d recall it today</string>
+    <string name="canvas_t25_next_then">next review, then %1$s</string>
+    <string name="canvas_t25_how_well">How well you\'d remember it</string>
+    <string name="canvas_t25_estimated">estimated</string>
+    <string name="canvas_t25_missed">missed</string>
+    <string name="canvas_t25_review_near">review near %1$d%%</string>
+    <string name="canvas_t25_if_today">if reviewed today</string>
+    <string name="canvas_t25_if_then">if reviewed then</string>
+    <string name="canvas_t25_curve_says">An estimated curve of how well you would remember this idea: it falls after each review and falls more slowly each time.</string>
+    <string name="canvas_t25_today_is">%1$s · today</string>
+    <string name="canvas_t25_history">History</string>
+    <string name="canvas_t25_past_recall">Blank-page recall</string>
+    <string name="canvas_t25_past_review">Review</string>
+    <string name="canvas_t25_past_added">Added to your review</string>
+    <string name="canvas_t25_past_note">Added from a note</string>
+    <string name="canvas_t25_remembered">remembered</string>
+    <string name="canvas_t25_right">right</string>
+    <string name="canvas_t25_not_right">not right</string>
+    <string name="canvas_t25_back">back %1$s</string>
+    <string name="canvas_t25_review_now">Review it now</string>
+    <string name="canvas_t25_one_idea">One idea</string>
+</resources>
