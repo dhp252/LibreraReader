@@ -32,7 +32,9 @@ public class ReviewScheduleTest {
         ReviewSchedule.answer(i, true, "2026-10-27");
         assertEquals(2, i.strength);
         assertEquals("2026-10-30", i.due);
-        assertEquals(ReviewItem.FADING, i.reason);
+        // it keeps the reason it came with; the screens call it fading from now on
+        assertEquals(ReviewItem.MISSED, i.reason);
+        assertEquals(ReviewItem.FADING, i.label());
         assertArrayEquals(new int[]{3, 8, 21}, ReviewSchedule.ahead(i, 2));
 
         ReviewSchedule.answer(i, true, "2026-10-30");
@@ -89,10 +91,24 @@ public class ReviewScheduleTest {
     }
 
     @Test
-    public void aNoteKeepsItsReason() {
-        final ReviewItem i = item(1, "2026-11-07", ReviewItem.NOTE);
-        ReviewSchedule.answer(i, true, "2026-11-07");
-        assertEquals(ReviewItem.NOTE, i.reason);
+    public void theLabelFollowsTheLastMissAndTheAnswersSince() {
+        final ReviewItem i = item(1, "2026-10-27", ReviewItem.MISSED);
+        assertEquals(ReviewItem.MISSED, i.label());
+        i.add(new ReviewItem.Past("2026-10-26", ReviewItem.RECALL, false, 1));
+        ReviewSchedule.answer(i, false, "2026-10-27");
+        assertEquals(ReviewItem.MISSED, i.label());
+        ReviewSchedule.answer(i, true, "2026-10-28");
+        assertEquals(ReviewItem.FADING, i.label());
+        // missed again in a later recall
+        i.add(new ReviewItem.Past("2026-11-01", ReviewItem.RECALL, false, 1));
+        assertEquals(ReviewItem.MISSED, i.label());
+        assertEquals(ReviewItem.MISSED, i.reason);
+
+        final ReviewItem note = item(1, "2026-11-07", ReviewItem.NOTE);
+        ReviewSchedule.answer(note, true, "2026-11-07");
+        assertEquals(ReviewItem.NOTE, note.reason);
+        assertEquals(ReviewItem.NOTE, note.label());
+        assertEquals(ReviewItem.FADING, item(2, "2026-11-07", ReviewItem.FADING).label());
     }
 
     @Test
@@ -119,7 +135,7 @@ public class ReviewScheduleTest {
         // the names another feature reads
         assertEquals("Time is lost switching between tasks", o.getString("idea"));
         assertEquals("Of the Division of Labour", o.getString("chapterTitle"));
-        assertEquals("fading", o.getString("reason"));
+        assertEquals("missed", o.getString("reason"));
         assertEquals(2, o.getInt("strength"));
         assertEquals("2026-10-30", o.getString("due"));
         final JSONObject past = o.getJSONArray("history").getJSONObject(0);

@@ -199,7 +199,7 @@ final class ReviewTodayScreen {
         tp.rightMargin = dp(12);
         row.addView(texts, tp);
 
-        final boolean missed = ReviewItem.MISSED.equals(e.item.reason);
+        final boolean missed = ReviewItem.MISSED.equals(e.item.label());
         final View bars = new ReviewViews.Bars(a, e.item.strength, missed);
         row.addView(bars);
         row.setContentDescription(e.item.idea + ". " + line.getText() + ". "
@@ -216,8 +216,9 @@ final class ReviewTodayScreen {
     /** "Smith · missed in recall" (the reason in orange), "Smith · fading, <chapter>". */
     private CharSequence line(ReviewQueue.Entry e) {
         final String who = ReviewText.who(e.author, e.bookTitle);
-        final String reason = ReviewWords.reason(a, e.item.reason);
-        final boolean recall = ReviewItem.MISSED.equals(e.item.reason) || ReviewItem.UNSURE.equals(e.item.reason);
+        final String label = e.item.label();
+        final String reason = ReviewWords.reason(a, label);
+        final boolean recall = ReviewItem.MISSED.equals(label) || ReviewItem.UNSURE.equals(label);
         final String tail = recall || e.item.chapterTitle.isEmpty() ? reason : reason + ", " + e.item.chapterTitle;
         final SpannableString s = new SpannableString(who + " · " + tail);
         if (recall) {

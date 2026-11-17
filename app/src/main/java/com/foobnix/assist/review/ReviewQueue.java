@@ -122,11 +122,11 @@ public final class ReviewQueue {
         return due.size() > max ? new ArrayList<>(due.subList(0, Math.max(0, max))) : due;
     }
 
-    /** How many of {@code list} are in the queue for {@code reason}. */
-    public static int count(List<Entry> list, String reason) {
+    /** How many of {@code list} the screens show as {@code label} (see {@link ReviewItem#label()}). */
+    public static int count(List<Entry> list, String label) {
         int n = 0;
         for (Entry e : list) {
-            if (reason.equals(e.item.reason)) {
+            if (label.equals(e.item.label())) {
                 n++;
             }
         }

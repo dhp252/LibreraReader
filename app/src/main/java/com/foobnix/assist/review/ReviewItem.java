@@ -58,6 +58,10 @@ public final class ReviewItem {
     public String id = "";
     public String idea = "";
     public String chapterTitle = "";
+    /**
+     * Why the idea entered the queue; it stays, so another feature can tell what was missed at
+     * first ({@link #label()} is what the screens show now).
+     */
     public String reason = FADING;
     /** "memory n of 5". */
     public int strength;
@@ -85,6 +89,26 @@ public final class ReviewItem {
     /** An id safe after the key's last colon. */
     public static String id(String id) {
         return id == null ? "" : id.trim().replace(':', '_');
+    }
+
+    /**
+     * What the screens say of the idea now: {@link #MISSED} or {@link #UNSURE} until it was
+     * answered right after that recall, then {@link #FADING}; a note stays a {@link #NOTE}.
+     */
+    public String label() {
+        if (!MISSED.equals(reason) && !UNSURE.equals(reason)) {
+            return reason;
+        }
+        for (int i = history.size() - 1; i >= 0; i--) {
+            final Past p = history.get(i);
+            if (RECALL.equals(p.kind) && !p.right) {
+                return reason;
+            }
+            if (REVIEW.equals(p.kind) && p.right) {
+                return FADING;
+            }
+        }
+        return reason;
     }
 
     /** The day of the last history entry, or empty. */

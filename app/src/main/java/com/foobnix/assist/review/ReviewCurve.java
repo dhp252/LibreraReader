@@ -178,7 +178,6 @@ public final class ReviewCurve {
         copy.strength = item.strength;
         copy.gap = item.gap;
         copy.due = item.due;
-        copy.reason = item.reason;
         ReviewSchedule.answer(copy, true, day);
         return copy;
     }

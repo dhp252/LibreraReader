@@ -59,9 +59,6 @@ public final class ReviewSchedule {
             }
             item.gap = gapAfterRight(item.strength, item.gap);
             item.strength = ReviewItem.strength(item.strength + 1);
-            if (!ReviewItem.NOTE.equals(item.reason)) {
-                item.reason = ReviewItem.FADING;
-            }
         } else {
             item.strength = ReviewItem.strength(item.strength - 1);
             item.gap = FIRST_GAP;

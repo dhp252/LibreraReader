@@ -185,14 +185,19 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
                 : a.getString(R.string.canvas_t24_n_of, index + 1, cards.size()) + " · " + ReviewWords.about(a, cards.size()));
 
         if (!answered) {
-            // why this idea is asked today
+            // why this idea is asked today: how it came here, and that it is fading now
+            final String label = item.label();
             final boolean recall = ReviewItem.MISSED.equals(item.reason) || ReviewItem.UNSURE.equals(item.reason);
-            final TextView reason = ReviewPage.chip(a, ReviewWords.reason(a, item.reason),
-                    recall ? ReviewPage.CHIP_MISSED : ReviewPage.CHIP_PLAIN);
-            final TextView dueChip = ReviewPage.chip(a, ReviewWords.due(a, item.due, today), ReviewPage.CHIP_PLAIN);
+            final boolean fading = ReviewItem.FADING.equals(label);
+            final String due = ReviewWords.due(a, item.due, today);
+            final TextView dueChip = ReviewPage.chip(a, fading ? ReviewWords.reason(a, label) + " · " + due : due,
+                    ReviewPage.CHIP_PLAIN);
             dueChip.setBackground(CanvasParts.round(CanvasLook.surface2(), 0, dp(7)));
-            final LinearLayout why = ReviewPage.row(a, ReviewPage.label(a, a.getString(R.string.canvas_t24_why), false),
-                    reason, dueChip);
+            final TextView whyLabel = ReviewPage.label(a, a.getString(R.string.canvas_t24_why), false);
+            final LinearLayout why = recall || !fading
+                    ? ReviewPage.row(a, whyLabel, ReviewPage.chip(a, ReviewWords.reason(a, recall ? item.reason : label),
+                    recall ? ReviewPage.CHIP_MISSED : ReviewPage.CHIP_PLAIN), dueChip)
+                    : ReviewPage.row(a, whyLabel, dueChip);
             why.setPadding(dp(4), 0, 0, 0);
             page.add(why, 14);
         }
