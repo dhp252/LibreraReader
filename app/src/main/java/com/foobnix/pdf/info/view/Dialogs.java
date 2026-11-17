@@ -486,6 +486,9 @@ public class Dialogs {
         });
         create = builder.create();
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
 
         create.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
 
@@ -574,6 +577,9 @@ public class Dialogs {
             Keyboards.hideNavigation(a);
         });
         dialog.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(dialog);
+        }
     }
 
     public static void testWebView(final Activity a, final String path) {
@@ -640,7 +646,10 @@ public class Dialogs {
             }
         });
 
-        builder.show();
+        final AlertDialog shown = builder.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(shown);
+        }
     }
 
     public static void showLinksColorDialog(final Activity a, final Runnable action) {
@@ -732,6 +741,9 @@ public class Dialogs {
             }
         });
         AlertDialog dialog = builder.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(dialog);
+        }
         dialog.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
 
     }
@@ -827,6 +839,9 @@ public class Dialogs {
 
 
         AlertDialog create = builder.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.style(create);
+        }
 
         create.setOnDismissListener(new OnDismissListener() {
             @Override
@@ -892,6 +907,9 @@ public class Dialogs {
             }
         });
         alertDialog.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.style(alertDialog);
+        }
     }
 
     public static void showDeltaPage(final FrameLayout anchor,
@@ -952,6 +970,9 @@ public class Dialogs {
             }
         });
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
     }
 
     public static void showContrastDialogByUrl(final Activity c, final Runnable action) {
@@ -972,7 +993,10 @@ public class Dialogs {
 
             }
         });
-        builder.show();
+        final AlertDialog shown = builder.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(shown);
+        }
     }
 
     public static LinearLayout getBCView(final Activity c, final Runnable action) {
@@ -1124,6 +1148,9 @@ public class Dialogs {
             }
         });
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
 
         create.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new OnClickListener() {
 
@@ -1300,6 +1327,9 @@ public class Dialogs {
             }
         });
         create.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(create);
+        }
 
     }
 
@@ -1340,7 +1370,10 @@ public class Dialogs {
 
             }
         });
-        builder.show();
+        final AlertDialog shown = builder.show();
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasDialogs.styleBuilt(shown);
+        }
 
     }
 

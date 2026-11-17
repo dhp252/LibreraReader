@@ -1073,6 +1073,9 @@ public class DragingDialogs {
                         TTSEngine.get().stop();
                         AppState.get().ttsSpeed = (float) result / 100;
                         LOG.d("TTS-ttsSpeed 2", AppState.get().ttsSpeed);
+                        if (com.foobnix.canvas.CanvasLook.isOn()) {
+                            com.foobnix.canvas.dialogs.CanvasTts.speedChanged(view);
+                        }
                         return false;
                     }
                 });
@@ -1488,6 +1491,10 @@ public class DragingDialogs {
                 // The links in this dialog are drawn as ringed buttons, as the settings panel
                 // draws its own.
                 TintUtil.asLinkButtons(view);
+                // the canvas look (T9): the sheet and its controls after the Listening artboard
+                if (com.foobnix.canvas.CanvasLook.isOn()) {
+                    com.foobnix.canvas.dialogs.CanvasTts.dialog(view, tts, seekBarSpeed);
+                }
 
 
                 return view;

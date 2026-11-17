@@ -59,6 +59,10 @@ final class StudyCardView {
         close.setOnClickListener(v -> close());
         top.addView(close, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         card.addView(top);
+        // the canvas look (T9): the tinted "This section answers" card
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.card(card, close);
+        }
 
         final FrameLayout content = activity.findViewById(android.R.id.content);
         final FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
@@ -82,12 +86,18 @@ final class StudyCardView {
             s.setSpan(new android.text.style.ForegroundColorSpan(color(label)), text.length() + 2, s.length(), 0);
             t.setText(s);
         }
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.cardTitle(t);
+        }
         body.addView(t);
     }
 
     void line(String text) {
         final TextView t = text(text, 14, DIM, false);
         t.setPadding(0, Dips.dpToPx(3), 0, 0);
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.cardLine(t);
+        }
         body.addView(t);
     }
 
@@ -97,10 +107,16 @@ final class StudyCardView {
         }
         final TextView h = text(heading, 14, TEXT, true);
         h.setPadding(0, Dips.dpToPx(6), 0, 0);
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.cardHeading(h);
+        }
         body.addView(h);
         for (int i = 0; i < items.size(); i++) {
             final TextView t = text((i + 1) + ". " + items.get(i), 14, TEXT, false);
             t.setPadding(Dips.dpToPx(4), Dips.dpToPx(2), 0, 0);
+            if (com.foobnix.canvas.CanvasLook.isOn()) {
+                com.foobnix.canvas.dialogs.CanvasStudy.cardItem(t);
+            }
             body.addView(t);
         }
     }
@@ -109,6 +125,9 @@ final class StudyCardView {
     void divider() {
         final View v = new View(activity);
         v.setBackgroundColor(0x40ffffff);
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.cardDivider(v);
+        }
         final LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Dips.dpToPx(1));
         p.topMargin = Dips.dpToPx(8);
         p.bottomMargin = Dips.dpToPx(8);
@@ -133,6 +152,9 @@ final class StudyCardView {
         final TypedValue ripple = new TypedValue();
         activity.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
         b.setBackgroundResource(ripple.resourceId);
+        if (com.foobnix.canvas.CanvasLook.isOn()) {
+            com.foobnix.canvas.dialogs.CanvasStudy.cardButton(b);
+        }
         b.setOnClickListener(v -> {
             if (closes) {
                 hide();

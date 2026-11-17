@@ -201,6 +201,12 @@ public class MyPopupMenu {
                 } else {
                     imageView.setVisibility(View.GONE);
                 }
+                // the canvas look (T9): 15sp rows in ink, heads as mono labels, icons in ink-2
+                if (com.foobnix.canvas.CanvasLook.isOn()) {
+                    com.foobnix.canvas.dialogs.CanvasDialogs.menuRow(layout, item.isTitle,
+                            TxtUtils.isNotEmpty(item.fontPath),
+                            item.iconRes != R.mipmap.icon_pdf_pro && item.active == null);
+                }
                 if (item.isTitle) {
                     layout.setOnClickListener(null);
                     layout.setOnLongClickListener(null);
@@ -288,6 +294,9 @@ public class MyPopupMenu {
             //p1.setWidth(ListPopupWindow.MATCH_PARENT);
             //p1.setDropDownGravity(Gravity.CENTER);
 
+            if (com.foobnix.canvas.CanvasLook.isOn()) {
+                com.foobnix.canvas.dialogs.CanvasDialogs.popup(p1, c);
+            }
             try {
                 p1.show();
             }catch (Exception e) {
@@ -303,7 +312,10 @@ public class MyPopupMenu {
             list.setDivider(null);
             list.setAdapter(a);
             builder.setView(list);
-            builder.show();
+            final AlertDialog shown = builder.show();
+            if (com.foobnix.canvas.CanvasLook.isOn()) {
+                com.foobnix.canvas.dialogs.CanvasDialogs.style(shown);
+            }
         }
 
     }
