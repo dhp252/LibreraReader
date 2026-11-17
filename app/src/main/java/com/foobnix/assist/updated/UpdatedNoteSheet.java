@@ -22,8 +22,8 @@ import com.foobnix.pdf.info.R;
  * One note of "The book, updated" as a bottom sheet (canvas UpdatedNote): its kind and title, the
  * note, "In your terms" when the reader has a lens and the note has it, how settled it is, its
  * source or "No source given", and always the line that the AI wrote it from its own knowledge.
- * The canvas's "Quiz me later" and "Add to my edition" belong to Spaced review and Your edition
- * and are not here yet; "Go to the sentence" stands in.
+ * "Quiz me later" is Spaced review's and shows only while that switch is on; the canvas's "Add
+ * to my edition" belongs to Your edition and is not here yet; "Go to the sentence" stands in.
  */
 final class UpdatedNoteSheet {
 
@@ -35,6 +35,11 @@ final class UpdatedNoteSheet {
      * @param go   goes to the note's sentence, or null for no button
      */
     static Dialog show(Activity a, UpdatedNote note, boolean lens, Runnable go) {
+        return show(a, note, lens, go, null);
+    }
+
+    /** @param quiz "Quiz me later" (Spaced review, only while its switch is on), or null for no such button */
+    static Dialog show(Activity a, UpdatedNote note, boolean lens, Runnable go, Runnable quiz) {
         final LinearLayout box = UpdatedParts.column(a);
         final Dialog[] dialog = new Dialog[1];
 
@@ -127,6 +132,18 @@ final class UpdatedNoteSheet {
                 go.run();
             });
             final LinearLayout.LayoutParams lp = UpdatedParts.wide(14);
+            lp.height = CanvasLook.dp(48);
+            box.addView(button, lp);
+        }
+
+        if (quiz != null) {
+            final TextView button = UpdatedParts.button(a, a.getString(R.string.canvas_t24_quiz_later), false);
+            button.setOnClickListener(v -> {
+                button.setEnabled(false);
+                button.setAlpha(0.4f);
+                quiz.run();
+            });
+            final LinearLayout.LayoutParams lp = UpdatedParts.wide(go != null ? 8 : 14);
             lp.height = CanvasLook.dp(48);
             box.addView(button, lp);
         }

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of "Spaced review" (canvas task t24, Assist.REVIEW): Today's review, the scenario
+     cards, the banner and the card that say what is due. English only, kept out of strings.xml
+     and strings_fork.xml so parallel work does not conflict. -->
+<resources>
+    <string name="canvas_t24_title">Spaced review</string>
+    <string name="canvas_t24_today">Today\'s review</string>
+
+    <!-- the ✦ menu and "Quiz me later" on a note of The book, updated -->
+    <string name="canvas_t24_add_chapter">Review this chapter\'s ideas</string>
+    <string name="canvas_t24_no_passages">This chapter has no key passages yet. Mark its key passages first (✦ → Key passages), then add its ideas here.</string>
+    <string name="canvas_t24_added">%1$s added to your review</string>
+    <string name="canvas_t24_already_in">This chapter\'s ideas are already in your review</string>
+    <string name="canvas_t24_quiz_later">Quiz me later</string>
+    <string name="canvas_t24_quiz_added">Added to your review. It comes back tomorrow.</string>
+    <string name="canvas_t24_quiz_already">This note is already in your review</string>
+
+    <!-- counts and waits -->
+    <string name="canvas_t24_idea_one">1 idea</string>
+    <string name="canvas_t24_idea_many">%1$d ideas</string>
+    <string name="canvas_t24_min">%1$d min</string>
+    <string name="canvas_t24_about_min">about %1$d min</string>
+    <string name="canvas_t24_tomorrow">tomorrow</string>
+    <string name="canvas_t24_days">%1$d days</string>
+    <string name="canvas_t24_weeks">%1$d weeks</string>
+    <string name="canvas_t24_in">in %1$s</string>
+    <string name="canvas_t24_today_word">Today</string>
+
+    <!-- what is due: the main screen's banner and the card in a book -->
+    <string name="canvas_t24_banner">%1$s to review · %2$s</string>
+    <string name="canvas_t24_card_line">Scenario questions about ideas you read, mixed across your books. Only here in the app: nothing is ever sent as a notification.</string>
+    <string name="canvas_t24_review_now">Review now</string>
+    <string name="canvas_t24_later">Later</string>
+
+    <!-- Today's review (canvas ReviewToday) -->
+    <string name="canvas_t24_loading">Looking at what is due…</string>
+    <string name="canvas_t24_mixed">Mixed across %1$d books</string>
+    <string name="canvas_t24_due_today">due today</string>
+    <string name="canvas_t24_due_yesterday">due yesterday</string>
+    <string name="canvas_t24_due_ago">due %1$d days ago</string>
+    <string name="canvas_t24_chip_missed">%1$d missed in recall</string>
+    <string name="canvas_t24_chip_fading">%1$d fading</string>
+    <string name="canvas_t24_chip_notes">%1$d from notes</string>
+    <string name="canvas_t24_reason_missed">missed in recall</string>
+    <string name="canvas_t24_reason_unsure">unsure in recall</string>
+    <string name="canvas_t24_reason_fading">fading</string>
+    <string name="canvas_t24_reason_note">from a note</string>
+    <string name="canvas_t24_memory">memory %1$d of %2$d</string>
+    <string name="canvas_t24_strength">memory strength</string>
+    <string name="canvas_t24_next">Next: %1$d tomorrow · %2$d this week</string>
+    <string name="canvas_t24_start">Start · %1$s</string>
+    <string name="canvas_t24_empty">No ideas to review yet. They come from three places: a blank-page recall at the end of a chapter (what you missed comes back the next day), “Review this chapter\'s ideas” in the ✦ menu of a book, and “Quiz me later” on a note of The book, updated.</string>
+    <string name="canvas_t24_none_due">Nothing is due today. Ideas come back on their own day, when you open the app or a book.</string>
+    <string name="canvas_t24_day_done">You answered today\'s %1$d cards. The rest waits for tomorrow.</string>
+
+    <!-- a session (canvas Review, ReviewCorrect) -->
+    <string name="canvas_t24_writing">Writing today\'s questions…</string>
+    <string name="canvas_t24_sends">Sends the ideas that are due and other ideas you stored from the same books to your AI, once. No text of a book is sent.</string>
+    <string name="canvas_t24_no_ai">No AI is set up, so the cards ask which idea it is instead of giving a scenario. Set up AI in Preferences for scenario questions.</string>
+    <string name="canvas_t24_no_scenarios">The scenarios could not be written (%1$s), so the cards ask which idea it is.</string>
+    <string name="canvas_t24_n_of">%1$d of %2$d</string>
+    <string name="canvas_t24_why">Why this one</string>
+    <string name="canvas_t24_scenario">Scenario</string>
+    <string name="canvas_t24_which_idea">Which idea is this?</string>
+    <string name="canvas_t24_correct">Correct</string>
+    <string name="canvas_t24_right">Right: %1$s</string>
+    <string name="canvas_t24_not_quite">Not quite.</string>
+    <string name="canvas_t24_back_right">It comes back %1$s, then %2$s.</string>
+    <string name="canvas_t24_back_wrong">It comes back tomorrow.</string>
+    <string name="canvas_t24_back_second">Your first answer counts, so it still comes back tomorrow.</string>
+    <string name="canvas_t24_try_again">Try again</string>
+    <string name="canvas_t24_comes_back">Comes back</string>
+    <string name="canvas_t24_gaps_grow">gaps grow as it sticks</string>
+    <string name="canvas_t24_explain_more">Explain more</string>
+    <string name="canvas_t24_next_card">Next card →</string>
+    <string name="canvas_t24_done">Done</string>
+    <string name="canvas_t24_not_saved">This answer could not be saved</string>
+    <string name="canvas_t24_session_done">Done for today</string>
+    <string name="canvas_t24_score">%1$d of %2$d right the first time</string>
+</resources>
