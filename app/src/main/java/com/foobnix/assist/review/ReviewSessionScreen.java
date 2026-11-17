@@ -287,6 +287,8 @@ final class ReviewSessionScreen implements ReviewJob.Screen {
         } else if (!shown && !option.tag.isEmpty()) {
             // the chapter the idea is from, as the canvas's "CH. 1"
             final TextView tag = ReviewPage.label(a, option.tag, false);
+            // a chapter's title stays as it is written
+            tag.setAllCaps(false);
             tag.setSingleLine(true);
             tag.setEllipsize(TextUtils.TruncateAt.END);
             tag.setMaxWidth(dp(96));
