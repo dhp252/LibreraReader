@@ -2330,6 +2330,10 @@ public class DragingDialogs {
                 if (com.foobnix.assist.Assist.PICTURES.isOn()) {
                     com.foobnix.assist.pictures.PictureSelection.addTo(dictLayout, controller, editText, () -> closeDialog());
                 }
+                // Fiction companion (canvas, Assist.FICTION): "Who is …?" for a selected name of the stored cast
+                if (com.foobnix.assist.Assist.FICTION.isOn()) {
+                    com.foobnix.assist.fiction.FictionNameCard.addTo(dictLayout, controller, editText, () -> closeDialog());
+                }
 
                 view.findViewById(R.id.onUnderline).
 

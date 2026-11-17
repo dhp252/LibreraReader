@@ -100,6 +100,9 @@ public final class AiNotifications {
         if (AiTask.SKELETON.equals(kind)) {
             return c.getString(R.string.canvas_t13_skeleton_first);
         }
+        if (AiTask.FICTION_CAST.equals(kind)) {
+            return c.getString(R.string.canvas_t29_whos_who);
+        }
         return c.getString(R.string.ai_task_highlights);
     }
 
