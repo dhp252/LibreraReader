@@ -463,6 +463,24 @@ public class AppState {
     public boolean isBgFullScreen = true;
     // the reader's bars are a light (at night a dark) sheet with ink marks, not the theme colour (ReaderChrome)
     public boolean isPaperChrome = true;
+    // the whole app in the look of the "Book That Reads You Back" canvas (canvas.CanvasLook); off = the old look
+    public boolean isCanvasLook = true;
+    // assisted-reading features of the canvas (assist.Assist), each off until turned on
+    public boolean isAssistRecap = false;
+    public boolean isAssistPreQuestions = false;
+    public boolean isAssistXray = false;
+    public boolean isAssistSkeleton = false;
+    public boolean isAssistLens = false;
+    public boolean isAssistZoom = false;
+    public boolean isAssistRecall = false;
+    public boolean isAssistPath = false;
+    public boolean isAssistUpdated = false;
+    public boolean isAssistUseIt = false;
+    public boolean isAssistReview = false;
+    public boolean isAssistEdition = false;
+    public boolean isAssistPictures = false;
+    public boolean isAssistFiction = false;
+    public boolean isAssistReadsYou = false;
     public String appLang = AppState.MY_SYSTEM_LANG;
     public boolean isPrefFormatMode = false;
     public String prefScrollMode = PREF_SCROLL_MODE;

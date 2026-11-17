@@ -5703,6 +5703,7 @@ public class DragingDialogs {
                 // the bars as a sheet with ink marks rather than in the theme colour (ReaderChrome)
                 final CheckBox isPaperChrome = inflate.findViewById(R.id.isPaperChrome);
                 isPaperChrome.setChecked(AppState.get().isPaperChrome);
+                isPaperChrome.setEnabled(com.foobnix.canvas.CanvasLook.isOn()); // only drawn in the canvas look
                 isPaperChrome.setOnCheckedChangeListener((buttonView, isChecked) -> {
                     AppState.get().isPaperChrome = isChecked;
                     if (onRefresh != null) {
