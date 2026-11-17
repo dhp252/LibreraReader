@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Semantic zoom extras (canvas T16, Assist.ZOOM): the author's original, the reading goal, the X-ray button. English only. -->
+<resources>
+    <string name="zoom_t16_lean_hint">Condensed. Tap any sentence for the author\'s own words.</string>
+    <string name="zoom_original">Author\'s original</string>
+    <string name="zoom_original_para">Author\'s original · %1$s</string>
+    <string name="zoom_original_finding">Finding the author\'s words…</string>
+    <string name="zoom_original_missing">Original not found</string>
+    <string name="zoom_original_missing_note">This sentence could not be tied to words of the chapter, so it cannot be checked against the book here.</string>
+    <string name="zoom_original_collapse">Collapse the original</string>
+    <string name="zoom_go_to_it">Go to it</string>
+    <string name="zoom_copy_quote">Copy quote</string>
+    <string name="zoom_xray">X-ray</string>
+    <string name="zoom_goal_title">Reading goal</string>
+    <string name="zoom_goal_question">Why are you reading this?</string>
+    <string name="zoom_goal_why">Your answer decides what gets squeezed and what stays in full.</string>
+    <string name="zoom_goal_ideas">Get the big ideas</string>
+    <string name="zoom_goal_ideas_info">Claims, plus the best example for each</string>
+    <string name="zoom_goal_work">Use it at work</string>
+    <string name="zoom_goal_work_info">Keep anything about teams, process and tools</string>
+    <string name="zoom_goal_discuss">Prepare to discuss it</string>
+    <string name="zoom_goal_discuss_info">Keep arguments, objections and quotable lines</string>
+    <string name="zoom_goal_study">Study it closely</string>
+    <string name="zoom_goal_study_info">Keep everything; zoom out only when I ask</string>
+    <string name="zoom_goal_own">In your own words</string>
+    <string name="zoom_goal_optional">(optional)</string>
+    <string name="zoom_goal_own_hint">e.g. how this applies to running my team</string>
+    <string name="zoom_goal_from_book">From this book\'s reading goal (✦ › Key passages › Reading goal). Changing it here changes it for Semantic zoom only.</string>
+    <string name="zoom_goal_changes">What this changes in this chapter</string>
+    <string name="zoom_goal_changes_later">What this goal keeps in full and what it squeezes shows here once this chapter is condensed for it.</string>
+    <string name="zoom_goal_kept">Kept in full</string>
+    <string name="zoom_goal_squeezed">Squeezed</string>
+    <string name="zoom_goal_start">Start reading</string>
+    <string name="zoom_goal_change_note">Change it any time from the zoom bar.</string>
+    <string name="zoom_goal_bar">Goal: %1$s ›</string>
+    <string name="zoom_goal_bar_none">Set a reading goal ›</string>
+    <string name="zoom_goal_stale">This chapter was condensed for another reading goal.</string>
+</resources>
