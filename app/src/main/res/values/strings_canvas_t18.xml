@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of teach-back (task t18, canvas "Teach-back"). English only, kept out of strings.xml
+     and strings_fork.xml so parallel work does not conflict. -->
+<resources>
+    <string name="canvas_t18_title">Teach-back</string>
+    <string name="canvas_t18_sub">Explain %1$s to a curious beginner</string>
+    <string name="canvas_t18_back">Back</string>
+    <string name="canvas_t18_beginner_asks">A curious beginner asks</string>
+    <string name="canvas_t18_explain">Explain it to me</string>
+    <string name="canvas_t18_opener">I haven\'t read this chapter. What\'s the main thing it says?</string>
+    <string name="canvas_t18_opening">…</string>
+    <string name="canvas_t18_reading">Give me a moment, I\'m finding out what this chapter is about…</string>
+    <string name="canvas_t18_beginner_says">The beginner: %1$s</string>
+    <plurals name="canvas_t18_explained">
+        <item quantity="one">%1$d of %2$d idea explained</item>
+        <item quantity="other">%1$d of %2$d ideas explained</item>
+    </plurals>
+    <plurals name="canvas_t18_gaps">
+        <item quantity="one">%1$d gap found</item>
+        <item quantity="other">%1$d gaps found</item>
+    </plurals>
+    <string name="canvas_t18_gap_found">Gap found</string>
+    <string name="canvas_t18_see_page">See p. %1$d</string>
+    <string name="canvas_t18_see_book">See it in the book</string>
+    <string name="canvas_t18_spoken">spoken</string>
+    <string name="canvas_t18_hint">Explain it in your words…</string>
+    <string name="canvas_t18_listening">Listening…</string>
+    <string name="canvas_t18_talk">Talk</string>
+    <string name="canvas_t18_stop">Stop talking</string>
+    <string name="canvas_t18_send">Send</string>
+    <string name="canvas_t18_retry">%1$s  Tap to try again.</string>
+    <string name="canvas_t18_need_key">Set an AI key first.</string>
+    <string name="canvas_t18_unreadable">The answer could not be read. Try again.</string>
+    <string name="canvas_t18_done_label">Teach-back done</string>
+    <string name="canvas_t18_not_yet">not yet</string>
+    <string name="canvas_t18_done">Done</string>
+    <string name="canvas_t18_paused">Your teach-back is waiting.</string>
+    <string name="canvas_t18_resume">Back to the chat</string>
+</resources>

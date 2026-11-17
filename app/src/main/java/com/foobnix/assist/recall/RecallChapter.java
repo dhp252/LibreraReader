@@ -76,7 +76,8 @@ public final class RecallChapter {
 
     /**
      * The ideas to check a chapter against: its key passages, else the ideas kept in its recall
-     * item (from an earlier check or nudge), else none (the request then reads the chapter's text).
+     * item (from an earlier check or nudge, also of key passages removed since), else none (the
+     * request then reads the chapter's text).
      */
     public static List<Recall.Idea> ideas(String bookName, String chapterKey, Recall.Attempt stored) {
         final List<Recall.Idea> passages = fromPassages(bookName, chapterKey);
@@ -84,7 +85,7 @@ public final class RecallChapter {
             return passages;
         }
         final List<Recall.Idea> own = new ArrayList<>();
-        if (stored != null && !stored.fromPassages) {
+        if (stored != null) {
             for (Recall.Idea i : stored.ideas) {
                 final Recall.Idea copy = i.copy();
                 copy.state = "";

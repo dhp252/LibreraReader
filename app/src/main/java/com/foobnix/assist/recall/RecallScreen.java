@@ -52,7 +52,8 @@ import java.util.List;
  * reader's words typed or talked, a nudge, skip;</li>
  * <li>listening (canvas "Recall: listening"): the timer of about 30 seconds, the live transcript;</li>
  * <li>the results (canvas "Blank-page recall"): the words with Edit, each key idea remembered,
- * unsure or missed, and the guess against the score; a missed idea goes to its place in the book.</li>
+ * unsure or missed, and the guess against the score; a missed idea goes to its place in the book;
+ * "A curious beginner asks" opens the teach-back.</li>
  * </ul>
  * The AI is asked once per tap on "Check my recall" ({@link RecallJob}); the attempt is stored as
  * {@code recall:<chapter key>} with a short history.
@@ -797,9 +798,55 @@ public final class RecallScreen implements RecallJob.Screen, VoiceInput.Listener
             content.addView(t);
         }
 
+        content.addView(beginner(), margins(16, 16, 16, 8));
+
         final TextView finish = primary(a.getString(R.string.canvas_t17_finish));
         finish.setOnClickListener(v -> dialog.dismiss());
         bottom.addView(finish, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, CanvasLook.dp(52)));
+    }
+
+    /** "A curious beginner asks": the question the check wrote, and the door to teach-back (canvas "Teach-back"). */
+    private View beginner() {
+        final String question = item.question.trim().isEmpty() ? a.getString(R.string.canvas_t18_opener)
+                : item.question.trim();
+        final LinearLayout row = new LinearLayout(a);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        final TextView who = text("?", 15, 700, CanvasLook.accent());
+        who.setGravity(Gravity.CENTER);
+        who.setBackground(CanvasParts.round(CanvasLook.accentTint(), 0, CanvasLook.dp(16)));
+        who.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        final LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(CanvasLook.dp(32), CanvasLook.dp(32));
+        wp.rightMargin = CanvasLook.dp(10);
+        row.addView(who, wp);
+
+        final LinearLayout card = new LinearLayout(a);
+        card.setOrientation(LinearLayout.VERTICAL);
+        final android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        final float r = CanvasLook.dp(14);
+        final float s = CanvasLook.dp(4);
+        bg.setCornerRadii(new float[]{s, s, r, r, r, r, r, r});
+        bg.setColor(CanvasLook.surface2());
+        card.setBackground(bg);
+        card.setPadding(CanvasLook.dp(12), CanvasLook.dp(10), CanvasLook.dp(12), CanvasLook.dp(12));
+        final TextView label = new TextView(a);
+        label.setText(R.string.canvas_t18_beginner_asks);
+        CanvasParts.label(label, false);
+        card.addView(label);
+        final TextView q = text(question, 14, 400, CanvasLook.ink());
+        q.setLineSpacing(CanvasLook.dp(3), 1f);
+        q.setPadding(0, CanvasLook.dp(8), 0, CanvasLook.dp(8));
+        card.addView(q);
+        final TextView explain = text(a.getString(R.string.canvas_t18_explain), 14, 600, CanvasLook.accent());
+        explain.setGravity(Gravity.CENTER);
+        explain.setPadding(CanvasLook.dp(14), 0, CanvasLook.dp(14), 0);
+        explain.setBackground(CanvasParts.round(CanvasLook.bg(), CanvasLook.accentLine(), CanvasLook.radius()));
+        explain.setOnClickListener(v -> {
+            dialog.dismiss();
+            com.foobnix.assist.teach.TeachScreen.show(a, dc, range, question);
+        });
+        card.addView(explain, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, CanvasLook.target()));
+        row.addView(card, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        return row;
     }
 
     /** One idea: its mark, its words, and "unsure" or "missed"; {@code jump}: a tap goes to its place in the book. */
