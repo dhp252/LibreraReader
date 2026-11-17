@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bridges from your field: the lens (canvas T14, Assist.LENS). English only. -->
+<resources>
+    <string name="lens_in_your_terms">In your terms</string>
+    <string name="lens_back">Back</string>
+
+    <!-- the lens setup (canvas LensSetup) -->
+    <string name="lens_setup_title">Explain it my way</string>
+    <string name="lens_setup_subtitle">Applies to every book</string>
+    <string name="lens_setup_label">Bridges from your field</string>
+    <string name="lens_setup_heading">What do you already know well?</string>
+    <string name="lens_setup_hint">Explanations will borrow from these.</string>
+    <string name="lens_own">Your own</string>
+    <string name="lens_own_hint">Your own fields, separated by commas</string>
+    <string name="lens_level">Your level in this book\'s subject</string>
+    <string name="lens_level_new">New to it</string>
+    <string name="lens_level_some">Some</string>
+    <string name="lens_level_expert">Expert</string>
+    <string name="lens_analogies">Analogies from my field</string>
+    <string name="lens_analogies_hint">Explain ideas through %1$s</string>
+    <string name="lens_analogies_hint_none">Explain ideas through the fields you pick</string>
+    <string name="lens_plain_words">Plain words for old jargon</string>
+    <string name="lens_plain_words_hint">Smith\'s “stock” becomes “savings put to work”</string>
+    <string name="lens_keep_terms">Keep the author\'s key terms</string>
+    <string name="lens_keep_terms_hint">Explain each once, then use it as written</string>
+    <string name="lens_preview">Preview</string>
+    <string name="lens_preview_you">You</string>
+    <string name="lens_preview_none">Pick a field to see how it would be put.</string>
+    <string name="lens_save">Save</string>
+    <string name="lens_pick_field">Pick at least one field you know well.</string>
+
+    <!-- the concept bridge (canvas LensBridge) -->
+    <string name="lens_bridge_title">%1$s, in your terms</string>
+    <string name="lens_change">Change lens</string>
+    <string name="lens_chip">Lens: %1$s</string>
+    <plurals name="lens_ideas_mapped">
+        <item quantity="one">%d idea, mapped to what you know</item>
+        <item quantity="other">%d ideas, mapped to what you know</item>
+    </plurals>
+    <string name="lens_not_mapped">This chapter is not mapped yet</string>
+    <string name="lens_sends_ideas">“Map this chapter” sends the chapter\'s key ideas and your lens to the AI, once. The result is kept with the book.</string>
+    <string name="lens_sends_text">“Map this chapter” sends the chapter\'s text (up to 40,000 characters) and your lens to the AI, once. The result is kept with the book.</string>
+    <string name="lens_map">Map this chapter</string>
+    <string name="lens_map_again">Map again</string>
+    <string name="lens_map_again_confirm">Map this chapter again? It is one new request, and the ladders made for it are made anew.</string>
+    <string name="lens_mapping">Mapping the chapter to your terms…</string>
+    <string name="lens_other_lens">Made with another lens. Map again to use yours.</string>
+    <string name="lens_other_lens_named">Made with another lens (%1$s). Map again to use yours.</string>
+    <string name="lens_author_says">Author says</string>
+    <string name="lens_breaks">Where the analogy breaks</string>
+    <string name="lens_breaks_plain">What the plain words lose</string>
+    <string name="lens_tap_hint">Tap a row to see the passage it comes from.</string>
+    <string name="lens_page">p. %1$d</string>
+    <string name="lens_ladder_link">Ladder ›</string>
+
+    <!-- the ladder (canvas LensLadder) -->
+    <string name="lens_ladder_title">Up and down the ladder</string>
+    <string name="lens_ladder_ends">abstract ↔ concrete</string>
+    <string name="lens_ladder_hint">Pick a rung. Going up boils an idea down; going down makes it concrete.</string>
+    <string name="lens_abstract">Abstract</string>
+    <string name="lens_concrete">Concrete</string>
+    <string name="lens_rung_principle">Principle</string>
+    <string name="lens_rung_mechanism">Mechanism</string>
+    <string name="lens_rung_example">Author\'s example</string>
+    <string name="lens_rung_world">Your world</string>
+    <string name="lens_boil_down">↑ Boil it down</string>
+    <string name="lens_make_concrete">↓ Make it concrete</string>
+    <string name="lens_ladder_building">Building the ladder…</string>
+    <string name="lens_try_again">Try again</string>
+    <string name="lens_any_sentence">Works on any sentence</string>
+    <string name="lens_any_sentence_how">Select a sentence in the book and tap “In your terms” in the selection box. Make it concrete ↓ gives a situation from your field; Boil it down ↑ gives its general point.</string>
+
+    <!-- any sentence (the text-selection box) -->
+    <string name="lens_boil_down_up">Boil it down ↑</string>
+    <string name="lens_make_concrete_down">Make it concrete ↓</string>
+    <string name="lens_sentence_note">Each button sends this text and your lens to the AI, once.</string>
+    <string name="lens_making_concrete">Making it concrete…</string>
+    <string name="lens_boiling_down">Boiling it down…</string>
+
+    <string name="lens_unreadable">The answer could not be read. Try again.</string>
+    <string name="lens_no_text">This chapter has too little text to map.</string>
+    <string name="lens_no_lens">Set up your lens first.</string>
+    <string name="lens_need_key">Set up the AI first.</string>
+</resources>
