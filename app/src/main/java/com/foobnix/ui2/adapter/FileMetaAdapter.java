@@ -30,6 +30,7 @@ import com.foobnix.android.utils.ResultResponse;
 import com.foobnix.android.utils.ResultResponse2;
 import com.foobnix.android.utils.StringDB;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.library.LibraryRows;
 import com.foobnix.dao2.FileMeta;
 import com.foobnix.model.AppData;
 import com.foobnix.model.AppState;
@@ -210,6 +211,9 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
             }
 
             TintUtil.setBackgroundFillColor(holder.parent, TintUtil.color);
+            if (LibraryRows.isOn(holder.parent)) {
+                LibraryRows.section(holder.parent, holder.clearAllFolders, holder.clearAllBooks);
+            }
         }
         if (holderAll instanceof FileMetaViewHolder) {
 
@@ -277,11 +281,17 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
             if (AppState.get().appTheme == AppState.THEME_DARK_OLED && tempValue2 != TEMP2_RECENT_FROM_BOOK) {
                 paintRow(holder.parent, Color.BLACK);
             }
+            if (LibraryRows.isOn(holder.parent)) {
+                LibraryRows.tag(holder, adapterType == ADAPTER_GRID || adapterType == ADAPTER_COVERS);
+            }
 
 
         } else if (holderAll instanceof NameDividerViewHolder) {
             final NameDividerViewHolder holder = (NameDividerViewHolder) holderAll;
             holder.title.setText(TxtUtils.formatTitle(fileMeta));
+            if (LibraryRows.isOn(holder.parent)) {
+                LibraryRows.divider(holder.title, holder.image);
+            }
             // bindItemClickAndLongClickListeners(holder.parent, fileMeta);
 
         } else if (holderAll instanceof DirectoryViewHolder) {
@@ -436,6 +446,9 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
             }
 
             TxtUtils.setInkTextView(holder.title, holder.path, holder.play, holder.count);
+            if (LibraryRows.isOn(holder.parent)) {
+                LibraryRows.folder(holder, adapterType == ADAPTER_GRID || adapterType == ADAPTER_COVERS);
+            }
 
         } else if (holderAll instanceof StarsLayoutViewHolder) {
             final StarsLayoutViewHolder holder = (StarsLayoutViewHolder) holderAll;
@@ -467,7 +480,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
 
             holder.recentName.setText(holder.getString(R.string.recent) + " (" + (getItemCount() - 1) + ")");
             holder.starredNameIcon.setImageResource(R.drawable.glyphicons_13_heart);
-            TintUtil.setTintImageNoAlpha(holder.starredNameIcon, Color.WHITE);
+            TintUtil.setTintImageNoAlpha(holder.starredNameIcon, onPanel(holder.starredNameIcon));
 
             holder.starredName.setOnClickListener(new OnClickListener() {
 
@@ -481,7 +494,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
                         public boolean onMenuItemClick(MenuItem item) {
                             AppState.get().recentTag = "";
                             holder.starredNameIcon.setImageResource(R.drawable.glyphicons_13_heart);
-                            TintUtil.setTintImageNoAlpha(holder.starredNameIcon, Color.WHITE);
+                            TintUtil.setTintImageNoAlpha(holder.starredNameIcon, onPanel(holder.starredNameIcon));
 
                             holder.starredName.setText(STARRED);
 
@@ -504,7 +517,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
                             public boolean onMenuItemClick(MenuItem item) {
                                 AppState.get().recentTag = tag;
                                 holder.starredNameIcon.setImageResource(R.drawable.glyphicons_67_tags);
-                                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, Color.WHITE);
+                                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, onPanel(holder.starredNameIcon));
 
                                 holder.starredName.setText(nameName);
 
@@ -525,7 +538,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
                         public boolean onMenuItemClick(MenuItem item) {
                             AppState.get().recentTag = Playlists.L_PLAYLIST;
                             holder.starredNameIcon.setImageResource(R.drawable.glyphicons_160_playlist);
-                            TintUtil.setTintImageNoAlpha(holder.starredNameIcon, Color.WHITE);
+                            TintUtil.setTintImageNoAlpha(holder.starredNameIcon, onPanel(holder.starredNameIcon));
                             holder.starredName.setText(nameName);
 
                             adapter.getItemsList().clear();
@@ -543,7 +556,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
             adapter.getItemsList().clear();
             if (TxtUtils.isEmpty(AppState.get().recentTag)) {
                 holder.starredNameIcon.setImageResource(R.drawable.glyphicons_13_heart);
-                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, Color.WHITE);
+                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, onPanel(holder.starredNameIcon));
 
                 holder.starredName.setText(STARRED);
                 adapter.getItemsList().addAll(allStars);
@@ -552,7 +565,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
                 final String nameName = holder.getString(R.string.playlists) + " (" + playlists.size() + ")";
 
                 holder.starredNameIcon.setImageResource(R.drawable.glyphicons_160_playlist);
-                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, Color.WHITE);
+                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, onPanel(holder.starredNameIcon));
 
                 holder.starredName.setText(nameName);
                 adapter.getItemsList().addAll(playlists);
@@ -560,7 +573,7 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
             } else {
 
                 holder.starredNameIcon.setImageResource(R.drawable.glyphicons_67_tags);
-                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, Color.WHITE);
+                TintUtil.setTintImageNoAlpha(holder.starredNameIcon, onPanel(holder.starredNameIcon));
 
                 List<FileMeta> allTags = AppDB.get().searchBy("@tags " + AppState.get().recentTag, SORT_BY.FILE_NAME, false);
                 adapter.getItemsList().addAll(allTags);
@@ -570,6 +583,10 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
 
             }
             adapter.notifyDataSetChanged();
+            if (LibraryRows.isOn(holder.panelStars)) {
+                LibraryRows.section(holder.panelStars, holder.starredName);
+                LibraryRows.section(holder.panelRecent);
+            }
 
         } else if (holderAll instanceof AuthorViewHolder) {
             AuthorViewHolder aHolder = (AuthorViewHolder) holderAll;
@@ -1030,6 +1047,11 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
 
         Apps.accessibilityButtonSize(holder.star, holder.menu);
 
+        if (LibraryRows.isOn(holder.parent)) {
+            LibraryRows.book(holder, adapterType == ADAPTER_GRID || adapterType == ADAPTER_COVERS,
+                             adapterType == ADAPTER_COVERS, recentProgress);
+        }
+
         return fileMeta;
     }
 
@@ -1186,6 +1208,11 @@ public class FileMetaAdapter extends AppRecycleAdapter<FileMeta, RecyclerView.Vi
             image = (ImageView) view.findViewById(R.id.image1);
             parent = view;
         }
+    }
+
+    /** A mark on a section's band: white on the theme colour, or the canvas's ink2 on the page. */
+    private static int onPanel(View view) {
+        return LibraryRows.isOn(view) ? LibraryRows.panelMark() : Color.WHITE;
     }
 
     /**
