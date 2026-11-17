@@ -71,6 +71,11 @@ final class FictionBook {
         }
     }
 
+    /** The key of the book's timeline and places task. */
+    static String timelineTask(String bookName) {
+        return AiTask.key(bookName, AiTask.FICTION_TIMELINE);
+    }
+
     /** The key of the book's who's who task. */
     static String castTask(String bookName) {
         return AiTask.key(bookName, AiTask.FICTION_CAST);

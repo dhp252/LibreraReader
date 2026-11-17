@@ -76,6 +76,19 @@ final class FictionUi {
         return bar;
     }
 
+    /** Changes the title and the subtitle of a {@link #topBar}. */
+    static void setBar(LinearLayout bar, CharSequence titleText, CharSequence subtitleText) {
+        final View titles = bar.getChildAt(1);
+        if (!(titles instanceof LinearLayout) || ((LinearLayout) titles).getChildCount() < 2) {
+            return;
+        }
+        final TextView title = (TextView) ((LinearLayout) titles).getChildAt(0);
+        final TextView sub = (TextView) ((LinearLayout) titles).getChildAt(1);
+        title.setText(titleText);
+        sub.setText(subtitleText);
+        sub.setVisibility(TextUtils.isEmpty(subtitleText) ? View.GONE : View.VISIBLE);
+    }
+
     static LinearLayout.LayoutParams barParams() {
         return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, CanvasLook.dp(CanvasLook.BAR_DP));
     }

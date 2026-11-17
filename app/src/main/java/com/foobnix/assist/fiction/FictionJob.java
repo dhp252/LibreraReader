@@ -33,6 +33,12 @@ abstract class FictionJob extends AiJobs.Job {
     /** Not 0: data stored before this time is built again from the start of the book. */
     protected final long redoBefore;
 
+    /**
+     * The first page after the reader's, in the job's layout: set before the first block. Stored
+     * data built from text after it must not go into a request.
+     */
+    protected int limit;
+
     private volatile Screen screen;
     private volatile String status = "";
 
@@ -93,6 +99,16 @@ abstract class FictionJob extends AiJobs.Job {
     /** What the done notification says. */
     protected abstract String done();
 
+    /** The status while the one request is out. */
+    protected String asking() {
+        return string(R.string.canvas_t29_asking);
+    }
+
+    /** What the task says when there is no text between the stored place and the page. */
+    protected String upToDate() {
+        return string(R.string.canvas_t29_up_to_date);
+    }
+
     @Override
     protected void work() throws Exception {
         if (!Assist.FICTION.isOn()) {
@@ -111,8 +127,9 @@ abstract class FictionJob extends AiJobs.Job {
                 failWith(string(R.string.canvas_t29_no_place));
                 return;
             }
+            limit = window.end;
             if (window.isEmpty()) {
-                result = string(R.string.canvas_t29_up_to_date);
+                result = upToDate();
                 return;
             }
             final String[] plain = new String[pages];
@@ -125,7 +142,7 @@ abstract class FictionJob extends AiJobs.Job {
                     failWith(string(R.string.ai_no_text));
                 } else {
                     nothingNew(chapters, window.end);
-                    result = string(R.string.canvas_t29_up_to_date);
+                    result = upToDate();
                 }
                 return;
             }
@@ -133,7 +150,7 @@ abstract class FictionJob extends AiJobs.Job {
                 checkCancelled();
                 final FictionBlocks.Block b = blocks.get(i);
                 final String label = chapters.range(b.firstChapter(), b.lastChapter());
-                final String s = blocks.size() == 1 ? string(R.string.canvas_t29_asking)
+                final String s = blocks.size() == 1 ? asking()
                         : string(R.string.canvas_t29_asking_part, i + 1, blocks.size(), label);
                 status(s);
                 step(s, i + 1, blocks.size());

@@ -155,6 +155,8 @@ public final class AiWork extends Worker {
                 return new com.foobnix.assist.skeleton.SkeletonJob(app, task.target());
             case AiTask.FICTION_CAST:
                 return new com.foobnix.assist.fiction.FictionCastJob(app, task.target(), task.chapter, task.redoBefore);
+            case AiTask.FICTION_TIMELINE:
+                return new com.foobnix.assist.fiction.FictionTimelineJob(app, task.target(), task.chapter, task.redoBefore);
             default:
                 return new AiJobs.HighlightJob(app, task.target(), task.wholeBook, task.chapter, task.redoBefore);
         }

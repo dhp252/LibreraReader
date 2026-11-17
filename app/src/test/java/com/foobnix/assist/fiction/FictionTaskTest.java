@@ -36,4 +36,22 @@ public class FictionTaskTest {
         assertEquals(5L, t.redoBefore);
         assertEquals("fictionCast:Verne.epub", t.key());
     }
+
+    @Test
+    public void theTimelineTaskCarriesTheSameTicket() {
+        final BookChapters.Range ticket = FictionShield.ticket(13, 100);
+        final Map<String, Object> m = new HashMap<>();
+        m.put("kind", AiTask.FICTION_TIMELINE);
+        m.put("path", "/sdcard/Books/Verne.epub");
+        m.put("title", "Around the World in Eighty Days");
+        m.put("page", 13);
+        m.put("chapterFrom", ticket.from);
+        m.put("chapterTo", ticket.to);
+        m.put("chapterTitle", ticket.title);
+        m.put("chapterKey", ticket.key);
+        final AiTask t = AiTask.fromMap(AiTask.fromMap(m).toMap());
+        assertEquals(AiTask.FICTION_TIMELINE, t.kind);
+        assertEquals(14, FictionShield.window(0, t.chapter, 100).end);
+        assertEquals("fictionTimeline:Verne.epub", t.key());
+    }
 }

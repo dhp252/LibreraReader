@@ -25,6 +25,7 @@ import com.foobnix.android.utils.LOG;
 import com.foobnix.assist.Assist;
 import com.foobnix.canvas.CanvasLook;
 import com.foobnix.canvas.CanvasParts;
+import com.foobnix.canvas.CanvasSegmented;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.view.MyPopupMenu;
 import com.foobnix.pdf.info.wrapper.DocumentController;
@@ -38,8 +39,14 @@ import com.foobnix.pdf.info.wrapper.DocumentController;
  * reader's page only. It always shows under the chapter it was built for: a reader who has read
  * on is told so and offered the update; one who went back sees nobody met later. Only shown
  * while {@link Assist#FICTION} is on.
+ * <p>
+ * The screen has two more tabs, Timeline and Map ({@link FictionStoryPane}, canvas T30), built by
+ * their own tap under the same rule.
  */
-public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskScreen {
+public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskScreen, FictionStoryPane.Host {
+
+    private static final int TAB_CAST = 0;
+    private static final int TAB_MAP = 2;
 
     private final Activity a;
     private final DocumentController dc;
@@ -47,7 +54,11 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
     private final String key;
 
     private Dialog dialog;
+    private LinearLayout bar;
     private LinearLayout body;
+    /** Who's who, Timeline, Map. */
+    private int tab = TAB_CAST;
+    private final FictionStoryPane story;
 
     private boolean loaded;
     private FictionCast cast = new FictionCast();
@@ -64,6 +75,7 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
         this.dc = dc;
         this.target = AiJobs.Target.of(dc);
         this.key = FictionBook.castTask(target.name);
+        this.story = new FictionStoryPane(a, dc, target, this);
     }
 
     /** Opens the who's who of the book the reader shows (nothing while the feature is off). */
@@ -83,8 +95,17 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
         more.setContentDescription(a.getString(R.string.canvas_t29_more));
         more.setBackground(CanvasParts.ripple(CanvasParts.round(0, 0, CanvasLook.radius())));
         more.setOnClickListener(this::more);
-        root.addView(FictionUi.topBar(a, a.getString(R.string.canvas_t29_whos_who), target.title, () -> dialog.dismiss(), more),
-                FictionUi.barParams());
+        bar = FictionUi.topBar(a, a.getString(R.string.canvas_t29_whos_who), target.title, () -> dialog.dismiss(), more);
+        root.addView(bar, FictionUi.barParams());
+        final CanvasSegmented tabs = CanvasSegmented.create(a, a.getString(R.string.canvas_t29_whos_who),
+                a.getString(R.string.canvas_t30_timeline), a.getString(R.string.canvas_t30_map));
+        tabs.setOnSelectListener(index -> {
+            tab = index;
+            render();
+        });
+        final ViewGroup.MarginLayoutParams tabsRow = CanvasSegmented.fullWidth();
+        tabsRow.bottomMargin = CanvasLook.dp(6);
+        root.addView(tabs.getView(), tabsRow);
 
         final ScrollView scroll = new ScrollView(a);
         scroll.setFillViewport(true);
@@ -95,18 +116,27 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
         dialog = FictionUi.fullScreen(a, root);
-        dialog.setOnDismissListener(d -> AiProgress.detach(key, this));
+        dialog.setOnDismissListener(d -> {
+            AiProgress.detach(key, this);
+            story.detach();
+        });
         dialog.show();
         if (AiProgress.isBusy(key)) {
             AiProgress.attach(key, a, this);
         }
+        story.attach();
         render();
         load();
     }
 
     private void more(View anchor) {
         final MyPopupMenu menu = new MyPopupMenu(a, anchor);
-        if (!cast.isEmpty()) {
+        if (tab != TAB_CAST) {
+            if (story.hasData()) {
+                menu.getMenu(R.drawable.canvas_t29_ic_cast, R.string.canvas_t30_again,
+                        () -> AiMenu.confirmRedo(a, R.string.canvas_t30_again_confirm, () -> story.make(true)));
+            }
+        } else if (!cast.isEmpty()) {
             menu.getMenu(R.drawable.canvas_t29_ic_cast, R.string.canvas_t29_again,
                     () -> AiMenu.confirmRedo(a, R.string.canvas_t29_again_confirm, () -> make(true)));
         }
@@ -121,14 +151,17 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
         final int pages = FictionBook.readerPages(dc);
         new Thread(() -> {
             FictionCast c = new FictionCast();
+            FictionTimeline t = new FictionTimeline();
             FictionChapters ch = null;
             try {
                 c = FictionStore.loadCast(target.name);
+                t = FictionStore.loadTimeline(target.name);
                 ch = FictionBook.chapters(target);
             } catch (Exception e) {
                 LOG.e(e);
             }
             final FictionCast found = c;
+            final FictionTimeline timeline = t;
             final FictionChapters book = ch;
             a.runOnUiThread(() -> {
                 if (Apps.isDestroyedActivity(a) || dialog == null || !dialog.isShowing()) {
@@ -142,6 +175,7 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
                     readerEnd = FictionShield.end(page, pages, book.pages());
                     where = FictionWhere.of(book, readerEnd, found.mark);
                 }
+                story.set(timeline, book, readerEnd);
                 render();
             });
         }, "@T Fiction").start();
@@ -176,6 +210,29 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
 
     private boolean busy() {
         return !stopped && AiProgress.isBusy(key);
+    }
+
+    // ------------------------------------------------------------------ the Timeline and Map tabs
+
+    @Override
+    public void redraw() {
+        render();
+    }
+
+    @Override
+    public void reload() {
+        if (dialog == null || !dialog.isShowing()) {
+            return;
+        }
+        render();
+        load();
+    }
+
+    @Override
+    public void close() {
+        if (dialog != null && dialog.isShowing()) {
+            dialog.dismiss();
+        }
     }
 
     // ------------------------------------------------------------------ task
@@ -216,12 +273,20 @@ public final class FictionScreen implements FictionJob.Screen, AiProgress.TaskSc
             return;
         }
         body.removeAllViews();
+        final String under = tab == TAB_CAST ? "" : story.subtitle();
+        FictionUi.setBar(bar, a.getString(tab == TAB_CAST ? R.string.canvas_t29_whos_who
+                : tab == TAB_MAP ? R.string.canvas_t30_map : R.string.canvas_t30_timeline),
+                under.isEmpty() ? target.title : under);
         if (!loaded) {
             body.addView(muted(a.getString(R.string.canvas_t29_loading)), FictionUi.row(0, 12, 0, 0));
             return;
         }
         if (chapters == null || where == null) {
             body.addView(muted(a.getString(R.string.ai_cannot_open)), FictionUi.row(0, 12, 0, 0));
+            return;
+        }
+        if (tab != TAB_CAST) {
+            story.render(body, tab == TAB_MAP);
             return;
         }
         final boolean busy = busy();
