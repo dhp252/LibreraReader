@@ -48,6 +48,7 @@ import com.foobnix.pdf.info.ADS;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
+import com.foobnix.canvas.library.LibraryTabs;
 import com.foobnix.pdf.info.Urls;
 import com.foobnix.pdf.info.model.BookCSS;
 import com.foobnix.pdf.info.view.AlertDialogs;
@@ -285,13 +286,13 @@ public class OpdsFragment2 extends UIFragment<Entry> {
                         @Override
                         public void run() {
                             starIcon.setImageResource(R.drawable.glyphicons_13_heart);
-                            TintUtil.setTintImageWithAlpha(starIcon, Color.WHITE);
+                            TintUtil.setTintImageWithAlpha(starIcon, LibraryTabs.barMark(starIcon.getContext()));
                         }
                     }, entry, false);
                 } else {
                     AppState.get().allOPDSLinks = AppState.get().allOPDSLinks.replace(entry.appState, "");
                     starIcon.setImageResource(R.drawable.glyphicons_9_heart_empty);
-                    TintUtil.setTintImageWithAlpha(starIcon, Color.WHITE);
+                    TintUtil.setTintImageWithAlpha(starIcon, LibraryTabs.barMark(starIcon.getContext()));
                     // AlertDialogs.showOkDialog(getActivity(),
                     // getActivity().getString(R.string.do_you_want_to_delete_), new Runnable() {
                     //
@@ -856,7 +857,7 @@ public class OpdsFragment2 extends UIFragment<Entry> {
         } else {
             starIcon.setImageResource(R.drawable.glyphicons_9_heart_empty);
         }
-        TintUtil.setTintImageWithAlpha(starIcon, Color.WHITE);
+        TintUtil.setTintImageWithAlpha(starIcon, LibraryTabs.barMark(starIcon.getContext()));
     }
 
     public void onGridList() {

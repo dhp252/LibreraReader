@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.foobnix.android.utils.Dips;
 import com.foobnix.android.utils.ResultResponse;
 import com.foobnix.android.utils.TxtUtils;
+import com.foobnix.canvas.library.LibraryTabs;
 import com.foobnix.dao2.FileMeta;
 import com.foobnix.model.AppBookmark;
 import com.foobnix.model.AppState;
@@ -110,6 +111,9 @@ public class BookmarksAdapter2 extends AppRecycleAdapter<AppBookmark, BookmarksV
 
         if (AppState.get().appTheme == AppState.THEME_DARK_OLED) {
             holder.parent.setBackgroundColor(Color.BLACK);
+        }
+        if (LibraryTabs.isOn(holder.parent.getContext())) {
+            LibraryTabs.bookmark(holder, withPageNumber);
         }
     }
 

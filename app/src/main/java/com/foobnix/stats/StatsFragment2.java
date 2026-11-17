@@ -28,6 +28,8 @@ import com.foobnix.model.AppState;
 import com.foobnix.pdf.info.ExtUtils;
 import com.foobnix.pdf.info.R;
 import com.foobnix.pdf.info.TintUtil;
+import com.foobnix.canvas.CanvasLook;
+import com.foobnix.canvas.library.LibraryTabs;
 import com.foobnix.pdf.info.wrapper.UITab;
 import com.foobnix.ui2.AppDB;
 import com.foobnix.ui2.fragment.UIFragment;
@@ -123,6 +125,9 @@ public class StatsFragment2 extends UIFragment<Object> {
     @Override
     public void onTintChanged() {
         accent = TintUtil.color;
+        if (LibraryTabs.isOn(getActivity())) {
+            accent = CanvasLook.accent();
+        }
         if (topPanel != null) {
             TintUtil.setBackgroundFillColor(topPanel, TintUtil.color);
         }
@@ -296,6 +301,9 @@ public class StatsFragment2 extends UIFragment<Object> {
         }
         final android.widget.HorizontalScrollView s = new android.widget.HorizontalScrollView(c);
         s.setHorizontalScrollBarEnabled(false);
+        if (LibraryTabs.isOn(c)) {
+            LibraryTabs.segments(row, s);
+        }
         s.addView(row);
         return s;
     }
@@ -340,6 +348,9 @@ public class StatsFragment2 extends UIFragment<Object> {
                 barsBy = b;
                 render();
             }));
+        }
+        if (LibraryTabs.isOn(c)) {
+            LibraryTabs.segments(by, null);
         }
         content.addView(by);
         final TextView caption = text(getString(R.string.stats_tap_bar), false);
@@ -623,6 +634,9 @@ public class StatsFragment2 extends UIFragment<Object> {
         t.setTextColor(selected ? accent : textSecondary);
         t.setTypeface(selected ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
         t.setOnClickListener(click);
+        if (LibraryTabs.isOn(c)) {
+            LibraryTabs.segment(t, selected);
+        }
         return t;
     }
 
@@ -643,8 +657,13 @@ public class StatsFragment2 extends UIFragment<Object> {
             value.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
             value.setTypeface(Typeface.DEFAULT_BOLD);
             tile.addView(value);
-            tile.addView(text(tiles.get(i)[0], false));
-            row.addView(tile, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+            final TextView label = text(tiles.get(i)[0], false);
+            tile.addView(label);
+            final LinearLayout.LayoutParams tileLp = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
+            if (LibraryTabs.isOn(c)) {
+                LibraryTabs.tile(tile, value, label, tileLp);
+            }
+            row.addView(tile, tileLp);
         }
         if (tiles.size() % 2 == 1 && row != null) {
             row.addView(new View(c), new LinearLayout.LayoutParams(0, 0, 1));
@@ -658,6 +677,9 @@ public class StatsFragment2 extends UIFragment<Object> {
         t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         t.setTypeface(Typeface.DEFAULT_BOLD);
         t.setPadding(0, dp(16), 0, dp(4));
+        if (LibraryTabs.isOn(c)) {
+            LibraryTabs.heading(t);
+        }
         return t;
     }
 
@@ -669,6 +691,9 @@ public class StatsFragment2 extends UIFragment<Object> {
             t.setTextColor(textSecondary);
         }
         t.setPadding(0, dp(2), 0, dp(2));
+        if (LibraryTabs.isOn(c)) {
+            LibraryTabs.text(t, primary);
+        }
         return t;
     }
 
@@ -681,6 +706,9 @@ public class StatsFragment2 extends UIFragment<Object> {
         t.setEllipsize(android.text.TextUtils.TruncateAt.END);
         row.addView(t);
         row.addView(text(detail, false));
+        if (LibraryTabs.isOn(c)) {
+            LibraryTabs.statsBook(row, t);
+        }
         return row;
     }
 
