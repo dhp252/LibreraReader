@@ -83,6 +83,8 @@ public final class AiMenu {
         if (com.foobnix.assist.Assist.PATH.isOn()) {
             menu.getMenu(R.drawable.glyphicons_476_sort_attributes, R.string.canvas_t20_shortest_path,
                     () -> com.foobnix.assist.path.PathScreen.show(a, dc));
+            menu.getMenu(R.drawable.glyphicons_422_book_library, R.string.canvas_t21_menu,
+                    () -> com.foobnix.assist.path.TopicScreen.show(a, dc));
         }
         menu.show();
     }
