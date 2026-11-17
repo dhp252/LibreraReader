@@ -1,0 +1,235 @@
+# Builds the F-Droid flavor (no Google services) as a signed, R8-minified release APK and
+# publishes it as a GitHub release.
+#
+# It follows the local build (the dev-build-apk skill: setup_env.sh, then
+# `build_apk.sh fdroid release --debug-key`): the same NDK and MuPDF, upstream's
+# Builder/link_to_mupdf_<v>.sh for the native library, the same Gradle call, and the same final
+# check that every APK carries libMuPDF.so.
+#
+# Signing. An installed app only updates over an APK signed with the same key. Add the key of the
+# build machine as repository secrets (Settings > Secrets and variables > Actions):
+#   SIGNING_KEYSTORE_BASE64   `base64 -w0 ~/.android/debug.keystore` (or of a PKCS12 release key)
+#   SIGNING_STORE_PASSWORD    only when it is not the debug key's `android`
+#   SIGNING_KEY_ALIAS         only when it is not the debug key's `androiddebugkey`
+#   SIGNING_KEY_PASSWORD      only when it is not the debug key's `android`
+# Without SIGNING_KEYSTORE_BASE64 the run makes a key of its own and throws it away: that APK
+# installs only where the app is not installed yet, and the release is marked a pre-release.
+name: Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to build
+        default: master
+      prerelease:
+        description: Mark the release as a pre-release (always so for other branches than the default)
+        type: boolean
+        default: false
+      tag:
+        description: Release tag (default v<version>-<date>-<commit>)
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-apk-${{ inputs.ref || 'master' }}
+  cancel-in-progress: false
+
+env:
+  BUILD_REF: ${{ inputs.ref || 'master' }}
+  FLAVOR: fdroid
+  NDK_VERSION: 28.2.13676358
+  MUPDF_VERSION: 1.28.5
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Host packages
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq build-essential pkg-config zip unzip \
+            mesa-common-dev libxcursor-dev libxrandr-dev libxinerama-dev libglu1-mesa-dev libxi-dev libgl-dev
+
+      - name: Android NDK
+        run: |
+          NDK_DIR="$ANDROID_HOME/ndk/$NDK_VERSION"
+          if [ ! -x "$NDK_DIR/ndk-build" ]; then
+            { yes 2>/dev/null || true; } | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" >/dev/null
+          fi
+          [ -x "$NDK_DIR/ndk-build" ] || { echo "::error::NDK $NDK_VERSION not installed"; exit 1; }
+          echo "NDK_DIR=$NDK_DIR" >> "$GITHUB_ENV"
+
+      - name: Signing key
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          KEYSTORE="$RUNNER_TEMP/signing.keystore"
+          STORE_PASSWORD="${SIGNING_STORE_PASSWORD:-android}"
+          KEY_ALIAS="${SIGNING_KEY_ALIAS:-androiddebugkey}"
+          KEY_PASSWORD="${SIGNING_KEY_PASSWORD:-android}"
+          if [ -n "$SIGNING_KEYSTORE_BASE64" ]; then
+            printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$KEYSTORE"
+            keytool -list -keystore "$KEYSTORE" -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null \
+              || { echo "::error::SIGNING_KEYSTORE_BASE64 does not open with the given password and alias"; exit 1; }
+            echo "OWN_KEY=true" >> "$GITHUB_ENV"
+          else
+            keytool -genkeypair -keystore "$KEYSTORE" -storetype PKCS12 -alias "$KEY_ALIAS" \
+              -storepass "$STORE_PASSWORD" -keypass "$KEY_PASSWORD" -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Librera CI throwaway key" >/dev/null 2>&1
+            echo "OWN_KEY=false" >> "$GITHUB_ENV"
+            echo "::warning::No SIGNING_KEYSTORE_BASE64 secret: signed with a throwaway key, the APK will not install over an installed app"
+          fi
+          chmod 600 "$KEYSTORE"
+          # app/build.gradle reads all of these without defaults
+          mkdir -p ~/.gradle
+          {
+            echo "librera_ndk_dir=$NDK_DIR"
+            echo "librera_java_home=$JAVA_HOME"
+            echo "pro_appGdriveKey="
+            for flavor in librera pdf_classic ebooka pdf_v2 tts_reader epub_reader; do
+              for key in appGdriveKey admobAppId admobBannerId admobFullId admobRewardId; do
+                echo "${flavor}_${key}="
+              done
+            done
+            echo "RELEASE_STORE_FILE=$KEYSTORE"
+            echo "RELEASE_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "RELEASE_KEY_ALIAS=$KEY_ALIAS"
+            echo "RELEASE_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> ~/.gradle/gradle.properties
+          chmod 600 ~/.gradle/gradle.properties
+
+      - name: Native library cache
+        id: native
+        uses: actions/cache@v4
+        with:
+          path: native-libs
+          key: libmupdf-${{ env.MUPDF_VERSION }}-ndk${{ env.NDK_VERSION }}-${{ hashFiles('Builder/jni/**', format('Builder/link_to_mupdf_{0}.sh', env.MUPDF_VERSION)) }}
+
+      - name: Build libMuPDF.so
+        if: steps.native.outputs.cache-hit != 'true'
+        run: |
+          MUPDF_DIR="Builder/mupdf-$MUPDF_VERSION"
+          git -c advice.detachedHead=false clone -q --recursive --depth 1 --shallow-submodules \
+            --branch "$MUPDF_VERSION" https://github.com/ArtifexSoftware/mupdf.git "$MUPDF_DIR"
+          # the host build generates the sources (fonts, cmaps) the NDK build compiles
+          (cd "$MUPDF_DIR" && make -s -j"$(nproc)" generate && make -s -j"$(nproc)" release) > host-build.log 2>&1 \
+            || { tail -n 60 host-build.log; exit 1; }
+          # upstream's script: copies the Librera patches into MuPDF and runs ndk-build for the 4 ABIs at once
+          MAKEFLAGS="-j$(( ($(nproc) + 3) / 4 ))" bash "Builder/link_to_mupdf_$MUPDF_VERSION.sh" > native-build.log 2>&1 || true
+          mkdir -p native-libs
+          for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+            if [ ! -f "app/src/main/jniLibs/$abi/libMuPDF.so" ]; then
+              grep -nE "error:|Error [0-9]|NDK ERROR" native-build.log | head -n 40
+              tail -n 60 native-build.log
+              echo "::error::libMuPDF.so missing for $abi"
+              exit 1
+            fi
+            cp -rL "app/src/main/jniLibs/$abi" native-libs/
+          done
+
+      - name: Place the native library
+        run: |
+          rm -rf app/src/main/jniLibs
+          mkdir -p app/src/main/jniLibs
+          cp -r native-libs/. app/src/main/jniLibs/
+          ls -l app/src/main/jniLibs/*/
+
+      - name: Build the APKs
+        run: |
+          # the Google services plugin is applied to every flavor; F-Droid uses none of its values
+          if [ ! -f app/google-services.json ]; then
+            cat > app/google-services.json <<'JSON'
+          {"project_info":{"project_number":"0","project_id":"librera-ci","storage_bucket":"librera-ci.appspot.com"},
+           "client":[{"client_info":{"mobilesdk_app_id":"1:0:android:0000000000000000",
+             "android_client_info":{"package_name":"com.foobnix.pro.pdf.reader"}},
+             "oauth_client":[],"api_key":[{"current_key":"none"}],
+             "services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],
+           "configuration_version":"1"}
+          JSON
+          fi
+          chmod +x gradlew
+          ./gradlew --console=plain -Pmupdf="$MUPDF_VERSION" \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/signing.keystore" \
+            -Pandroid.injected.signing.store.password="$(sed -n 's/^RELEASE_STORE_PASSWORD=//p' ~/.gradle/gradle.properties)" \
+            -Pandroid.injected.signing.key.alias="$(sed -n 's/^RELEASE_KEY_ALIAS=//p' ~/.gradle/gradle.properties)" \
+            -Pandroid.injected.signing.key.password="$(sed -n 's/^RELEASE_KEY_PASSWORD=//p' ~/.gradle/gradle.properties)" \
+            "assemble${FLAVOR^}Release"
+
+      - name: Check and collect the APKs
+        run: |
+          shopt -s nullglob
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner"
+          mkdir -p dist
+          FAILED=0
+          APKS=(app/build/outputs/apk/"$FLAVOR"/release/*.apk)
+          [ ${#APKS[@]} -gt 0 ] || { echo "::error::no APK was built"; exit 1; }
+          for apk in "${APKS[@]}"; do
+            COUNT=$(unzip -l "$apk" | grep -c 'lib/.*/libMuPDF\.so$' || true)
+            case "$apk" in *-uni.apk) WANT=4 ;; *) WANT=1 ;; esac
+            echo "$(basename "$apk")  $(du -h "$apk" | cut -f1)  libMuPDF.so x$COUNT"
+            [ "$COUNT" -ge "$WANT" ] || FAILED=1
+            "$APKSIGNER" verify "$apk" || FAILED=1
+            # GitHub turns spaces in asset names into dots; x86 builds are for emulators only (and in -uni)
+            case "$apk" in *-x86.apk|*-x86_64.apk) ;; *) cp "$apk" "dist/$(basename "$apk" | tr ' ' '-')" ;; esac
+          done
+          [ "$FAILED" = 0 ] || { echo "::error::an APK lacks the native library or a valid signature"; exit 1; }
+          CERT=$("$APKSIGNER" verify --print-certs "${APKS[0]}" | grep -m 1 'certificate SHA-256 digest' | sed 's/.*: //')
+          echo "CERT_SHA256=$CERT" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-and-mapping
+          path: |
+            dist/*.apk
+            app/build/outputs/mapping/${{ env.FLAVOR }}Release/mapping.txt
+          retention-days: 14
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          SHA=$(git rev-parse HEAD)
+          VERSION=$(sed -n 's/^ *FDroidVersionNumber = "\(.*\)"/\1/p' app/build.gradle | head -n 1)
+          TAG="${INPUT_TAG:-v$VERSION-$(date -u +%Y%m%d)-${SHA:0:7}}"
+          FLAGS=()
+          if [ "$INPUT_PRERELEASE" = true ] || [ "$OWN_KEY" != true ] || [ "$BUILD_REF" != "$DEFAULT_BRANCH" ]; then
+            FLAGS+=(--prerelease)
+          fi
+          {
+            echo "Librera FD (F-Droid flavor, no Google services) $VERSION, built from \`$BUILD_REF\` at $SHA with MuPDF $MUPDF_VERSION."
+            echo
+            echo "Which file: \`-arm64.apk\` fits most phones and tablets, \`-arm.apk\` is for old 32-bit devices, \`-uni.apk\` holds every architecture."
+            echo
+            if [ "$OWN_KEY" = true ]; then
+              echo "Signed with the repository's signing key, so it installs over an app signed with the same key and keeps its data."
+            else
+              echo "**Signed with a throwaway key.** It installs only where the app is not installed: over an installed Librera FD, Android answers \"App not installed\". Uninstalling first deletes the app's own data on that device."
+            fi
+            echo
+            echo "Signing certificate SHA-256: \`$CERT_SHA256\`"
+          } > notes.md
+          gh release create "$TAG" dist/*.apk --target "$SHA" --title "Librera FD $VERSION ($BUILD_REF ${SHA:0:7})" \
+            --notes-file notes.md "${FLAGS[@]}"
+          echo "Release: $(gh release view "$TAG" --json url -q .url)" >> "$GITHUB_STEP_SUMMARY"
+          cat notes.md >> "$GITHUB_STEP_SUMMARY"
