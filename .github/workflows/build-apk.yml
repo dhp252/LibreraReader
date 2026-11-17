@@ -1,0 +1,259 @@
+# Builds the app on every push to master and every pull request, and on demand:
+#   - the JVM unit tests (testFdroidDebugUnitTest)
+#   - the MuPDF native library (cached, rebuilt only when Builder/jni or the MuPDF version changes)
+#   - release APKs of two flavors, as run artifacts:
+#       fdroid   "Librera FD", com.foobnix.pro.pdf.reader, no Google services or ads (the F-Droid build)
+#       librera  "Librera", com.foobnix.pdf.reader, the regular app with Google Drive and AdMob
+#                (Google's sample ad ids unless LIBRERA_GRADLE_PROPERTIES holds real ones)
+# The Release APK workflow calls this one and publishes what it built.
+#
+# The steps follow the local build (the dev-build-apk skill: setup_env.sh, then
+# `build_apk.sh <flavor> release --debug-key`): the same NDK and MuPDF, upstream's
+# Builder/link_to_mupdf_<v>.sh for the native library, and the same final check that every APK
+# carries libMuPDF.so.
+#
+# Signing: see release-apk.yml. Without the SIGNING_KEYSTORE_BASE64 secret (also in pull requests
+# from forks) the APKs are signed with a throwaway key and install only where the app is not installed.
+name: Build APK
+
+on:
+  push:
+    branches: [master]
+    paths-ignore: ['docs/**', 'fastlane/**', '**/*.md']
+  pull_request:
+    paths-ignore: ['docs/**', 'fastlane/**', '**/*.md']
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to build (default the selected branch)
+        default: ""
+      flavors:
+        description: Flavors to build, as a JSON list
+        default: '["fdroid", "librera"]'
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        default: ""
+      flavors:
+        type: string
+        default: '["fdroid", "librera"]'
+    outputs:
+      sha:
+        description: The commit that was built
+        value: ${{ jobs.native.outputs.sha }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-apk-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NDK_VERSION: 28.2.13676358
+  MUPDF_VERSION: 1.28.5
+
+jobs:
+  tests:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: ./.github/actions/android-env
+
+      - name: Run the unit tests
+        run: ./gradlew --console=plain testFdroidDebugUnitTest
+
+      - name: Test summary
+        if: always()
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import glob, xml.etree.ElementTree as ET
+          tests = failures = errors = skipped = 0
+          failed = []
+          for f in glob.glob("app/build/test-results/testFdroidDebugUnitTest/*.xml"):
+              s = ET.parse(f).getroot()
+              tests += int(s.get("tests", 0)); failures += int(s.get("failures", 0))
+              errors += int(s.get("errors", 0)); skipped += int(s.get("skipped", 0))
+              for c in s.iter("testcase"):
+                  if c.find("failure") is not None or c.find("error") is not None:
+                      failed.append(f"{c.get('classname')}.{c.get('name')}")
+          print(f"### Unit tests\n\n{tests} tests, {failures} failures, {errors} errors, {skipped} skipped\n")
+          for name in failed[:50]:
+              print(f"- `{name}`")
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: unit-test-reports
+          path: app/build/reports/tests/
+          retention-days: 7
+
+  native:
+    name: Native library
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+      cache-key: ${{ steps.key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - id: sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - id: key
+        run: echo "key=libmupdf-$MUPDF_VERSION-ndk$NDK_VERSION-${{ hashFiles('Builder/jni/**', format('Builder/link_to_mupdf_{0}.sh', env.MUPDF_VERSION)) }}" >> "$GITHUB_OUTPUT"
+
+      - id: cache
+        uses: actions/cache@v4
+        with:
+          path: native-libs
+          key: ${{ steps.key.outputs.key }}
+
+      - name: Host packages
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq build-essential pkg-config zip unzip \
+            mesa-common-dev libxcursor-dev libxrandr-dev libxinerama-dev libglu1-mesa-dev libxi-dev libgl-dev
+
+      - name: Android NDK
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          NDK_DIR="$ANDROID_HOME/ndk/$NDK_VERSION"
+          if [ ! -x "$NDK_DIR/ndk-build" ]; then
+            { yes 2>/dev/null || true; } | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$NDK_VERSION" >/dev/null
+          fi
+          [ -x "$NDK_DIR/ndk-build" ] || { echo "::error::NDK $NDK_VERSION not installed"; exit 1; }
+          echo "NDK_DIR=$NDK_DIR" >> "$GITHUB_ENV"
+
+      - if: steps.cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/android-env
+        with:
+          ndk-dir: ${{ env.NDK_DIR }}
+
+      - name: Build libMuPDF.so
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          MUPDF_DIR="Builder/mupdf-$MUPDF_VERSION"
+          git -c advice.detachedHead=false clone -q --recursive --depth 1 --shallow-submodules \
+            --branch "$MUPDF_VERSION" https://github.com/ArtifexSoftware/mupdf.git "$MUPDF_DIR"
+          # the host build generates the sources (fonts, cmaps) the NDK build compiles
+          (cd "$MUPDF_DIR" && make -s -j"$(nproc)" generate && make -s -j"$(nproc)" release) > host-build.log 2>&1 \
+            || { tail -n 60 host-build.log; exit 1; }
+          # upstream's script: copies the Librera patches into MuPDF and runs ndk-build for the 4 ABIs at once
+          MAKEFLAGS="-j$(( ($(nproc) + 3) / 4 ))" bash "Builder/link_to_mupdf_$MUPDF_VERSION.sh" > native-build.log 2>&1 || true
+          mkdir -p native-libs
+          for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+            if [ ! -f "app/src/main/jniLibs/$abi/libMuPDF.so" ]; then
+              grep -nE "error:|Error [0-9]|NDK ERROR" native-build.log | head -n 40
+              tail -n 60 native-build.log
+              echo "::error::libMuPDF.so missing for $abi"
+              exit 1
+            fi
+            cp -rL "app/src/main/jniLibs/$abi" native-libs/
+          done
+          ls -l native-libs/*/
+
+  apk:
+    name: APK (${{ matrix.flavor }})
+    needs: native
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: ${{ fromJSON(inputs.flavors || '["fdroid", "librera"]') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.native.outputs.sha }}
+
+      - name: Native library
+        uses: actions/cache/restore@v4
+        with:
+          path: native-libs
+          key: ${{ needs.native.outputs.cache-key }}
+          fail-on-cache-miss: true
+
+      - name: Place the native library
+        run: |
+          rm -rf app/src/main/jniLibs
+          mkdir -p app/src/main/jniLibs
+          cp -r native-libs/. app/src/main/jniLibs/
+
+      - id: env
+        uses: ./.github/actions/android-env
+        with:
+          keystore-base64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          store-password: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          key-alias: ${{ secrets.SIGNING_KEY_ALIAS }}
+          key-password: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          extra-properties: ${{ secrets.LIBRERA_GRADLE_PROPERTIES }}
+
+      - name: Build the APKs
+        env:
+          FLAVOR: ${{ matrix.flavor }}
+        run: |
+          prop() { sed -n "s/^$1=//p" ~/.gradle/gradle.properties | tail -n 1; }
+          # one flavor per Gradle call: app/build.gradle picks the version from the task name
+          ./gradlew --console=plain -Pmupdf="$MUPDF_VERSION" \
+            -Pandroid.injected.signing.store.file="$(prop RELEASE_STORE_FILE)" \
+            -Pandroid.injected.signing.store.password="$(prop RELEASE_STORE_PASSWORD)" \
+            -Pandroid.injected.signing.key.alias="$(prop RELEASE_KEY_ALIAS)" \
+            -Pandroid.injected.signing.key.password="$(prop RELEASE_KEY_PASSWORD)" \
+            "assemble${FLAVOR^}Release"
+
+      - name: Check and collect the APKs
+        env:
+          FLAVOR: ${{ matrix.flavor }}
+          OWN_KEY: ${{ steps.env.outputs.own-key }}
+        run: |
+          shopt -s nullglob
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner"
+          mkdir -p dist
+          FAILED=0
+          APKS=(app/build/outputs/apk/"$FLAVOR"/release/*.apk)
+          [ ${#APKS[@]} -gt 0 ] || { echo "::error::no APK was built"; exit 1; }
+          {
+            echo "### $FLAVOR"
+            echo
+            echo "| APK | Size | libMuPDF.so |"
+            echo "|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for apk in "${APKS[@]}"; do
+            COUNT=$(unzip -l "$apk" | grep -c 'lib/.*/libMuPDF\.so$' || true)
+            case "$apk" in *-uni.apk) WANT=4 ;; *) WANT=1 ;; esac
+            echo "| $(basename "$apk") | $(du -h "$apk" | cut -f1) | x$COUNT |" >> "$GITHUB_STEP_SUMMARY"
+            [ "$COUNT" -ge "$WANT" ] || { echo "::error::$(basename "$apk") lacks libMuPDF.so"; FAILED=1; }
+            "$APKSIGNER" verify "$apk" || FAILED=1
+            # GitHub turns spaces in asset names into dots; x86 builds are for emulators only (and in -uni)
+            case "$apk" in *-x86.apk|*-x86_64.apk) ;; *) cp "$apk" "dist/$(basename "$apk" | tr ' ' '-')" ;; esac
+          done
+          [ "$FAILED" = 0 ] || { echo "::error::an APK lacks the native library or a valid signature"; exit 1; }
+          CERT=$("$APKSIGNER" verify --print-certs "${APKS[0]}" | grep -m 1 'certificate SHA-256 digest' | sed 's/.*: //')
+          echo "$CERT" > "dist/signing-cert-$FLAVOR.txt"
+          if [ "$OWN_KEY" = true ]; then
+            echo "Signed with the repository's key (SHA-256 \`$CERT\`)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::$FLAVOR: no SIGNING_KEYSTORE_BASE64 secret, signed with a throwaway key: the APK will not install over an installed app"
+            echo "**Signed with a throwaway key**: it installs only where the app is not installed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f "app/build/outputs/mapping/${FLAVOR}Release/mapping.txt" ]; then
+            cp "app/build/outputs/mapping/${FLAVOR}Release/mapping.txt" "dist/mapping-$FLAVOR.txt"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.flavor }}
+          path: dist/
+          retention-days: 14
