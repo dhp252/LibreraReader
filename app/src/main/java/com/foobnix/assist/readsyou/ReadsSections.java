@@ -20,7 +20,7 @@ public final class ReadsSections {
         STEADY,
         /** Much faster than the reader's pace for its words. */
         SKIMMED,
-        /** A re-read or a long page in it. */
+        /** A re-read (paging back, or with a calibrated gaze a second pass over a page) or a long page in it. */
         STRUGGLED,
         /** Eyes off the page in it (Eye mode's camera). */
         DRIFTED
@@ -160,7 +160,7 @@ public final class ReadsSections {
         if (sum == null || sum.isEmpty()) {
             return Rating.NONE;
         }
-        final int struggles = sum.rereads + sum.longs;
+        final int struggles = sum.rereads + sum.longs + sum.passes;
         if (sum.drifts > 0 && sum.drifts >= struggles) {
             return Rating.DRIFTED;
         }

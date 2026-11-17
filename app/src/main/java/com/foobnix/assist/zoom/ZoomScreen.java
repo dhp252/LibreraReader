@@ -87,6 +87,8 @@ public final class ZoomScreen implements ZoomJob.Screen {
     private LinearLayout body;
     /** The line under "Condensing this chapter…" while a request runs. */
     private TextView busyNote;
+    /** "Auto-zoom" of "The book reads you back" (canvas T33); null while that switch is off. */
+    private com.foobnix.assist.readsyou.ReadsAutoZoom auto;
 
     private ZoomScreen(Activity a, DocumentController dc) {
         this.a = a;
@@ -230,6 +232,10 @@ public final class ZoomScreen implements ZoomJob.Screen {
         goalLink.setVisibility(View.GONE);
         goalLink.setOnClickListener(v -> askGoal(-1));
         box.addView(goalLink, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        if (Assist.READS_YOU.isOn()) {
+            // one more entry: each section at the level the stored page times suggest
+            auto = new com.foobnix.assist.readsyou.ReadsAutoZoom(a, target, box, this::render);
+        }
         return box;
     }
 
@@ -268,6 +274,9 @@ public final class ZoomScreen implements ZoomJob.Screen {
 
     /** The reader picked a level of the bar. */
     private void pick(int index) {
+        if (auto != null) {
+            auto.off();
+        }
         if (index == FULL) {
             // Full is the book itself: back to it
             dialog.dismiss();
@@ -384,6 +393,9 @@ public final class ZoomScreen implements ZoomJob.Screen {
         } else if (job != null) {
             busyNote = busy(a.getString(R.string.zoom_working), received > 0 ? a.getString(R.string.zoom_received, received)
                     : a.getString(R.string.zoom_working_note));
+        } else if (auto != null && auto.render(body, data, range)) {
+            // Auto-zoom drew the chapter
+            made();
         } else if (data == null || level == FULL) {
             intro();
         } else {

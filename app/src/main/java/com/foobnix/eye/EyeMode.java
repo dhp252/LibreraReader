@@ -91,6 +91,25 @@ public final class EyeMode implements EyeCamera.Listener {
 
     public static final int REQ_CAMERA = 0xE7E;
 
+    /**
+     * Told what each analysed frame says while Eye mode runs and is not calibrating ("The book
+     * reads you back", Assist.READS_YOU): only these results, never a frame. On the main thread.
+     */
+    public interface FrameWatcher {
+        /**
+         * @param gazeY where on the screen the gaze is, 0 (top) to 1 (bottom); NaN when the gaze
+         *              is not calibrated or not usable in this frame
+         */
+        void onEyeFrame(Activity owner, long t, State state, boolean closed, float gazeY);
+    }
+
+    private static volatile FrameWatcher frameWatcher;
+
+    /** The one watcher of the frames' results; null takes it away. It never starts the camera. */
+    public static void setFrameWatcher(FrameWatcher w) {
+        frameWatcher = w;
+    }
+
     private static EyeMode current;
     /** The reader that asked for the camera permission, until the answer. */
     private static Host asking;
@@ -561,6 +580,10 @@ public final class EyeMode implements EyeCamera.Listener {
                 closureEnded(longBlink);
             }
             gazeFrame(f, state);
+            final FrameWatcher watcher = frameWatcher;
+            if (watcher != null) {
+                watcher.onEyeFrame(host.activity(), f.t, state, closed, gaze.hasModel() ? f.gy : Float.NaN);
+            }
         }
         if (debug != null) {
             debug.show(f, preview, state, presence, blink, fps, lastAction, lastAction == null ? 0 : f.t - lastActionAt);

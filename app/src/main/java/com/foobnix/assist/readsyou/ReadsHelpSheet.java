@@ -44,6 +44,8 @@ final class ReadsHelpSheet implements ReadsHelpJob.Screen {
     static final int BY_HAND = 0;
     static final int REREAD = 1;
     static final int DWELL = 2;
+    /** With a calibrated gaze: the eyes went from the bottom of the page back to its top (T33). */
+    static final int PASS = 3;
 
     /** What the session hears. */
     interface Listener {
@@ -104,6 +106,7 @@ final class ReadsHelpSheet implements ReadsHelpJob.Screen {
         content.setOrientation(LinearLayout.VERTICAL);
         final String label = why == REREAD ? a.getString(R.string.canvas_t31_help_label_reread)
                 : why == DWELL ? a.getString(R.string.canvas_t31_help_label_dwell, ReadsUi.clock(pageMs))
+                : why == PASS ? a.getString(R.string.canvas_t33_help_label_pass)
                 : a.getString(R.string.canvas_t31_help_label_hand);
         content.addView(ReadsUi.mono(a, label, CanvasLook.sensor()));
         final TextView title = ReadsUi.text(a, a.getString(R.string.canvas_t31_help_title), 17, 600, CanvasLook.ink());

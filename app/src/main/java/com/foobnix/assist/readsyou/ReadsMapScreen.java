@@ -189,11 +189,15 @@ final class ReadsMapScreen {
 
     /** "PAGE TIMES": what the ratings come from. The camera is named only when its counters are in this chapter. */
     private int sourceLabel(ReadsSignals.Page total) {
-        return R.string.canvas_t32_source_times;
+        return total.watched > 0 ? R.string.canvas_t33_source_camera : R.string.canvas_t32_source_times;
     }
 
     /** More of the legend when the chapter has more than page times. */
     private String legendMore(ReadsSignals.Page total) {
+        if (total.watched > 0) {
+            return " " + a.getString(R.string.canvas_t33_legend_camera, ReadsUi.clock(total.away * 1000L),
+                    ReadsUi.clock(total.watched * 1000L));
+        }
         return "";
     }
 

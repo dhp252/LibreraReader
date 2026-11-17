@@ -18,6 +18,10 @@ public final class ReadsDelta {
     public int helps;
     public int breaks;
     public int drifts;
+    /** With Eye mode's camera: seconds it watched the page, seconds the eyes were off it, second passes. */
+    public int watched;
+    public int away;
+    public int passes;
 
     public ReadsDelta(int page) {
         this.page = page;
@@ -34,6 +38,7 @@ public final class ReadsDelta {
     }
 
     public boolean isEmpty() {
-        return seconds == 0 && rereads == 0 && longs == 0 && offers == 0 && helps == 0 && breaks == 0 && drifts == 0;
+        return seconds == 0 && rereads == 0 && longs == 0 && offers == 0 && helps == 0 && breaks == 0 && drifts == 0
+                && watched == 0 && away == 0 && passes == 0;
     }
 }

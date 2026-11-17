@@ -41,15 +41,20 @@ public final class ReadsSignals {
         public int breaks;
         /** Drift marks ("d"). */
         public int drifts;
+        /** Only with Eye mode's camera: seconds it watched the page ("e"), seconds the eyes were off it ("a"). */
+        public int watched;
+        public int away;
+        /** Only with a calibrated gaze: times the gaze went from the bottom back to the top without a turn ("g"). */
+        public int passes;
 
         public boolean isEmpty() {
             return seconds == 0 && rereads == 0 && longs == 0 && offers == 0 && helps == 0 && breaks == 0
-                    && drifts == 0;
+                    && drifts == 0 && watched == 0 && away == 0 && passes == 0;
         }
 
         /** A spot to review: the reader struggled or drifted here, or asked for help. */
         public boolean isSpot() {
-            return rereads > 0 || longs > 0 || helps > 0 || drifts > 0;
+            return rereads > 0 || longs > 0 || helps > 0 || drifts > 0 || passes > 0;
         }
 
         public void add(Page other) {
@@ -62,6 +67,9 @@ public final class ReadsSignals {
             helps += other.helps;
             breaks += other.breaks;
             drifts += other.drifts;
+            watched += other.watched;
+            away += other.away;
+            passes += other.passes;
         }
 
         JSONObject toJson() throws JSONException {
@@ -74,6 +82,9 @@ public final class ReadsSignals {
             put(o, "h", helps);
             put(o, "b", breaks);
             put(o, "d", drifts);
+            put(o, "e", watched);
+            put(o, "a", away);
+            put(o, "g", passes);
             return o;
         }
 
@@ -87,6 +98,9 @@ public final class ReadsSignals {
             p.helps = count(o, "h");
             p.breaks = count(o, "b");
             p.drifts = count(o, "d");
+            p.watched = count(o, "e");
+            p.away = count(o, "a");
+            p.passes = count(o, "g");
             return p;
         }
 
@@ -136,6 +150,9 @@ public final class ReadsSignals {
         p.helps += Math.max(0, d.helps);
         p.breaks += Math.max(0, d.breaks);
         p.drifts += Math.max(0, d.drifts);
+        p.watched += Math.max(0, d.watched);
+        p.away += Math.max(0, d.away);
+        p.passes += Math.max(0, d.passes);
     }
 
     /** The counters of a page, or null when it has none. */
