@@ -157,4 +157,20 @@ public final class ReadsRules {
     public static int wpm(double pace) {
         return pace <= 0 ? 0 : (int) Math.round(60_000 / pace);
     }
+
+    // ------------------------------------------------------------------ "How you read it"
+
+    /** A section read in less than this share of its expected time was skimmed. */
+    public static final double SKIM_FACTOR = 0.4;
+    /** A chapter without sub-sections in the table of contents is shown in this many blocks of pages at most. */
+    public static final int SECTION_BLOCKS = 8;
+    /** More sub-sections than this are too many rows: only the first level below the chapter is shown, or blocks. */
+    public static final int SECTION_MAX = 14;
+    /** Less measured reading than this in a chapter is too little to say how it was read. */
+    public static final int MAP_MIN_SECONDS = 60;
+
+    /** Whether {@code seconds} for {@code words} words is much faster than the reader's pace. */
+    public static boolean isSkim(int seconds, int words, double pace) {
+        return pace > 0 && words >= MIN_WORDS && seconds * 1000.0 < SKIM_FACTOR * words * pace;
+    }
 }

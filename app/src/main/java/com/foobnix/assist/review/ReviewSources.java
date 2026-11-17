@@ -158,6 +158,48 @@ public final class ReviewSources {
         return item;
     }
 
+    /** The id of a marked spot's idea: a key passage's own id, else one made of its text with an "s". */
+    static String spotId(Recall.Idea idea) {
+        return idea.id >= 0 ? String.valueOf(idea.id) : "s" + Integer.toHexString(norm(idea.text).hashCode());
+    }
+
+    /**
+     * The ideas of the pages "The book reads you back" marked in a chapter (a re-read, a long
+     * page, help asked, eyes off the page): each one not in the queue yet enters it due tomorrow,
+     * weak. A key-passage idea keeps its own id, so it is not added a second time.
+     */
+    public static List<ReviewItem> fromSpots(String chapterKey, String chapterTitle, List<Recall.Idea> ideas,
+                                             Map<String, ReviewItem> existing, String today) {
+        final List<ReviewItem> out = new ArrayList<>();
+        if (ideas == null || chapterKey == null || !UseDates.isDay(today)) {
+            return out;
+        }
+        final java.util.Set<String> added = new java.util.HashSet<>();
+        for (Recall.Idea idea : ideas) {
+            if (idea == null || idea.text.isEmpty()) {
+                continue;
+            }
+            final String id = spotId(idea);
+            if ((existing != null && existing.containsKey(ReviewItem.key(chapterKey, id))) || !added.add(id)) {
+                continue;
+            }
+            final ReviewItem item = new ReviewItem();
+            item.chapterKey = chapterKey;
+            item.id = id;
+            item.idea = idea.text;
+            item.chapterTitle = chapterTitle == null ? "" : chapterTitle;
+            item.quote = idea.quote();
+            item.page = idea.page();
+            item.reason = ReviewItem.FADING;
+            item.strength = 1;
+            item.gap = ReviewSchedule.FIRST_GAP;
+            item.due = UseDates.addDays(today, ReviewSchedule.FIRST_GAP);
+            item.add(new ReviewItem.Past(today, ReviewItem.ADDED, true, ReviewSchedule.FIRST_GAP));
+            out.add(item);
+        }
+        return out;
+    }
+
     /** A text as two ideas are compared: letters and digits only, lower case. */
     public static String norm(String text) {
         final StringBuilder out = new StringBuilder();
