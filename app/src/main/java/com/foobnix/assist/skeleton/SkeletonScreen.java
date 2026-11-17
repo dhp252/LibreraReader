@@ -163,6 +163,11 @@ public final class SkeletonScreen implements SkeletonJob.Screen, AiProgress.Task
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         belowParams.setMargins(dp(16), dp(16), dp(16), 0);
         page.addView(below, belowParams);
+        // Shortest path to one idea (canvas T20): its own switch, its own package
+        final View path = com.foobnix.assist.path.PathBlock.view(a, dc, () -> dialog.dismiss());
+        if (path != null) {
+            page.addView(path);
+        }
 
         root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         final View pre = preQuestions();

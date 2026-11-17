@@ -811,7 +811,17 @@ public abstract class DocumentController {
                 com.foobnix.assist.prequestions.PreQSession.pageShown(this);
             }
             com.foobnix.eye.EyeMode.pageShown(this);
+            com.foobnix.assist.path.PathSession.pageShown(this);
             com.foobnix.assist.skeleton.SkeletonOffer.pageShown(this, lastRead);
+            if (com.foobnix.assist.Assist.UPDATED.isOn()) {
+                com.foobnix.assist.updated.UpdatedSession.pageShown(this);
+            }
+            if (com.foobnix.assist.Assist.USE_IT.isOn()) {
+                com.foobnix.assist.useit.UseIt.pageShown(this);
+            }
+            if (com.foobnix.assist.Assist.RECALL.isOn()) {
+                com.foobnix.assist.recall.RecallSession.pageShown(this);
+            }
 
             handler2.removeCallbacks(saveCurrentPageRunnable);
             handler2.postDelayed(saveCurrentPageRunnable, 1000);

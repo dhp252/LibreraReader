@@ -169,6 +169,7 @@ public class EventDraw implements IEvent {
         drawMarks(page);
         drawAiHighlights(page);
         drawPreQuestions(page);
+        drawUpdated(page);
         drawReadAloud(page);
 
         return res;
@@ -219,6 +220,18 @@ public class EventDraw implements IEvent {
                 rect.offset(-viewState.viewBase.x, -viewState.viewBase.y);
                 canvas.drawRect(rect, com.foobnix.assist.prequestions.PreQMarks.paint());
             }
+        }
+    }
+
+    /** Margin marks of the notes of "The book, updated" (Assist.UPDATED; none when off). */
+    private void drawUpdated(final Page page) {
+        if (!com.foobnix.assist.Assist.UPDATED.isOn()) {
+            return;
+        }
+        final RectF unit = page.getPageRegion(pageBounds, new RectF(0, 0, 1, 1));
+        if (unit != null) {
+            unit.offset(-viewState.viewBase.x, -viewState.viewBase.y);
+            com.foobnix.assist.updated.UpdatedMarks.draw(canvas, page.index.docIndex, page.texts, unit);
         }
     }
 

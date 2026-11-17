@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Lens (canvas T14): the author's side and yours, an arrow each way -->
+    <path
+        android:pathData="M4,8h14M15,5l3,3l-3,3M20,16H6M9,13l-3,3l3,3"
+        android:strokeWidth="1.8"
+        android:strokeColor="@color/black"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

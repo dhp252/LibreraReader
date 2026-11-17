@@ -576,8 +576,15 @@ public final class XrayScreen implements XrayJob.Screen {
 
     private void showWeak() {
         if (ratings != null && ratings.weakestId() >= 0) {
-            XrayWeakCard.show(a, tree, ratings, this::jump);
+            // Debate it (canvas XrayWeak, Assist.RECALL): the debate on the weak idea
+            XrayWeakCard.show(a, tree, ratings, this::jump, Assist.RECALL.isOn() ? this::debate : null);
         }
+    }
+
+    /** Opens the debate on an idea over the X-ray, starting from the weak spot's title as the reader's position. */
+    private void debate(XrayIdea idea) {
+        com.foobnix.assist.debate.DebateScreen.show(a, dc, chapter, idea.id, ratings == null ? "" : ratings.weakTitle,
+                () -> dialog.dismiss());
     }
 
     /** Closes the X-ray and goes to the idea's first mark (as All ideas does). */

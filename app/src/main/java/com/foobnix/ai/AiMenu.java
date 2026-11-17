@@ -87,6 +87,60 @@ public final class AiMenu {
                         return true;
                     });
         }
+        // The book, updated (canvas, Assist.UPDATED): what is known today, on this chapter
+        if (com.foobnix.assist.Assist.UPDATED.isOn()) {
+            menu.getMenu().add(a.getString(R.string.updated_title)).setIcon(R.drawable.canvas_t22_ic_updated)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.updated.UpdatedScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
+        // Debate the author (canvas, Assist.RECALL): argue with a claim of the chapter's key passages
+        if (com.foobnix.assist.Assist.RECALL.isOn()) {
+            menu.getMenu().add(a.getString(R.string.debate_title)).setIcon(R.drawable.canvas_t19_ic_debate)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.debate.DebateScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
+        // Lens (canvas, Assist.LENS): the chapter's ideas mapped to the fields the reader knows
+        if (com.foobnix.assist.Assist.LENS.isOn()) {
+            menu.getMenu().add(a.getString(R.string.lens_in_your_terms)).setIcon(R.drawable.canvas_t14_ic_lens)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.lens.LensBridgeScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
+        // Use it (canvas, Assist.USE_IT): one idea of the chapter as an experiment, and the book's experiments
+        if (com.foobnix.assist.Assist.USE_IT.isOn()) {
+            menu.getMenu().add(a.getString(R.string.canvas_t23_title)).setIcon(R.drawable.canvas_t23_ic_useit)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.useit.UseIt.open(a, dc);
+                        return true;
+                    });
+        }
+        // Semantic zoom (canvas, Assist.ZOOM): the chapter as Full / Lean / Claims / 1 line
+        if (com.foobnix.assist.Assist.ZOOM.isOn()) {
+            menu.getMenu().add(a.getString(R.string.zoom_title)).setIcon(R.drawable.canvas_t15_ic_zoom)
+                    .setOnMenuItemClickListener(item -> {
+                        com.foobnix.assist.zoom.ZoomScreen.showHere(a, dc);
+                        return true;
+                    });
+        }
+        // Blank-page recall and teach-back (canvas, Assist.RECALL): the chapter in the reader's own words
+        if (com.foobnix.assist.Assist.RECALL.isOn()) {
+            menu.getMenu(R.drawable.glyphicons_151_square_edit, R.string.canvas_t17_title,
+                    () -> com.foobnix.assist.recall.RecallScreen.showHere(a, dc));
+            menu.getMenu(R.drawable.glyphicons_1020_head_voice, R.string.canvas_t18_title,
+                    () -> com.foobnix.assist.teach.TeachScreen.showHere(a, dc));
+        }
+        // Shortest path (canvas T20): the few chapters to read for one idea
+        if (com.foobnix.assist.Assist.PATH.isOn()) {
+            menu.getMenu(R.drawable.glyphicons_476_sort_attributes, R.string.canvas_t20_shortest_path,
+                    () -> com.foobnix.assist.path.PathScreen.show(a, dc));
+            menu.getMenu(R.drawable.glyphicons_422_book_library, R.string.canvas_t21_menu,
+                    () -> com.foobnix.assist.path.TopicScreen.show(a, dc));
+        }
         menu.show();
     }
 
