@@ -428,7 +428,7 @@
    <string name="number">Zenbakia</string>
    <string name="percent">Ehunekoa</string>
    <string name="awards">Sariak</string>
-   <string name="close_book_and_application">Itxi Librera</string>
+   <string name="close_book_and_application">Itxi Yggdrasil</string>
    <string name="percent_and_number">Biak</string>
    <string name="current_page">Aurrerapena</string>
    <string name="backup_folder">Babeskopia</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Hodeia ez dago konektatuta</string>
    <string name="cloud_sync_folder">Hodeia sinkronizatzeko karpeta</string>
    <string name="clouds">Hodeiak</string>
-   <string name="librera_cloud">Libreraren hodeia</string>
+   <string name="librera_cloud">Yggdrasilren hodeia</string>
    <string name="hide_search_bar">Ezkutatu bilaketa barra</string>
    <string name="show_search_bar">Erakutsi bilaketa barra</string>
    <string name="never">Inoiz ez</string>

@@ -1,15 +1,16 @@
-Librera Reader is a highly customizable and feature-rich application
-for reading e-books in PDF, EPUB, MOBI, DjVu, FB2, TXT, RTF, AZW, AZW3, HTML, CBZ, CBR, DOC, DOCX, formats.
+Yggdrasil is the book that reads you back: an e-book reader that helps you understand
+and keep what you read. It opens PDF, EPUB, MOBI, DjVu, FB2, TXT, RTF, AZW, AZW3, HTML, CBZ, CBR,
+DOC and DOCX.
 
-With its intuitive, yet powerful, interface, Librera makes ebook reading a veritable pleasure. 
-It even features a unique auto-scrolling, hands-free Musician's mode, with controllable speed.
+# Assisted reading
 
-F-Droid version is based on the latest MuPDF and support Android 4.1+.
+Fifteen helpers, each off until you turn it on: re-entry recap, pre-questions, skeleton first,
+semantic zoom, argument X-ray, bridges from your field, minimal path, recall and teach-back,
+spaced review, use it, the book updated, prose to pictures, your edition, a spoiler-safe fiction
+companion, and the book reads you back (the front camera notices re-reads and tiredness; it stays
+on the phone). The AI helpers use your own key.
 
-The only difference between Librera FD (F-Droid) and Librera PRO
-is the absence of Google Play services and Google Drive book synchronization in Librera FD.
-
-# Just a few Librera main features:
+# Everything Librera does
 
 * Easy document discovery by configurable criteria:
 * Auto-Scan (user-specified folders)	
@@ -35,10 +36,6 @@ is the absence of Google Play services and Google Drive book synchronization in 
 * Movable bookmarks, w/ a floating indicator
 * And a whole bunch of other features for you to check out.
 
-You can read books in your web browser with the Librera Book Reader
-https://librera.mobi/online-book-reader/
 
-The best way to fully appreciate Librera Reader, however,
-is to use our restriction-free Librera PRO version from Google Play.
-
-If you enjoy Librera, please consider making a donation: https://www.patreon.com/librera
+Yggdrasil is a fork of Librera Reader by Ivan Ivanenko (https://github.com/foobnix/LibreraReader),
+free software under the GNU GPL v3.

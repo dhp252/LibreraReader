@@ -96,10 +96,10 @@ jobs:
             echo "Built from \`$BUILD_REF\` at $SHA with MuPDF $MUPDF_VERSION."
             echo
             if [ ${#FD_APKS[@]} -gt 0 ]; then
-              echo "- **Librera FD $FD_VERSION** (\`Librera-Fdroid-*\`): the F-Droid build, no Google services or ads."
+              echo "- **Yggdrasil $FD_VERSION** (\`Yggdrasil-Fdroid-*\`): the F-Droid build, no Google services or ads."
             fi
             if [ ${#APP_APKS[@]} -gt 0 ]; then
-              echo "- **Librera $APP_VERSION** (\`Librera-Librera-*\`): the regular app, with Google Drive and ads. It is a separate app and installs next to Librera FD."
+              echo "- **Yggdrasil G $APP_VERSION** (\`Yggdrasil-Librera-*\`): the regular app, with Google Drive and ads. It is a separate app and installs next to Yggdrasil."
             fi
             echo
             echo "Which file: \`-arm64.apk\` fits most phones and tablets, \`-arm.apk\` is for old 32-bit devices, \`-uni.apk\` holds every architecture."
@@ -117,7 +117,7 @@ jobs:
             done
           } > notes.md
           gh release create "$TAG" dist/*.apk --target "$SHA" \
-            --title "Librera $FD_VERSION ($BUILD_REF ${SHA:0:7})" --notes-file notes.md "${FLAGS[@]}"
+            --title "Yggdrasil $FD_VERSION ($BUILD_REF ${SHA:0:7})" --notes-file notes.md "${FLAGS[@]}"
           echo "Release: $(gh release view "$TAG" --json url -q .url)" >> "$GITHUB_STEP_SUMMARY"
           cat notes.md >> "$GITHUB_STEP_SUMMARY"
 

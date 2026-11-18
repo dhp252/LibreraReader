@@ -429,7 +429,7 @@
    <string name="number">Pages</string>
    <string name="percent">Percent</string>
    <string name="awards">Awards</string>
-   <string name="close_book_and_application">Exit Librera</string>
+   <string name="close_book_and_application">Exit Yggdrasil</string>
    <string name="percent_and_number">Both</string>
    <string name="current_page">Progress indicator</string>
    <string name="backup_folder">Backup</string>
@@ -479,7 +479,7 @@
    <string name="cloud_not_connected">Cloud is not connected</string>
    <string name="cloud_sync_folder">Cloud sync folder</string>
    <string name="clouds">Clouds</string>
-   <string name="librera_cloud">Librera Cloud</string>
+   <string name="librera_cloud">Yggdrasil Cloud</string>
    <string name="hide_search_bar">Hide search bar</string>
    <string name="show_search_bar">Show search bar</string>
    <string name="never">Never</string>

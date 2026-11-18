@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Cloud ไม่ได้เชื่อมต่อ</string>
    <string name="cloud_sync_folder">โฟลเดอร์ซิงค์ระบบคลาวด์</string>
    <string name="clouds">คลาวด์</string>
-   <string name="librera_cloud">Librera cloud</string>
+   <string name="librera_cloud">Yggdrasil cloud</string>
    <string name="hide_search_bar">ซ่อนแถบค้นหา</string>
    <string name="show_search_bar">แสดงแถบค้นหา</string>
    <string name="never">ไม่เคย</string>

@@ -428,7 +428,7 @@
    <string name="number">Старонкі</string>
    <string name="percent">Працэнтаў</string>
    <string name="awards">Ўзнагароды</string>
-   <string name="close_book_and_application">Выхад librera</string>
+   <string name="close_book_and_application">Выхад Yggdrasil</string>
    <string name="percent_and_number">Абодва</string>
    <string name="current_page">Індыкатар прагрэсу</string>
    <string name="backup_folder">Рэзервовае капіраванне</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Воблака не падключана</string>
    <string name="cloud_sync_folder">Тэчка воблачнай сінхранізацыі</string>
    <string name="clouds">Аблокі</string>
-   <string name="librera_cloud">Воблака librera</string>
+   <string name="librera_cloud">Воблака Yggdrasil</string>
    <string name="hide_search_bar">Схаваць радок пошуку</string>
    <string name="show_search_bar">Паказаць радок пошуку</string>
    <string name="never">Ніколі</string>

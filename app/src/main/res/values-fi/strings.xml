@@ -428,7 +428,7 @@
    <string name="number">Sivut</string>
    <string name="percent">Prosentti</string>
    <string name="awards">Palkinnot</string>
-   <string name="close_book_and_application">Sulje Librera</string>
+   <string name="close_book_and_application">Sulje Yggdrasil</string>
    <string name="percent_and_number">Molemmat</string>
    <string name="current_page">Edistyminen</string>
    <string name="backup_folder">Varmuuskopio</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Cloud ei ole käytössä</string>
    <string name="cloud_sync_folder">Cloud synkronointikansio</string>
    <string name="clouds">Pilvipalvelut</string>
-   <string name="librera_cloud">Librera Cloud</string>
+   <string name="librera_cloud">Yggdrasil Cloud</string>
    <string name="hide_search_bar">Piilota hakupalkki</string>
    <string name="show_search_bar">Näytä hakupalkki</string>
    <string name="never">Ei koskaan</string>

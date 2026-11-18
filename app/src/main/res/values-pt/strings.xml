@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Nuvem não conectada</string>
    <string name="cloud_sync_folder">Pasta de sincronização na nuvem</string>
    <string name="clouds">Nuvens</string>
-   <string name="librera_cloud">Nuvem de Librera</string>
+   <string name="librera_cloud">Nuvem de Yggdrasil</string>
    <string name="hide_search_bar">Ocultar barra de busca</string>
    <string name="show_search_bar">Mostrar barra de busca</string>
    <string name="never">Nunca</string>

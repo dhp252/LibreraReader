@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Yggdrasil name. The fork is built on Librera Reader (GPL v3) and keeps its credit. -->
+<resources>
+    <string name="based_on_librera">Yggdrasil is based on Librera Reader by Ivan Ivanenko</string>
+    <string name="yggdrasil_home_url" translatable="false">https://github.com/dhp252/LibreraReader</string>
+</resources>

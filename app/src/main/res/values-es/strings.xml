@@ -428,7 +428,7 @@
    <string name="number">Número</string>
    <string name="percent">Por ciento</string>
    <string name="awards">Premios</string>
-   <string name="close_book_and_application">Cerrar Librera</string>
+   <string name="close_book_and_application">Cerrar Yggdrasil</string>
    <string name="percent_and_number">Ambos</string>
    <string name="current_page">Progreso</string>
    <string name="backup_folder">Copia de seguridad</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">La nube no está conectada</string>
    <string name="cloud_sync_folder">Carpeta de sincronización de la nube</string>
    <string name="clouds">Nubes</string>
-   <string name="librera_cloud">Nube de Librera</string>
+   <string name="librera_cloud">Nube de Yggdrasil</string>
    <string name="hide_search_bar">Ocultar barra de búsqueda</string>
    <string name="show_search_bar">Mostrar barra de búsqueda</string>
    <string name="never">Nunca</string>

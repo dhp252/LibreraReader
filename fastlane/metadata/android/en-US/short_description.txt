@@ -1,1 +1,1 @@
-All-format Book Reader
+The book that reads you back: an all-format reader

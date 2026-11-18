@@ -428,7 +428,7 @@
    <string name="number">페이지</string>
    <string name="percent">퍼센트</string>
    <string name="awards">수상 내역</string>
-   <string name="close_book_and_application">Librera 닫기</string>
+   <string name="close_book_and_application">Yggdrasil 닫기</string>
    <string name="percent_and_number">둘 다</string>
    <string name="current_page">현재 페이지</string>
    <string name="backup_folder">백업 폴더</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">클라우드가 연결되지 않았습니다.</string>
    <string name="cloud_sync_folder">클라우드 동기화 폴더</string>
    <string name="clouds">클라우드</string>
-   <string name="librera_cloud">Librera 클라우드</string>
+   <string name="librera_cloud">Yggdrasil 클라우드</string>
    <string name="hide_search_bar">검색 창 숨기기</string>
    <string name="show_search_bar">검색 창 표시</string>
    <string name="never">끄기</string>

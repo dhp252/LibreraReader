@@ -118,7 +118,7 @@ android {
             dimension = "version"
             applicationId = "com.foobnix.pro.pdf.reader"
             manifestPlaceholders = [
-                    appName      : "Librera FD",
+                    appName      : "Yggdrasil",
                     appIcon      : "@mipmap/icon_pdf_pro",
                     appRoundIcon : "@mipmap/icon_pdf_pro",
                     appGdriveKey : "",
@@ -134,7 +134,7 @@ android {
             dimension = "version"
             applicationId = "com.foobnix.pdf.reader"
             manifestPlaceholders = [
-                    appName      : "Librera",
+                    appName      : "Yggdrasil G",
                     appIcon      : "@mipmap/icon_pdf_reader",
                     appRoundIcon : "@mipmap/icon_pdf_reader",
                     appGdriveKey : librera_appGdriveKey,
@@ -368,10 +368,10 @@ androidComponents {
             if (abi != null) {
                 def abiName = abi.replace("arm64-v8a", "arm64").replace("armeabi-v7a", "arm")
                 output.versionCode.set(abiCodes.get(abi, 0) + codeNumber)
-                output.outputFileName.set("Librera ${flavor}-${versionNumber}${mupdfSuffix}-${abiName}.apk")
+                output.outputFileName.set("Yggdrasil ${flavor}-${versionNumber}${mupdfSuffix}-${abiName}.apk")
             } else {
                 output.versionCode.set(codeNumber)
-                output.outputFileName.set("Librera ${flavor}-${versionNumber}${mupdfSuffix}-uni.apk")
+                output.outputFileName.set("Yggdrasil ${flavor}-${versionNumber}${mupdfSuffix}-uni.apk")
             }
         }
     }
@@ -414,7 +414,7 @@ tasks.register("copyApks") {
         android.productFlavors.each { productFlavor ->
             {
                 def flavor = productFlavor.name
-                def appName = "Librera ${flavor.capitalize()}-${flavor == 'fdroid' ? FDroidVersionNumber : versionNumber}${mupdfSuffix}"
+                def appName = "Yggdrasil ${flavor.capitalize()}-${flavor == 'fdroid' ? FDroidVersionNumber : versionNumber}${mupdfSuffix}"
 
                 //println "====  " + variant.buildType.name + " " +  flavor
 

@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">クラウド未接続</string>
    <string name="cloud_sync_folder">クラウド同期フォルダ</string>
    <string name="clouds">クラウド</string>
-   <string name="librera_cloud">Libreraのクラウド</string>
+   <string name="librera_cloud">Yggdrasilのクラウド</string>
    <string name="hide_search_bar">検索バーを非表示にする</string>
    <string name="show_search_bar">検索バーを表示</string>
    <string name="never">しない</string>

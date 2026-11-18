@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Cloud inte anslutet</string>
    <string name="cloud_sync_folder">Cloud synkroniseringsmapp</string>
    <string name="clouds">Moln</string>
-   <string name="librera_cloud">Librera moln</string>
+   <string name="librera_cloud">Yggdrasil moln</string>
    <string name="hide_search_bar">Dölj sökfältet</string>
    <string name="show_search_bar">Visa sökfältet</string>
    <string name="never">Aldrig</string>

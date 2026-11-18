@@ -428,7 +428,7 @@
    <string name="number">பக்கங்கள்</string>
    <string name="percent">சதவீதம்</string>
    <string name="awards">விருதுகள்</string>
-   <string name="close_book_and_application">லிப்ரெராவிலிருந்து வெளியேறு</string>
+   <string name="close_book_and_application">Yggdrasil-இலிருந்து வெளியேறு</string>
    <string name="percent_and_number">இரண்டும்</string>
    <string name="current_page">முன்னேற்றக் காட்டி</string>
    <string name="backup_folder">காப்புப்பிரதி</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">மேககணி இணைக்கப்படவில்லை</string>
    <string name="cloud_sync_folder">மேகக்கணி ஒத்திசைவு கோப்புறை</string>
    <string name="clouds">மேகக்கணி</string>
-   <string name="librera_cloud">லிப்ரெரா மேகக்கணி</string>
+   <string name="librera_cloud">Yggdrasil மேகக்கணி</string>
    <string name="hide_search_bar">தேடல் பட்டியை மறைக்க</string>
    <string name="show_search_bar">தேடல் பட்டியைக் காட்டு</string>
    <string name="never">ஒருபோதும்</string>

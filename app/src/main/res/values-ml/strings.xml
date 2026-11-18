@@ -428,7 +428,7 @@
    <string name="number">പേജുകൾ</string>
    <string name="percent">ശതമാനം</string>
    <string name="awards">അവാർഡുകൾ</string>
-   <string name="close_book_and_application">ലിബ്രെറയിൽ നിന്ന് പുറത്തുകടക്കുക</string>
+   <string name="close_book_and_application">Yggdrasil-ൽ നിന്ന് പുറത്തുകടക്കുക</string>
    <string name="percent_and_number">രണ്ടും</string>
    <string name="current_page">പുരോഗതി സൂചകം</string>
    <string name="backup_folder">ബാക്കപ്പ്</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">ക്ലൗഡ് കണക്റ്റുചെയ്‌തിട്ടില്ല</string>
    <string name="cloud_sync_folder">ക്ലൗഡ് സമന്വയ ഫോൾഡർ</string>
    <string name="clouds">മേഘങ്ങൾ</string>
-   <string name="librera_cloud">ലിബ്രെറ മേഘം</string>
+   <string name="librera_cloud">Yggdrasil മേഘം</string>
    <string name="hide_search_bar">തിരയൽ ബാർ മറയ്‌ക്കുക</string>
    <string name="show_search_bar">തിരയൽ ബാർ കാണിക്കുക</string>
    <string name="never">ഒരിക്കലും</string>

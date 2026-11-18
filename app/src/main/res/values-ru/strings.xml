@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Облако не подключено</string>
    <string name="cloud_sync_folder">Папка облачной синхронизации</string>
    <string name="clouds">Облака</string>
-   <string name="librera_cloud">Облако Librera</string>
+   <string name="librera_cloud">Облако Yggdrasil</string>
    <string name="hide_search_bar">Скрывать панель поиска</string>
    <string name="show_search_bar">Показывать панель поиска</string>
    <string name="never">Никогда</string>
