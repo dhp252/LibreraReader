@@ -2,8 +2,8 @@
 #   - the JVM unit tests (testFdroidDebugUnitTest)
 #   - the MuPDF native library (cached, rebuilt only when Builder/jni or the MuPDF version changes)
 #   - release APKs of two flavors, as run artifacts:
-#       fdroid   "Librera FD", com.foobnix.pro.pdf.reader, no Google services or ads (the F-Droid build)
-#       librera  "Librera", com.foobnix.pdf.reader, the regular app with Google Drive and AdMob
+#       fdroid   "Yggdrasil", com.foobnix.pro.pdf.reader, no Google services or ads (the F-Droid build)
+#       librera  "Yggdrasil G", com.foobnix.pdf.reader, the regular app with Google Drive and AdMob
 #                (Google's sample ad ids unless LIBRERA_GRADLE_PROPERTIES holds real ones)
 # The Release APK workflow calls this one and publishes what it built.
 #

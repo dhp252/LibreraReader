@@ -428,7 +428,7 @@
    <string name="number">Páxinas</string>
    <string name="percent">Porcentaxe</string>
    <string name="awards">Premios</string>
-   <string name="close_book_and_application">Saír de Librera</string>
+   <string name="close_book_and_application">Saír de Yggdrasil</string>
    <string name="percent_and_number">Ambos</string>
    <string name="current_page">Indicador de progreso</string>
    <string name="backup_folder">Copia de seguridade</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">A nube non está conectada</string>
    <string name="cloud_sync_folder">Cartafol de sincronización na nube</string>
    <string name="clouds">Nubes</string>
-   <string name="librera_cloud">Librera Cloud</string>
+   <string name="librera_cloud">Yggdrasil Cloud</string>
    <string name="hide_search_bar">Ocultar barra de busca</string>
    <string name="show_search_bar">Amosar barra de busca</string>
    <string name="never">Xamais</string>

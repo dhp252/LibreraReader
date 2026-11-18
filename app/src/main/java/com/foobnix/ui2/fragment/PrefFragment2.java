@@ -138,7 +138,6 @@ public class PrefFragment2 extends UIFragment {
     public static final Pair<Integer, Integer> PAIR =
             new Pair<>(R.string.preferences, R.drawable.glyphicons_5_settings);
 
-    private static final String WWW_SITE = "https://librera.mobi";
     private static final String WWW_BETA_SITE = "http://beta.librera.mobi";
     private static final String WWW_WIKI_SITE = "https://librera.mobi/faq";
     View section1, section2, section3, section4, section5, section6, section7, section8, section9, panelRecent, overlay,
@@ -2499,7 +2498,7 @@ public class PrefFragment2 extends UIFragment {
                                                              setOnClickListener(new OnClickListener() {
 
             @Override public void onClick(final View v) {
-                Urls.open(getActivity(), WWW_SITE);
+                Urls.open(getActivity(), getString(R.string.yggdrasil_home_url));
             }
         });
 

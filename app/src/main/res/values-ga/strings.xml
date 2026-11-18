@@ -428,7 +428,7 @@
    <string name="number">Leathanaigh</string>
    <string name="percent">Faoin gcéad</string>
    <string name="awards">Dámhachtainí</string>
-   <string name="close_book_and_application">Scoir librera</string>
+   <string name="close_book_and_application">Scoir Yggdrasil</string>
    <string name="percent_and_number">Araon</string>
    <string name="current_page">Táscaire dul chun cinn</string>
    <string name="backup_folder">Cúltaca</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Níl scamall ceangailte</string>
    <string name="cloud_sync_folder">Fillteán sync scamall</string>
    <string name="clouds">Scamaill</string>
-   <string name="librera_cloud">Scamall librera</string>
+   <string name="librera_cloud">Scamall Yggdrasil</string>
    <string name="hide_search_bar">Barra cuardaigh a cheilt</string>
    <string name="show_search_bar">Taispeáin barra cuardaigh</string>
    <string name="never">Riamh</string>

@@ -428,7 +428,7 @@
    <string name="number">Pàgines</string>
    <string name="percent">Percentatge</string>
    <string name="awards">Premis</string>
-   <string name="close_book_and_application">Surt de Librera</string>
+   <string name="close_book_and_application">Surt de Yggdrasil</string>
    <string name="percent_and_number">Ambdós</string>
    <string name="current_page">Indicador de progrés</string>
    <string name="backup_folder">Còpia de seguretat</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">No connectat al núvol</string>
    <string name="cloud_sync_folder">Carpeta de sincronització del núvol</string>
    <string name="clouds">Núvols</string>
-   <string name="librera_cloud">Librera Cloud</string>
+   <string name="librera_cloud">Yggdrasil Cloud</string>
    <string name="hide_search_bar">Amaga la barra de cerca</string>
    <string name="show_search_bar">Mostra la barra de cerca</string>
    <string name="never">Mai</string>

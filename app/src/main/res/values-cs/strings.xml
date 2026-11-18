@@ -428,7 +428,7 @@
    <string name="number">Stránky</string>
    <string name="percent">Procenta</string>
    <string name="awards">Ceny</string>
-   <string name="close_book_and_application">Ukončit Libreru</string>
+   <string name="close_book_and_application">Ukončit Yggdrasil</string>
    <string name="percent_and_number">Obojí</string>
    <string name="current_page">Indikátor průběhu</string>
    <string name="backup_folder">Záloha</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Cloud není připojen</string>
    <string name="cloud_sync_folder">Složka synchronizace v cloudu</string>
    <string name="clouds">Cloudy</string>
-   <string name="librera_cloud">Librera Cloud</string>
+   <string name="librera_cloud">Yggdrasil Cloud</string>
    <string name="hide_search_bar">Skrýt panel vyhledávání</string>
    <string name="show_search_bar">Zobrazit panel vyhledávání</string>
    <string name="never">Nikdy</string>

@@ -128,7 +128,7 @@ public class Urls {
     public static void rateIT(Context a) {
         try {
             if (AppsConfig.IS_FDROID) {
-                Urls.open(a, "https://github.com/foobnix/LibreraReader");
+                Urls.open(a, a.getString(R.string.yggdrasil_home_url));
             } else {
                 Urls.open(a, "market://details?id=" + a.getPackageName());
             }

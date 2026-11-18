@@ -1,22 +1,67 @@
-![Logo](https://raw.githubusercontent.com/foobnix/LirbiReader/master/logo.jpg)
+# Yggdrasil
 
-**The development and support of Librera is frozen for an unpredictable time, there is a big war in my country
-Ukraine.**
-[Russian invasion of Ukraine](https://en.wikipedia.org/wiki/2022_Russian_invasion_of_Ukraine)
+**The book that reads you back.** Yggdrasil is an e-book reader for Android that helps you
+understand and keep what you read. It opens PDF, EPUB, EPUB3, MOBI, DjVu, FB2, TXT, RTF, AZW,
+AZW3, HTML, CBZ, CBR, DOC and DOCX, and OPDS catalogs.
 
-# Librera Reader
+Yggdrasil is a fork of [Librera Reader](https://github.com/foobnix/LibreraReader) by Ivan
+Ivanenko, and it keeps everything Librera does. See [Credits](#credits).
 
-Librera Reader is an e-book reader for Android devices;
-it supports the following formats: PDF, EPUB, EPUB3, MOBI, DjVu, FB2, TXT, RTF, AZW, AZW3, HTML, CBZ, CBR, DOC, DOCX,
-and OPDS Catalogs
+## What Yggdrasil adds
 
-# This fork: build and test
+**Assisted reading.** Fifteen helpers, each off until you turn it on (Preferences, then
+Assisted reading). They appear in the reader's ✦ menu.
 
-This fork adds to upstream Librera:
+- **Re-entry recap**: back after a break, where you stopped and what came just before.
+- **Pre-questions**: guess a few answers before a chapter; the text then answers them.
+- **Skeleton first**: the whole argument in one line, a paragraph or a chapter map.
+- **Semantic zoom**: read a chapter in full, lean, as claims only or in one line.
+- **Argument X-ray**: marks the job each phrase does: claim, evidence, example, caveat.
+- **Bridges from your field**: the book's ideas mapped to the terms of a field you know.
+- **Minimal path**: name what you want to understand, get the fewest chapters to read.
+- **Recall and teach-back**: say what a chapter said in your own words, then see what you missed.
+- **Spaced review**: a few minutes a day on the ideas you are about to forget.
+- **Use it**: turn one idea into a small experiment, then check in two weeks later.
+- **The book, updated**: margin notes on what has been learned since the book was written.
+- **Prose to pictures**: a passage drawn as a process, a table or a loop.
+- **Your edition**: when you finish, the book in a few pages, from your recalls and links.
+- **Spoiler-safe fiction companion**: who's who, the timeline and the map, only up to where you are.
+- **The book reads you back**: the front camera notices re-reads, drift and tiredness and
+  offers help. It stays on the phone.
+
+The AI helpers use your own key (Claude or an OpenAI-compatible server) and run only when you tap
+them, except the recap and the pre-question offers.
+
+**And more:**
+- the Canvas look, a light, calm reading interface (switch it off for the classic look);
 - the sentence being read aloud is highlighted, and double-tapping a sentence reads from there;
-- an annotation toolbar for PDFs (highlight, underline, strikethrough, pen, eraser, undo), and a stylus that draws at once (pen with pressure, highlighter, eraser end);
+- an annotation toolbar for PDFs (highlight, underline, strikethrough, pen, eraser, undo), and a
+  stylus that draws at once (pen with pressure, highlighter, eraser end);
 - WebDAV sync of books and reading state;
-- AI chapter and book summaries, and AI-picked key passages (Claude or an OpenAI-compatible server).
+- AI chapter and book summaries, and AI-picked key passages.
+
+## Install
+
+Download the APK from [Releases](https://github.com/dhp252/LibreraReader/releases): `-arm64.apk`
+fits most phones and tablets.
+
+Yggdrasil keeps Librera's package id (`com.foobnix.pro.pdf.reader` for the F-Droid build), so it
+installs over Librera FD built with the same key, and it keeps using the `Librera` folder for
+books, sync and backups.
+
+## Credits
+
+Yggdrasil is built on [Librera Reader](https://github.com/foobnix/LibreraReader), created by
+Ivan Ivanenko ([librera.mobi](https://librera.mobi)), and on MuPDF and the other libraries listed
+below. Upstream's own words, from its README:
+
+> The development and support of Librera is frozen for an unpredictable time, there is a big war
+> in my country Ukraine.
+> [Russian invasion of Ukraine](https://en.wikipedia.org/wiki/2022_Russian_invasion_of_Ukraine)
+
+Like Librera, Yggdrasil is free software under the GNU GPL v3: see [License](#license).
+
+# Build and test
 
 The instructions below build the `fdroid` flavor, which has no Google services, on Linux. On
 Windows, run them in WSL (Ubuntu 24.04).
@@ -136,7 +181,7 @@ disk (`/mnt/c`, `/mnt/d`...), MuPDF is built in `~/librera-native` and Gradle ru
 `libMuPDF.so`. A good build ends with:
 
 ```
-[build] [OK]  Librera Fdroid-9.6.44-mupdf1.28.5-arm64.apk  32M  libMuPDF.so x1
+[build] [OK]  Yggdrasil Fdroid-9.6.44-mupdf1.28.5-arm64.apk  32M  libMuPDF.so x1
 [build] APKs: /mnt/d/0.Projects/00/LibreraReader/app/build/outputs/apk/fdroid/release
 ```
 
@@ -459,7 +504,11 @@ Unit tests cover the logic; the screens need a phone or tablet. After installing
   - "Record face traces" on, read a few minutes, "Share the last trace": a .jsonl of numbers, no
     pictures. Send it if something behaved wrong.
 
-# Download application
+# Upstream Librera
+
+The links below are the original Librera project's, not Yggdrasil's.
+
+## Download Librera
 
 [Librera on Google Play](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
 
@@ -643,7 +692,7 @@ Full release notes: https://github.com/foobnix/LibreraReader/releases
 | org.commonmark:commonmark-ext-gfm-tables    | 0.29.0         | BSD-2-Clause                |
 | com.github.junrar:junrar                       | 7.6.0                    | UnRar License                    |
 
-Librera is distributed under the GPL v3
+Yggdrasil, like Librera, is distributed under the GPL v3
 
 ## License
 

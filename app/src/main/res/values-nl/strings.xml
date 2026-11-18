@@ -428,7 +428,7 @@
    <string name="number">Nummer</string>
    <string name="percent">Procent</string>
    <string name="awards">Prijzen</string>
-   <string name="close_book_and_application">Librera sluiten</string>
+   <string name="close_book_and_application">Yggdrasil sluiten</string>
    <string name="percent_and_number">Percentage en nummer</string>
    <string name="current_page">Huidige pagina</string>
    <string name="backup_folder">Back-upmap</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Cloud niet verbonden</string>
    <string name="cloud_sync_folder">Cloud synchronisatie-map</string>
    <string name="clouds">Wolken</string>
-   <string name="librera_cloud">Librera cloud</string>
+   <string name="librera_cloud">Yggdrasil cloud</string>
    <string name="hide_search_bar">Zoekbalk verbergen</string>
    <string name="show_search_bar">Toon zoekbalk</string>
    <string name="never">Nooit</string>

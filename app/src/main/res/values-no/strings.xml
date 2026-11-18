@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Cloud ikke tilkoblet</string>
    <string name="cloud_sync_folder">Cloud synkroniseringsmappe</string>
    <string name="clouds">Skyer</string>
-   <string name="librera_cloud">Flytt skyen</string>
+   <string name="librera_cloud">Yggdrasil-skyen</string>
    <string name="hide_search_bar">Skjul søkefelt</string>
    <string name="show_search_bar">Vis søkefelt</string>
    <string name="never">Aldri</string>

@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Το cloud δεν είναι συνδεδεμένο</string>
    <string name="cloud_sync_folder">Φάκελος συγχρονισμού cloud</string>
    <string name="clouds">Σύννεφα</string>
-   <string name="librera_cloud">Σύννεφο librera</string>
+   <string name="librera_cloud">Σύννεφο Yggdrasil</string>
    <string name="hide_search_bar">Απόκρυψη γραμμής αναζήτησης</string>
    <string name="show_search_bar">Εμφάνιση γραμμής αναζήτησης</string>
    <string name="never">Ποτέ</string>

@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">ابر متصل نیست</string>
    <string name="cloud_sync_folder">پوشه همگام سازی ابر</string>
    <string name="clouds">ابرها</string>
-   <string name="librera_cloud">ابری Librera</string>
+   <string name="librera_cloud">ابری Yggdrasil</string>
    <string name="hide_search_bar">پنهان کردن نوار جستجو</string>
    <string name="show_search_bar">نمایش نوار جستجو</string>
    <string name="never">هرگز</string>

@@ -428,7 +428,7 @@
    <string name="number">Pàginas</string>
    <string name="percent">Pertzentuale</string>
    <string name="awards">Prèmios</string>
-   <string name="close_book_and_application">Essi dae Librera</string>
+   <string name="close_book_and_application">Essi dae Yggdrasil</string>
    <string name="percent_and_number">Ambos</string>
    <string name="current_page">Indicadore de progressu</string>
    <string name="backup_folder">Còpia de seguresa</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Sa nue no est connessa</string>
    <string name="cloud_sync_folder">Cartella de sincronizatzione in sa nue</string>
    <string name="clouds">Nues</string>
-   <string name="librera_cloud">Nue de Librera</string>
+   <string name="librera_cloud">Nue de Yggdrasil</string>
    <string name="hide_search_bar">Cua sa barra de chirca</string>
    <string name="show_search_bar">Ammustra s\'istanga de chirca</string>
    <string name="never">Mai</string>

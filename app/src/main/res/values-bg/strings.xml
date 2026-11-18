@@ -428,7 +428,7 @@
    <string name="number">Страници</string>
    <string name="percent">На сто</string>
    <string name="awards">Награди</string>
-   <string name="close_book_and_application">Изход либрера</string>
+   <string name="close_book_and_application">Изход Yggdrasil</string>
    <string name="percent_and_number">И двете</string>
    <string name="current_page">Индикатор за напредък</string>
    <string name="backup_folder">Резервно копие</string>
@@ -478,7 +478,7 @@
    <string name="cloud_not_connected">Облакът не е свързан</string>
    <string name="cloud_sync_folder">Облачна папка за синхронизиране</string>
    <string name="clouds">Облаци</string>
-   <string name="librera_cloud">Облак либрера</string>
+   <string name="librera_cloud">Облак Yggdrasil</string>
    <string name="hide_search_bar">Скрий лентата за търсене</string>
    <string name="show_search_bar">Показване на лентата за търсене</string>
    <string name="never">Никога</string>
