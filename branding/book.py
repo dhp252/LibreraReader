@@ -274,7 +274,7 @@ P.append(f'''
 <section class="cover">
   <div class="cv-l">{fig_cover}</div>
   <div class="cv-r">
-    <div class="kick">MARK &amp; RATIONALE · V3 · 18 NOV 2026</div>
+    <div class="kick">MARK &amp; RATIONALE · 18 NOV 2026</div>
     <h1>Yggdrasil</h1>
     <p class="tag">The book that reads you back.</p>
     <p class="lede">A book flips open and its pages fan up into a crown. Cut across them are a tree's growth rings, which are also lines of text. One spine, one circle, one ratio.</p>
