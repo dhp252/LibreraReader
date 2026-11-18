@@ -68,11 +68,14 @@ final class PictureJob extends AiJobs.Job {
         if (!Assist.PICTURES.isOn()) {
             return;
         }
-        if (!settings.isReady()) {
+        // an answer an outside Claude wrote for the whole chapter needs no API (com.foobnix.claude)
+        final boolean claude = claudeWaiting(com.foobnix.claude.ClaudeFeature.PICTURES, range == null ? null : range.key);
+        if (!settings.isReady() && !claude) {
             ui(screen::onNeedSettings);
             return;
         }
-        final int max = Math.min(PicturePrompts.MAX_CHARS, Math.max(PicturePrompts.MIN_CHARS, settings.maxChars - 6000));
+        final int max = claude ? Integer.MAX_VALUE
+                : Math.min(PicturePrompts.MAX_CHARS, Math.max(PicturePrompts.MIN_CHARS, settings.maxChars - 6000));
         final PicturePrompts.Sent sent;
         final String body;
         final PictureSource source;
@@ -85,7 +88,9 @@ final class PictureJob extends AiJobs.Job {
             }
             source = PictureSource.ofPassage(body, passagePage);
         } else {
-            final List<PictureIdea> ideas = PictureChapter.ideas(AiStore.get().load(target.name).chapter(range.key));
+            // Claude answers from the chapter's text, never from its ideas
+            final List<PictureIdea> ideas = claude ? new ArrayList<PictureIdea>()
+                    : PictureChapter.ideas(AiStore.get().load(target.name).chapter(range.key));
             while (ideas.size() > 1 && PicturePrompts.ideasBody(ideas).length() > max) {
                 // the request keeps to the cap: the last ideas wait
                 ideas.remove(ideas.size() - 1);
@@ -135,7 +140,7 @@ final class PictureJob extends AiJobs.Job {
             }
         }
         final String system = AiPrompts.withMaster(settings.masterPrompt, PicturePrompts.system(settings.answerLanguage, sent));
-        final String answer = ask(system,
+        final String answer = askFor(com.foobnix.claude.ClaudeFeature.PICTURES, range == null ? null : range.key, system,
                 PicturePrompts.user(target.title, range == null ? null : range.title, sent, body), null);
         checkCancelled();
         final PictureSet set = PictureSet.parse(answer, source);

@@ -2392,6 +2392,7 @@ public class DocumentWrapperUI {
             AiHighlights.get().open(a, dc.getCurrentBook().getPath());
             com.foobnix.annotation.MarksLayer.get().open(a, dc.getCurrentBook().getPath(), dc.docPageCount());
             com.foobnix.webdav.BookSync.shown(dc);
+            com.foobnix.claude.ClaudeBook.opened(a, dc);
         }
     }
 

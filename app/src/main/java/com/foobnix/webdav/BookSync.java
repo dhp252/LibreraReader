@@ -93,6 +93,10 @@ public final class BookSync {
             if (open && changed.contains(com.foobnix.study.StudyStore.profilePath(name))) {
                 com.foobnix.study.StudySession.reloadIfOpen(name);
             }
+            // answers an outside Claude wrote for this book (com.foobnix.claude)
+            if (open) {
+                com.foobnix.claude.ClaudeBook.synced(dc.getActivity(), dc);
+            }
         } catch (Exception e) {
             LOG.e(e);
         }

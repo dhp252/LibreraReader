@@ -136,6 +136,24 @@
             android:paddingBottom="4dip"
             android:text="@string/map_from_ideas" />
 
+        <CheckBox
+            android:id="@+id/aiClaudeDesk"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dip"
+            android:paddingBottom="0dip"
+            android:text="@string/claude_desk" />
+
+        <TextView
+            android:id="@+id/aiClaudeDeskInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="32dip"
+            android:paddingBottom="4dip"
+            android:textSize="12sp"
+            android:alpha="0.7"
+            android:text="@string/claude_desk_info" />
+
         <TextView
             android:id="@+id/aiTestResult"
             android:layout_width="match_parent"

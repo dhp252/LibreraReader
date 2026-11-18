@@ -89,7 +89,9 @@ final class ZoomJob extends AiJobs.Job {
 
     @Override
     protected void work() throws Exception {
-        if (!settings.isReady()) {
+        // an answer an outside Claude wrote for the whole chapter needs no API (com.foobnix.claude)
+        final boolean claude = claudeWaiting(com.foobnix.claude.ClaudeFeature.ZOOM, range.key);
+        if (!settings.isReady() && !claude) {
             ui(screen::onNeedSettings);
             return;
         }
@@ -97,7 +99,7 @@ final class ZoomJob extends AiJobs.Job {
         final ZoomText chapter;
         try (BookText text = open()) {
             chapterPages = Math.max(1, Math.min(text.pageCount(), range.to) - Math.max(0, range.from));
-            chapter = read(text, range, maxChars(settings), this::checkCancelled);
+            chapter = read(text, range, claude ? Integer.MAX_VALUE : maxChars(settings), this::checkCancelled);
         }
         if (chapter.chars() < MIN_CHARS) {
             failWith(string(R.string.zoom_too_short));
@@ -107,7 +109,7 @@ final class ZoomJob extends AiJobs.Job {
         final boolean partial = pagesRead < chapterPages;
         final String system = AiPrompts.withMaster(settings.masterPrompt,
                 ZoomPrompts.system(settings.answerLanguage, goal != null));
-        final String answer = ask(system, ZoomPrompts.user(target.title, chapterTitle(range), chapter.plain(), partial,
+        final String answer = askFor(com.foobnix.claude.ClaudeFeature.ZOOM, range.key, system, ZoomPrompts.user(target.title, chapterTitle(range), chapter.plain(), partial,
                 goal == null ? null : goal.prompt(bookGoal)), delta -> progress(delta == null ? 0 : delta.length()));
         checkCancelled();
         final ZoomData data = ZoomData.parse(answer);

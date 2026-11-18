@@ -55,14 +55,16 @@ final class UpdatedJob extends AiJobs.Job {
 
     @Override
     protected void work() throws Exception {
-        if (!settings.isReady()) {
+        // an answer an outside Claude wrote for the whole chapter needs no API (com.foobnix.claude)
+        final boolean claude = claudeWaiting(com.foobnix.claude.ClaudeFeature.UPDATED, range.key);
+        if (!settings.isReady() && !claude) {
             ui(screen::onNeedSettings);
             return;
         }
         final List<String> words = new ArrayList<>();
         final List<Integer> wordPage = new ArrayList<>();
         final StringBuilder plain = new StringBuilder();
-        final int max = Math.min(MAX_CHARS, Math.max(MIN_CHARS, settings.maxChars - 6000));
+        final int max = claude ? Integer.MAX_VALUE : Math.min(MAX_CHARS, Math.max(MIN_CHARS, settings.maxChars - 6000));
         try (BookText text = open()) {
             final int from = Math.max(0, range.from);
             final int to = Math.min(text.pageCount(), range.to);
@@ -104,7 +106,7 @@ final class UpdatedJob extends AiJobs.Job {
         }
         final List<String> lens = UpdatedSession.lensFields();
         final String system = AiPrompts.withMaster(settings.masterPrompt, UpdatedPrompts.system(settings.answerLanguage, lens));
-        final String answer = ask(system, UpdatedPrompts.user(target.title, author, year, chapterTitle(range), plain.toString()), null);
+        final String answer = askFor(com.foobnix.claude.ClaudeFeature.UPDATED, range.key, system, UpdatedPrompts.user(target.title, author, year, chapterTitle(range), plain.toString()), null);
         checkCancelled();
         final UpdatedChapter chapter = UpdatedChapter.parse(answer);
         if (chapter == null) {

@@ -40,12 +40,18 @@ public class AiSettings {
     public String masterPrompt = "";
     /** Book map (F-013): a chapter with key-passage ideas sends those instead of its text. */
     public boolean mapFromIdeas = false;
+    /**
+     * Work with Claude through WebDAV: books get a desk (chapters and text) and the skill goes on the
+     * server, so an outside Claude can write answers ahead; features take a waiting answer instead of
+     * asking the API (com.foobnix.claude). Off: nothing is written and nothing is looked for.
+     */
+    public boolean claudeDesk = false;
 
     /** Preference names shared between devices (WebDAV); {@code *.key} are the API keys. */
     public static final String[] SHARED = {"provider",
             CLAUDE + ".url", CLAUDE + ".model", CLAUDE + ".maxChars", CLAUDE + ".key",
             OPENAI + ".url", OPENAI + ".model", OPENAI + ".maxChars", OPENAI + ".key",
-            "answerLanguage", "highlightsVisible", "barsVisible", "sentencesVisible", "masterPrompt", "mapFromIdeas"};
+            "answerLanguage", "highlightsVisible", "barsVisible", "sentencesVisible", "masterPrompt", "mapFromIdeas", "claudeDesk"};
     private static final String MODIFIED = "modified";
 
     private static SharedPreferences prefs(Context c) {
@@ -72,6 +78,7 @@ public class AiSettings {
         s.sentencesVisible = p.getBoolean("sentencesVisible", true);
         s.masterPrompt = p.getString("masterPrompt", "");
         s.mapFromIdeas = p.getBoolean("mapFromIdeas", false);
+        s.claudeDesk = p.getBoolean("claudeDesk", false);
         return s;
     }
 
@@ -89,6 +96,7 @@ public class AiSettings {
                 .putBoolean("sentencesVisible", sentencesVisible)
                 .putString("masterPrompt", masterPrompt.trim())
                 .putBoolean("mapFromIdeas", mapFromIdeas)
+                .putBoolean("claudeDesk", claudeDesk)
                 .putLong(MODIFIED, System.currentTimeMillis())
                 .apply();
         // to the other devices within half a minute, not only at the next full sync
@@ -122,7 +130,7 @@ public class AiSettings {
             try {
                 if (name.endsWith(".maxChars")) {
                     edit.putInt(name, Integer.parseInt(value));
-                } else if (name.endsWith("Visible") || "mapFromIdeas".equals(name)) {
+                } else if (name.endsWith("Visible") || "mapFromIdeas".equals(name) || "claudeDesk".equals(name)) {
                     edit.putBoolean(name, Boolean.parseBoolean(value));
                 } else {
                     for (String shared : SHARED) {
@@ -140,6 +148,14 @@ public class AiSettings {
 
     public boolean isClaude() {
         return CLAUDE.equals(provider);
+    }
+
+    /**
+     * An AI action may start: the API is set up, or answers an outside Claude wrote through WebDAV
+     * may stand in for it (the action then says so when none waits for it).
+     */
+    public boolean canRun() {
+        return isReady() || claudeDesk;
     }
 
     /** A model is set, and a key unless the server is local (LM Studio, Ollama need none). */

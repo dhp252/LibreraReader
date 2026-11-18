@@ -358,7 +358,7 @@ public final class SkeletonScreen implements SkeletonJob.Screen, AiProgress.Task
     }
 
     private void make() {
-        if (!AiSettings.load(a).isReady()) {
+        if (!AiSettings.load(a).canRun()) {
             AiSettingsDialog.show(a, null);
             return;
         }

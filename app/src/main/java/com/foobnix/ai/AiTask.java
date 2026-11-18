@@ -68,6 +68,12 @@ public final class AiTask {
                 System.currentTimeMillis());
     }
 
+    /** Key passages of the chapters an outside Claude answered, and of no other (com.foobnix.claude). */
+    public static AiTask highlightsFromClaude(AiJobs.Target t) {
+        return new AiTask(HIGHLIGHTS, t.path, t.title, t.width, t.height, t.fontSize, t.page, true, null, false, false,
+                AiJobs.HighlightJob.CLAUDE_ONLY);
+    }
+
     public static AiTask map(AiJobs.Target t, boolean bookOnly) {
         return of(MAP, t, true, null, bookOnly, false);
     }
@@ -142,7 +148,7 @@ public final class AiTask {
         m.put("wholeBook", wholeBook);
         m.put("bookOnly", bookOnly);
         m.put("regenerate", regenerate);
-        if (redoBefore > 0) {
+        if (redoBefore != 0) {
             m.put("redoBefore", redoBefore);
         }
         if (chapter != null) {

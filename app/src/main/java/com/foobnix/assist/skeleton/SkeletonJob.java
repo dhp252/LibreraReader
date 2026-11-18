@@ -91,7 +91,8 @@ public final class SkeletonJob extends AiJobs.Job {
 
             checkCancelled();
             status(string(R.string.canvas_t13_skimming));
-            final String answer = ask(AiPrompts.withMaster(settings.masterPrompt,
+            final String answer = askFor(com.foobnix.claude.ClaudeFeature.SKELETON, com.foobnix.claude.ClaudeAnswers.BOOK,
+                    AiPrompts.withMaster(settings.masterPrompt,
                             SkeletonPrompts.system(settings.answerLanguage, SkeletonParts.hasGroups(parts))),
                     SkeletonPrompts.user(target.title, parts, chapters, pack), null);
             final SkeletonPrompts.Answer parsed = SkeletonPrompts.parse(answer);

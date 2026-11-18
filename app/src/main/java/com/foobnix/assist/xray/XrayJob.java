@@ -43,7 +43,7 @@ final class XrayJob extends AiJobs.Job {
 
     @Override
     protected void work() throws Exception {
-        if (!settings.isReady()) {
+        if (!settings.isReady() && !claudeWaiting(com.foobnix.claude.ClaudeFeature.XRAY, chapter.key)) {
             ui(screen::onNeedSettings);
             return;
         }
@@ -56,7 +56,7 @@ final class XrayJob extends AiJobs.Job {
         for (XrayIdea idea : ideas) {
             ids.add(idea.id);
         }
-        final String answer = ask(AiPrompts.withMaster(settings.masterPrompt, XrayPrompts.system(settings.answerLanguage)),
+        final String answer = askFor(com.foobnix.claude.ClaudeFeature.XRAY, chapter.key, AiPrompts.withMaster(settings.masterPrompt, XrayPrompts.system(settings.answerLanguage)),
                 XrayPrompts.user(target.title, chapter.title, ideas), null);
         checkCancelled();
         final XrayRatings ratings = XrayRatings.parse(answer, ids);
