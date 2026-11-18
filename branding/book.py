@@ -70,8 +70,8 @@ def circ(c, r, color=GUIDE, w=0.35, dash="1.2 0.9", op=1):
 
 def arc(c, r, a0=180, a1=0, color=GUIDE, w=0.35, dash="1.2 0.9", op=1):
     """The part of a circle above its centre, from angle a0 down to a1 (maths angles)."""
-    p0, p1 = pol(c, r, a0), pol(c, r, a1)
-    return (f'<path d="M{f(p0[0])},{f(p0[1])} A{f(r)},{f(r)} 0 0,1 {f(p1[0])},{f(p1[1])}" fill="none" '
+    p0, pm, p1 = pol(c, r, a0), pol(c, r, (a0 + a1) / 2), pol(c, r, a1)   # two arcs: never an exact half circle
+    return (f'<path d="M{f(p0[0])},{f(p0[1])} A{f(r)},{f(r)} 0 0,1 {f(pm[0])},{f(pm[1])} A{f(r)},{f(r)} 0 0,1 {f(p1[0])},{f(p1[1])}" fill="none" '
             f'stroke="{color}" stroke-width="{w}" stroke-dasharray="{dash}" opacity="{op}"/>')
 
 

@@ -83,7 +83,11 @@ def ring_bands():
     x, y = S
 
     def c(r):
-        return f"M{f(x - r)},{f(y)} a{f(r)},{f(r)} 0 1,0 {f(2 * r)},0 a{f(r)},{f(r)} 0 1,0 {f(-2 * r)},0 Z"
+        # four quarter arcs, not two half arcs: a half arc whose rounded end points sit a hair
+        # less than 2r apart is redrawn by the renderer around a shifted centre (by up to 0.5 u)
+        q = f"{f(r)},{f(r)} 0 0,0"
+        return (f"M{f(x - r)},{f(y)} A{q} {f(x)},{f(y + r)} A{q} {f(x + r)},{f(y)} "
+                f"A{q} {f(x)},{f(y - r)} A{q} {f(x - r)},{f(y)} Z")
 
     d = [c(RING_R[0] - RING_GAP / 2)]          # the heart: solid, so every page starts at the spine
     for k in range(len(RING_R) - 1):
