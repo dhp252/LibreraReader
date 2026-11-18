@@ -49,11 +49,21 @@ final class SharedSettings {
             "orientation", "pagesInMemory", "pageQuality", "isJavaZip", "isEnableAccessibility", "isEditMode",
             "isLoaded", "selectedText", "versionNew", "fontExtractTime", "tabPositionInRecentDialog",
             "widgetItemsCount", "searchQuery", "isFirstTime"));
+    /**
+     * Settings whose names only look like a device's (a "path" or "folder" in the name): shared.
+     * The assisted-reading switches ({@code isAssist*}) and the look are always shared, so a new
+     * switch named like {@code isAssistPath} cannot fall to this device alone.
+     */
+    private static final Set<String> SHARED_ANYWAY = new HashSet<>(Arrays.asList(
+            "isCanvasLook", "isDisplayAllFilesInFolder", "createBookNameFolder"));
 
     private SharedSettings() {
     }
 
     static boolean isDeviceLocal(String name) {
+        if (name.startsWith("isAssist") || SHARED_ANYWAY.contains(name)) {
+            return false;
+        }
         return LOCAL.contains(name) || LOCAL_NAME.matcher(name).matches();
     }
 
@@ -245,7 +255,7 @@ final class SharedSettings {
         }
     }
 
-    private static boolean isShared(Field f) {
+    static boolean isShared(Field f) {
         final int m = f.getModifiers();
         if (Modifier.isStatic(m) || Modifier.isPrivate(m) || Modifier.isTransient(m) || Modifier.isFinal(m)) {
             return false;
