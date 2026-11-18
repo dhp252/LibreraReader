@@ -77,6 +77,14 @@ def roots_paths():
             f"M54,{f(y0 + 1.6)} Q57.5,{f(y0 + 5.5)} 62,{f(y0 + 6.8)}"]
 
 
+def above_book():
+    """Everything above the centre line of the book's top pages (extended along their slope to
+    the canvas edges): the pages are clipped to it, so no page shows under the book."""
+    y = BOOK_Y
+    return (f"M0,0 H108 V{f(y + 2)} L81,{f(y - 3)} Q67.5,{f(y - 5.5)} 55.4,{f(y)} H52.6 "
+            f"Q40.5,{f(y - 5.5)} 27,{f(y - 3)} L0,{f(y + 2)} Z")
+
+
 def ring_bands():
     """The heart and the annuli between consecutive rings, as one even-odd path: what is left of
     a page once the white ring lines are cut out of it."""
@@ -104,16 +112,19 @@ def mark2_svg(mono=None, tree=GREEN, gold=GOLD, root=ROOT, uid="m", paper="#fff"
     for i in range(N_PAGES):
         d, _ = page_shape(i)
         g.append(f'<clipPath id="{uid}p{i}"><path d="{d}"/></clipPath>')
+    g.append(f'<clipPath id="{uid}book"><path d="{above_book()}"/></clipPath>')
     g.append("</defs>")
     for dd in roots_paths():
         g.append(f'<path d="{dd}" fill="none" stroke="{mono or root}" stroke-width="{f(TRUNK_W)}" stroke-linecap="round"{" opacity=\".5\"" if mono else ""}/>')
     bands = ring_bands()
+    g.append(f'<g clip-path="url(#{uid}book)">')
     for i in ORDER:
         d, _ = page_shape(i)
         # a paper-coloured outline under each page keeps overlapping pages apart
         if not mono:
             g.append(f'<path d="{d}" fill="{paper}" stroke="{paper}" stroke-width="1.2" stroke-linejoin="round"/>')
         g.append(f'<path clip-path="url(#{uid}p{i})" d="{bands}" fill="{mono or page_color(i, tree, gold)}" fill-rule="evenodd"/>')
+    g.append("</g>")
     g.append(f'<path d="{trunk_path()}" fill="none" stroke="{mono or tree}" stroke-width="{f(TRUNK_W)}" stroke-linecap="round"/>')
     for dd, w in book_paths():
         g.append(f'<path d="{dd}" fill="none" stroke="{mono or tree}" stroke-width="{f(w)}" stroke-linecap="round"/>')

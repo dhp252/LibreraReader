@@ -21,6 +21,8 @@ def layer(mono):
     o = []
     for d in roots_paths():
         o.append(stroke(d, TRUNK_W, "#FFFFFFFF" if mono else ROOT, "0.5" if mono else None))
+    o.append(f'''    <group android:name="crown">
+        <clip-path android:pathData="{above_book()}" />''')
     for i in ORDER:
         d, _ = page_shape(i)
         if not mono:   # paper-coloured edge between overlapping pages
@@ -38,6 +40,7 @@ def layer(mono):
             android:fillColor="{col}"
             android:fillType="evenOdd" />
     </group>''')
+    o.append("    </group>")
     ink = "#FFFFFFFF" if mono else GREEN
     o.append(stroke(trunk_path(), TRUNK_W, ink))
     for d, w in book_paths():
