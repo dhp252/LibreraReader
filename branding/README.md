@@ -2,8 +2,9 @@
 
 - `yggdrasil-mark-rationale.pdf`: the mark and its story (the fan of pages, the growth rings, the
   nine worlds, the roots, colours, sizes).
-- `geom.py`: the construction. Nine pages fan up from the book's spine to one hidden circle of
-  radius `R`; nine growth rings, each `√φ` times the one inside, are cut out of them; widths are `R / φⁿ`.
+- `geom.py`: the construction and the colours (forest `#2E6B4F`, gold `#D9961A`). Nine pages of
+  length `R` fan up from the book's spine; nine evenly spaced growth rings (line `G`, band `φG`) are
+  cut out of them, landing exactly on the tips.
 - `android.py`: writes the launcher icon vectors (`app/src/main/res/drawable/ic_yggdrasil_fg.xml`,
   `ic_yggdrasil_mono.xml`) and the SVG sources of the legacy PNGs.
 - `legacy.js`: renders the legacy PNGs (`mipmap-*dpi/ic_yggdrasil*.png`) with Playwright.

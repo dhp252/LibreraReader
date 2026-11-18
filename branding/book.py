@@ -1,4 +1,4 @@
-"""Builds the Yggdrasil mark rationale, v2 (Rings + Flip), as HTML for a landscape A4 PDF."""
+"""Builds the Yggdrasil mark rationale (Rings + Flip), as HTML for a landscape A4 PDF."""
 import sys, re, os
 here = sys.argv[1]
 sys.path.insert(0, here)
@@ -11,7 +11,7 @@ body { margin: 0; font-family: 'Instrument Sans', sans-serif; color: #14161B; -w
 section { width: 297mm; height: 210mm; padding: 16mm 18mm 14mm; page-break-after: always; position: relative; background: #FAFAFB; overflow: hidden }
 section::after { content: "YGGDRASIL · MARK & RATIONALE"; position: absolute; left: 18mm; bottom: 8mm; font: 500 8pt 'JetBrains Mono'; letter-spacing: .12em; color: #8A909B }
 .hd { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid #E3E5EA; padding-bottom: 10px; margin-bottom: 18px }
-.hd .n { font: 500 12pt 'JetBrains Mono'; color: #B4460A }
+.hd .n { font: 500 12pt 'JetBrains Mono'; color: #A8700C }
 h2 { font: 600 24pt 'Instrument Sans'; margin: 0; letter-spacing: -.01em }
 h3 { font-size: 13pt; margin: 10px 0 4px }
 h3.sub { font: 500 9pt 'JetBrains Mono'; letter-spacing: .08em; text-transform: uppercase; color: #5E6570; margin: 18px 0 10px }
@@ -27,19 +27,19 @@ ul { padding-left: 18px; margin: 0 0 12px } li { margin-bottom: 6px }
 .trio > div:not(.plus) { flex: 1; text-align: center }
 .trio .fig { display: inline-block; background: #fff; border: 1px solid #E3E5EA; border-radius: 14px }
 .trio p { font-size: 10.5pt; margin: 0 8px }
-.plus { font: 300 34pt 'Instrument Sans'; color: #B4460A }
+.plus { font: 300 34pt 'Instrument Sans'; color: #A8700C }
 .cover { display: flex; align-items: center; gap: 30px; background: #fff }
 .cv-l { flex: none; border-radius: 26%; box-shadow: 0 2px 16px rgba(20,22,27,.1); background: #fff }
-.kick { font: 500 9pt 'JetBrains Mono'; letter-spacing: .12em; color: #B4460A }
+.kick { font: 500 9pt 'JetBrains Mono'; letter-spacing: .12em; color: #A8700C }
 h1 { font: 600 54pt 'Instrument Sans'; margin: 8px 0 0; letter-spacing: -.02em }
-.tag { font: italic 400 19pt 'Literata', serif; margin: 2px 0 18px; color: #2F45E0 }
+.tag { font: italic 400 19pt 'Literata', serif; margin: 2px 0 18px; color: #2E6B4F }
 .lede { font-size: 12.5pt; max-width: 120mm }
 .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; margin-top: 22px; font-size: 10.5pt }
-.toc span { font-family: 'JetBrains Mono'; color: #B4460A; margin-right: 10px; font-size: 9pt }
+.toc span { font-family: 'JetBrains Mono'; color: #A8700C; margin-right: 10px; font-size: 9pt }
 table.spec { border-collapse: collapse; width: 100%; margin: 4px 0 16px; font-size: 10.5pt }
 .spec th { text-align: left; font: 500 8pt 'JetBrains Mono'; letter-spacing: .08em; text-transform: uppercase; color: #5E6570; border-bottom: 1px solid #E3E5EA; padding: 6px 4px }
 .spec td { border-bottom: 1px solid #F1F2F5; padding: 6px 4px }
-.m { font-family: 'JetBrains Mono'; font-size: 9.5pt } .r { text-align: right }
+.m { font-family: 'JetBrains Mono'; font-size: 9.5pt } .r { text-align: right; white-space: nowrap }
 .sws { display: flex; gap: 18px; margin-top: 20px }
 .sw { flex: 1; background: #fff; border: 1px solid #E3E5EA; border-radius: 14px; padding: 12px }
 .sw .chip { height: 70px; border-radius: 10px; border: 1px solid #E3E5EA; margin-bottom: 10px }
@@ -47,10 +47,10 @@ table.spec { border-collapse: collapse; width: 100%; margin: 4px 0 16px; font-si
 .row { display: flex; gap: 22px; align-items: flex-end }
 .lock { display: flex; align-items: center; gap: 16px; margin-top: 26px }
 .wm { font: 600 26pt 'Instrument Sans'; letter-spacing: -.01em }
-.wmt { font: italic 12pt 'Literata', serif; color: #2F45E0 }
+.wmt { font: italic 12pt 'Literata', serif; color: #2E6B4F }
 .foot { position: absolute; right: 18mm; bottom: 7mm; font-size: 8.5pt; color: #8A909B; margin: 0 }
 '''
-GUIDE, GRID, MUTED = "#B4460A", "#C9CDD6", "#5E6570"
+GUIDE, GRID, MUTED = "#A8700C", "#C9CDD6", "#5E6570"
 _uid = [0]
 
 
@@ -66,6 +66,13 @@ def svg(body, vb="18 18 72 72", w=None, h=None):
 
 def circ(c, r, color=GUIDE, w=0.35, dash="1.2 0.9", op=1):
     return f'<circle cx="{f(c[0])}" cy="{f(c[1])}" r="{f(r)}" fill="none" stroke="{color}" stroke-width="{w}" stroke-dasharray="{dash}" opacity="{op}"/>'
+
+
+def arc(c, r, a0=180, a1=0, color=GUIDE, w=0.35, dash="1.2 0.9", op=1):
+    """The part of a circle above its centre, from angle a0 down to a1 (maths angles)."""
+    p0, p1 = pol(c, r, a0), pol(c, r, a1)
+    return (f'<path d="M{f(p0[0])},{f(p0[1])} A{f(r)},{f(r)} 0 0,1 {f(p1[0])},{f(p1[1])}" fill="none" '
+            f'stroke="{color}" stroke-width="{w}" stroke-dasharray="{dash}" opacity="{op}"/>')
 
 
 def dot(c, r=0.75, color=GUIDE):
@@ -104,15 +111,15 @@ def ruler():
 
 
 TIPS = [page_shape(i)[1] for i in range(N_PAGES)]
-ANGLES = [PAGE_FAN[1] - (PAGE_FAN[1] - PAGE_FAN[0]) * i / (N_PAGES - 1) for i in range(N_PAGES)]
+ANGLES = [page_angle(i) for i in range(N_PAGES)]
 
 # ---------------- figures ----------------
 fig_cover = svg(mk(), "16 16 76 76", 430, 430)
 
 # the idea: flip (solid pages) + rings (circles) = mark
-flip_only = "".join(f'<path d="{page_shape(i)[0]}" fill="{EMBER if i == MIDDLE else (INDIGO if i % 2 == 0 else INDIGO_2)}" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>' for i in ORDER)
-flip_only += "".join(f'<path d="{d}" fill="none" stroke="{INK}" stroke-width="{f(w)}" stroke-linecap="round"/>' for d, w in book_paths())
-rings_only = "".join(circ(S, r, INDIGO, 1.0, None) for r in RING_R[:-1]) + dot(S, 1.2, INK)
+flip_only = "".join(f'<path d="{page_shape(i)[0]}" fill="{page_color(i)}" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/>' for i in ORDER)
+flip_only += "".join(f'<path d="{d}" fill="none" stroke="{GREEN}" stroke-width="{f(w)}" stroke-linecap="round"/>' for d, w in book_paths())
+rings_only = "".join(circ(S, r, GREEN, 1.0, None) for r in RING_R[:-1]) + dot(S, 1.2, GREEN)
 rings_only = rings_only.replace('stroke-dasharray="None"', "")
 fig_idea = [svg(flip_only, "16 16 76 76", 190, 190),
             svg(f'<clipPath id="cl"><rect x="16" y="16" width="76" height="76"/></clipPath><g clip-path="url(#cl)">{rings_only}</g>', "16 16 76 76", 190, 190),
@@ -121,31 +128,32 @@ fig_idea = [svg(flip_only, "16 16 76 76", 190, 190),
 # construction
 cons = [grid108(), ruler(), ghost(0.22),
         circ((54, 54), 33, MUTED, 0.3, "0.6 0.8"), label(54, 19.4, "SAFE ZONE ⌀66", 1.8, MUTED, "middle", 400),
-        circ(CROWN_C, CROWN_R), dot(CROWN_C), label(CROWN_C[0] + 1.4, CROWN_C[1] - 1, "C", 2.4),
+        circ(S, CROWN_R), label(S[0] - 1.6, S[1] - CROWN_R - 1.2, "C", 2.4, GUIDE, "end"),
         dot(S, 0.95), label(S[0] + 1.6, S[1] + 2.6, "S · spine", 2.2)]
 for a, t in zip(ANGLES, TIPS):
     cons.append(line(S, t, GUIDE, 0.22, "0.8 0.6"))
     cons.append(dot(t, 0.6))
-cons.append(label(CROWN_C[0] + CROWN_R * 0.72 + 1, CROWN_C[1] - CROWN_R * 0.72, "R", 2.4))
+cons.append(line(S, pol(S, CROWN_R, 64), GUIDE, 0.35))
+cons.append(label(*pol(S, CROWN_R * 0.55, 70), "R", 2.4))
 fig_cons = svg("".join(cons), "0 0 108 108", 520, 520)
 
-# rings: radii in sqrt(phi) steps
+# rings: evenly spaced, line G and band phi x G
 rg = [ghost(0.16)]
 for k, r in enumerate(RING_R[:-1]):
-    rg.append(circ(S, r, INDIGO, 0.3, "0.6 0.5", 0.9))
+    rg.append(arc(S, r, 180, 0, GREEN, 0.3, "0.6 0.5", 0.9))
 for k, r in enumerate(RING_R[:-1]):
     a = 18 + k * 0
     p = pol(S, r, 180)
-    rg.append(dot(p, 0.5, INDIGO))
-rg.append(line(pol(S, RING_R[0], 180), pol(S, RING_R[-2], 180), INDIGO, 0.3))
-rg.append(label(54, 91, "r(n+1) = r(n) × √φ", 2.4, INDIGO, "middle"))
-rg.append(dot(S, 0.9, INK))
+    rg.append(dot(p, 0.5, GREEN))
+rg.append(line(pol(S, RING_R[0], 180), pol(S, RING_R[-2], 180), GREEN, 0.3))
+rg.append(label(54, 91, f"r(n) = n × {RING_PITCH:.2f} u  ·  band = φ × line", 2.4, GREEN, "middle"))
+rg.append(dot(S, 0.9, GREEN))
 fig_rings = svg(f'<clipPath id="cr"><rect x="14" y="14" width="80" height="80"/></clipPath><g clip-path="url(#cr)">{"".join(rg)}</g>', "14 14 80 80", 440, 440)
 
 # nine pages
-nine = [ghost(0.3), circ(CROWN_C, CROWN_R, GUIDE, 0.3)]
+nine = [ghost(0.3), arc(S, CROWN_R, 172, 8, GUIDE, 0.3)]
 for i, t in enumerate(TIPS, 1):
-    col = EMBER if i - 1 == MIDDLE else GUIDE
+    col = GOLD if i - 1 == MIDDLE else GUIDE
     x, y = pol(S, sqrt((t[0] - S[0]) ** 2 + (t[1] - S[1]) ** 2) + 4.2, ANGLES[i - 1])
     nine.append(f'<circle cx="{f(x)}" cy="{f(y)}" r="2.4" fill="#fff" stroke="{col}" stroke-width=".4"/>')
     nine.append(label(x, y + 0.85, str(i), 2.2, col, "middle", 600))
@@ -156,7 +164,7 @@ roots = [ghost(0.18)]
 for d in roots_paths():
     roots.append(f'<path d="{d}" fill="none" stroke="{GUIDE}" stroke-width="{f(TRUNK_W * 0.75)}" stroke-linecap="round"/>')
 for d, w in book_paths():
-    roots.append(f'<path d="{d}" fill="none" stroke="{INK}" stroke-width="{f(w)}" stroke-linecap="round"/>')
+    roots.append(f'<path d="{d}" fill="none" stroke="{GREEN}" stroke-width="{f(w)}" stroke-linecap="round"/>')
 roots.append(line((22, BOOK_Y - 0.6), (86, BOOK_Y - 0.6), MUTED, 0.25, "1 1"))
 roots.append(label(87, BOOK_Y, "ground", 2, MUTED, "start", 400))
 roots.append(label(64, BOOK_Y + 12.5, "3 roots: the bookmark", 2.2, GUIDE))
@@ -169,18 +177,18 @@ def tile(bg, m, size, radius="24%", shadow=True, vb="18 18 72 72"):
     return f'<div style="width:{size}px;height:{size}px;border-radius:{radius};background:{bg};overflow:hidden;{sh}flex:none">{svg(m, vb, size, size)}</div>'
 
 
-DARK = dict(ink="#E9EBF2", indigo="#8E9BFF", indigo2="#B3BCFF", ember="#FF8A4C", root="#4A5296", paper="#14161B")
-REV = dict(ink="#fff", indigo="#fff", indigo2="#C9D0FF", ember="#FFB27A", root="#8C9BFF", paper="#2F45E0")
+DARK = dict(tree="#7FC3A0", gold="#F0B13A", root="#2F4A3D", paper="#14161B")
+REV = dict(tree="#fff", gold="#F2B640", root="#6E9C85", paper=GREEN)
 sizes_row = "".join(tile("#fff", mk(), s, r) for s, r in ((192, "24%"), (128, "50%"), (96, "30%"), (64, "50%"), (48, "24%"), (32, "50%")))
-mono_row = (tile("#DDE1F8", mk(mono="#2337C4"), 96, "50%", False) + tile("#2A2F45", mk(mono="#C9D0FF"), 96, "50%", False) +
-            tile("#14161B", mk(**DARK), 96, "24%") + tile("#2F45E0", mk(**REV), 96, "24%"))
+mono_row = (tile("#DCEBE2", mk(mono="#1F5A3F"), 96, "50%", False) + tile("#24332B", mk(mono="#CDE6D8"), 96, "50%", False) +
+            tile("#14161B", mk(**DARK), 96, "24%") + tile(GREEN, mk(**REV), 96, "24%"))
 
 specs = [
-    ("R", "hidden circle the page tips sit on", f"{f(CROWN_R)} u"),
-    ("R/φ³", "page width (of its length)", "÷ 4.24"),
-    ("√φ", "each growth ring over the one inside it", "× 1.272"),
-    ("R/φ⁵", "roots, the top pages of the book", f"{TRUNK_W:.2f} u"),
-    ("R/φ⁶", "the page under them, the white ring lines", f"{RING_GAP:.2f} u"),
+    ("R", "every page's length: the hidden circle C", f"{f(CROWN_R)} u"),
+    ("R/φ³", "page width", f"{CROWN_R / PHI ** 3:.2f} u"),
+    ("G", "a white ring line, and the lower page of the book", f"{RING_GAP:.2f} u"),
+    ("φG", "a band of page between two rings; trunk, roots, top pages of the book", f"{RING_BAND:.2f} u"),
+    ("φ²G", "from one ring to the next (10 steps − G/2 = R)", f"{RING_PITCH:.2f} u"),
 ]
 spec_rows = "".join(f"<tr><td class='m'>{a}</td><td>{b}</td><td class='m r'>{c}</td></tr>" for a, b, c in specs)
 
@@ -189,7 +197,7 @@ P.append(f'''
 <section class="cover">
   <div class="cv-l">{fig_cover}</div>
   <div class="cv-r">
-    <div class="kick">MARK &amp; RATIONALE · V2 · 18 NOV 2026</div>
+    <div class="kick">MARK &amp; RATIONALE · V3 · 18 NOV 2026</div>
     <h1>Yggdrasil</h1>
     <p class="tag">The book that reads you back.</p>
     <p class="lede">A book flips open and its pages fan up into a crown. Cut across them are a tree's growth rings, which are also lines of text. One spine, one circle, one ratio.</p>
@@ -222,8 +230,8 @@ P.append(f'''
     <div class="txt">
       <p>Everything starts at one point, <b>S</b>, the spine of the book. It is the centre of the fan and the centre of the rings.</p>
       <ul>
-        <li>Nine pages leave S at equal angles, spread over 136°.</li>
-        <li>Every page ends where its direction meets one hidden circle, <b>C</b>, of radius R. That's why the outer pages are shorter and the crown comes out round.</li>
+        <li>Nine pages leave S at equal angles, spread over 136°. The outer two leave just above the book's own top pages, so the fan grows out of the book.</li>
+        <li>Every page has the same length R, so all nine tips sit on one hidden circle, <b>C</b>, drawn around S. The crown is the outermost ring of the tree.</li>
         <li>Each page is a leaf shape whose width is its length ÷ φ³.</li>
         <li>The pages are laid outer first, so the middle page lies on top. A thin paper-coloured edge keeps every page separate.</li>
       </ul>
@@ -238,7 +246,8 @@ P.append(f'''
   <div class="split">
     <div class="fig">{fig_rings}</div>
     <div class="txt">
-      <p>The white lines are circles around the spine. Each one is √φ times the one inside it, so every two rings make one golden step. The rings sit close near the heart and open out towards the edge, so the centre stays light and the crown reads clearly.</p>
+      <p>The white lines are circles around the spine, evenly spaced like the lines of a page. Every line has the same width G, and every band of page between two lines is φ × G, so the step from one ring to the next is φ²G.</p>
+      <p>The spacing is chosen so the rings land exactly on the crown: ten steps less half a line is R. Every page ends in a full band, never a sliver.</p>
       <table class="spec"><tr><th>Measure</th><th>Used for</th><th class="r">Size</th></tr>{spec_rows}</table>
       <p>The rings run unbroken from page to page, as if the whole crown had been cut from one trunk. That's the hidden part: a page reads as lines of text, and only the whole fan shows they're one set of rings.</p>
       <p>Count them: nine rings, for the nine worlds again.</p>
@@ -254,8 +263,8 @@ P.append(f'''
     <div class="txt">
       <p>Yggdrasil holds nine worlds in its branches. The book opens to exactly nine pages.</p>
       <ul>
-        <li><b>1 to 4 and 6 to 9</b>, in indigo of two shades, alternating like the pages of a book.</li>
-        <li><b>5</b>, in ember, the middle page. In the myth the middle world is Midgard, the world of people. Here it is your page, the one you're reading now.</li>
+        <li><b>1 to 4 and 6 to 9</b>, in green: the leaves of the tree.</li>
+        <li><b>5</b>, in gold, the middle page, like the first leaf to turn in autumn. In the myth the middle world is Midgard, the world of people. Here it is your page, the one you're reading now.</li>
       </ul>
       <p>The tips of all nine pages sit on one circle that is never drawn.</p>
     </div>
@@ -278,20 +287,18 @@ P.append(f'''
 swatches = "".join(
     f'<div class="sw"><div class="chip" style="background:{c}"></div><div class="m">{h}</div><b>{n}</b><p>{d}</p></div>'
     for c, h, n, d in (
-        (INDIGO, "#2F45E0", "Indigo", "Odd pages. The canvas accent colour, already used across the app."),
-        (INDIGO_2, "#5B6CEB", "Indigo, lighter", "Even pages, so neighbouring pages read apart."),
-        (EMBER, "#B4460A", "Ember", "The middle page only, yours. Used nowhere else."),
-        (INK, "#14161B", "Ink", "The book and the trunk. The same ink as the reading text."),
-        (ROOT, "#97A2EF", "Root", "Indigo at half strength on paper: what is underground."),
+        (GREEN, GREEN, "Forest", "Eight pages, the trunk and the book. One colour for the whole tree."),
+        (GOLD, GOLD, "Gold", "The middle page only, yours. Used nowhere else."),
+        (ROOT, ROOT, "Root", "Forest at a third of its strength on paper: what is underground."),
     ))
 P.append(f'''
 <section>
   <div class="hd"><span class="n">06</span><h2>Colour</h2></div>
-  <p class="intro">Every colour comes from the app's own canvas design, so the icon and the reading screen speak the same language.</p>
+  <p class="intro">Two colours and a tint. The tree is green, as a tree should be. Your page is gold, like an autumn leaf, and it is the only warm colour in the mark, so the eye goes straight to it.</p>
   <div class="sws">{swatches}</div>
   <div class="row" style="margin-top:24px">
-    {tile("#fff", mk(), 150)}{tile("#14161B", mk(**DARK), 150)}{tile("#2F45E0", mk(**REV), 150)}
-    <div class="txt small" style="max-width:300px">The light tile is the app icon. The dark tile is for dark docks and store art, and the reversed indigo tile is for a splash screen. The page edges always take the colour of the ground they sit on.</div>
+    {tile("#fff", mk(), 150)}{tile("#14161B", mk(**DARK), 150)}{tile(GREEN, mk(**REV), 150)}
+    <div class="txt small" style="max-width:300px">The light tile is the app icon. The dark tile is for dark docks and store art, and the reversed forest tile is for a splash screen. The page edges always take the colour of the ground they sit on.</div>
   </div>
 </section>''')
 
