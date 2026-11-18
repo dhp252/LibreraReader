@@ -119,8 +119,8 @@ android {
             applicationId = "com.foobnix.pro.pdf.reader"
             manifestPlaceholders = [
                     appName      : "Yggdrasil",
-                    appIcon      : "@mipmap/icon_pdf_pro",
-                    appRoundIcon : "@mipmap/icon_pdf_pro",
+                    appIcon      : "@mipmap/ic_yggdrasil",
+                    appRoundIcon : "@mipmap/ic_yggdrasil_round",
                     appGdriveKey : "",
                     admobAppId   : "",
                     admobBannerId: "",
@@ -135,8 +135,8 @@ android {
             applicationId = "com.foobnix.pdf.reader"
             manifestPlaceholders = [
                     appName      : "Yggdrasil G",
-                    appIcon      : "@mipmap/icon_pdf_reader",
-                    appRoundIcon : "@mipmap/icon_pdf_reader",
+                    appIcon      : "@mipmap/ic_yggdrasil",
+                    appRoundIcon : "@mipmap/ic_yggdrasil_round",
                     appGdriveKey : librera_appGdriveKey,
                     admobAppId   : librera_admobAppId,
                     admobBannerId: librera_admobBannerId,
