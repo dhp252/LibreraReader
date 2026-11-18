@@ -44,6 +44,33 @@ public class SharedSettingsTest {
     }
 
     @Test
+    public void namesThatOnlyLookLocalAreShared() {
+        // "path" in the name, but the Reading path switch, not a folder (it stayed on one device)
+        assertFalse(SharedSettings.isDeviceLocal("isAssistPath"));
+        assertFalse(SharedSettings.isDeviceLocal("isAssistBrightnessHelp"));
+        assertFalse(SharedSettings.isDeviceLocal("isDisplayAllFilesInFolder"));
+        assertFalse(SharedSettings.isDeviceLocal("createBookNameFolder"));
+        assertFalse(SharedSettings.isDeviceLocal("isCanvasLook"));
+        // still this device's own
+        assertTrue(SharedSettings.isDeviceLocal("bgImageDayPath"));
+        assertTrue(SharedSettings.isDeviceLocal("helpHash"));
+    }
+
+    /** Every assisted-reading switch and the look go to the other devices (read off the class, not made). */
+    @Test
+    public void everyAssistSwitchAndTheLookAreShared() throws Exception {
+        int switches = 0;
+        for (java.lang.reflect.Field f : com.foobnix.model.AppState.class.getDeclaredFields()) {
+            if (f.getName().startsWith("isAssist")) {
+                switches++;
+                assertTrue(f.getName(), SharedSettings.isShared(f));
+            }
+        }
+        assertTrue("assist switches found: " + switches, switches >= 15);
+        assertTrue(SharedSettings.isShared(com.foobnix.model.AppState.class.getDeclaredField("isCanvasLook")));
+    }
+
+    @Test
     public void onlySharedSimpleFieldsAreReadAsText() throws Exception {
         final Map<String, String> fields = SharedSettings.fieldsOf(new Sample());
         final Map<String, String> expected = new HashMap<>();

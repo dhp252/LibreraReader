@@ -91,6 +91,8 @@ public class AiSettings {
                 .putBoolean("mapFromIdeas", mapFromIdeas)
                 .putLong(MODIFIED, System.currentTimeMillis())
                 .apply();
+        // to the other devices within half a minute, not only at the next full sync
+        com.foobnix.webdav.SyncEvents.settingsChanged();
     }
 
     /** When the settings were last saved on this device (0: never). */
