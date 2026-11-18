@@ -11,7 +11,7 @@ INK, INDIGO, EMBER = "#14161B", "#2F45E0", "#B4460A"
 INDIGO_2 = "#5B6CEB"   # every other page, one shade lighter
 ROOT = "#97A2EF"       # the roots: indigo at half strength on paper
 
-S = (54.0, 63.0)            # the spine: centre of the rings and of the fan
+S = (54.0, 67.4)            # the spine: centre of the rings and of the fan, in the book's gutter
 N_PAGES = 9
 FAN = (15.0, 165.0)         # the fan opens 150 degrees, symmetric about the vertical
 STEP = (FAN[1] - FAN[0]) / N_PAGES
@@ -25,7 +25,7 @@ WORD_GAP = R_OUT / PHI ** 7 * 1.5  # the space between two words
 HEART_R = R_OUT / PHI ** 5  # 2.71, the heartwood
 TRUNK_W = R_OUT / PHI ** 5
 
-BOOK_Y = 71.0               # spine of the book, under S
+BOOK_Y = 68.2               # the book's spine: the pages fan straight out of it
 MIDDLE = N_PAGES // 2       # page 5 of 9: yours
 
 
@@ -106,7 +106,7 @@ def roots_paths():
 
 
 # ---- v2b: solid pages (Flip) cut by white growth rings (Rings) ----
-CROWN_C = (54.0, 46.0)      # hidden circle the page tips sit on
+CROWN_C = (54.0, 49.0)      # hidden circle the page tips sit on
 CROWN_R = 24.0
 PAGE_FAN = (22.0, 158.0)
 TRUNK_W = CROWN_R / PHI ** 5        # 2.16: trunk, roots, the top pages of the book
@@ -134,15 +134,16 @@ def page_shape(i):
 
 
 def ring_bands():
-    """Annuli between consecutive rings, as one even-odd path: what is left of a page once the
-    white ring lines are cut out of it."""
-    d = []
+    """The heart and the annuli between consecutive rings, as one even-odd path: what is left of
+    a page once the white ring lines are cut out of it."""
+    x, y = S
+
+    def c(r):
+        return f"M{f(x - r)},{f(y)} a{f(r)},{f(r)} 0 1,0 {f(2 * r)},0 a{f(r)},{f(r)} 0 1,0 {f(-2 * r)},0 Z"
+
+    d = [c(RING_R[0] - RING_GAP / 2)]          # the heart: solid, so every page starts at the spine
     for k in range(len(RING_R) - 1):
-        r0 = RING_R[k] + RING_GAP / 2
-        r1 = RING_R[k + 1] - RING_GAP / 2
-        for r in (r1, r0):
-            x, y = S
-            d.append(f"M{f(x - r)},{f(y)} a{f(r)},{f(r)} 0 1,0 {f(2 * r)},0 a{f(r)},{f(r)} 0 1,0 {f(-2 * r)},0 Z")
+        d += [c(RING_R[k + 1] - RING_GAP / 2), c(RING_R[k] + RING_GAP / 2)]
     return " ".join(d)
 
 

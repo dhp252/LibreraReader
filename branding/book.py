@@ -179,7 +179,7 @@ specs = [
     ("R", "hidden circle the page tips sit on", f"{f(CROWN_R)} u"),
     ("R/φ³", "page width (of its length)", "÷ 4.24"),
     ("√φ", "each growth ring over the one inside it", "× 1.272"),
-    ("R/φ⁵", "trunk, roots, the top pages of the book", f"{TRUNK_W:.2f} u"),
+    ("R/φ⁵", "roots, the top pages of the book", f"{TRUNK_W:.2f} u"),
     ("R/φ⁶", "the page under them, the white ring lines", f"{RING_GAP:.2f} u"),
 ]
 spec_rows = "".join(f"<tr><td class='m'>{a}</td><td>{b}</td><td class='m r'>{c}</td></tr>" for a, b, c in specs)
