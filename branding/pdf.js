@@ -2,7 +2,9 @@ const { chromium } = require('playwright');
 (async () => {
   const [html, pdf, png] = process.argv.slice(2);
   const b = await chromium.launch();
-  const p = await b.newPage({ viewport: { width: 1123, height: 794 }, deviceScaleFactor: 1 });
+  // A plain user agent makes Google Fonts serve static TrueType files. The variable fonts it
+  // serves to Chromium get embedded as Type 3 fonts, which some PDF viewers draw badly.
+  const p = await b.newPage({ viewport: { width: 1123, height: 794 }, deviceScaleFactor: 1, userAgent: 'Mozilla/5.0' });
   await p.goto('file://' + html, { waitUntil: 'networkidle' });
   await p.evaluate(() => document.fonts.ready);
   await p.pdf({ path: pdf, width: '297mm', height: '210mm', printBackground: true, preferCSSPageSize: true });
