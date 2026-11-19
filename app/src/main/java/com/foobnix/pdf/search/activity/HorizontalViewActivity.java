@@ -2138,7 +2138,6 @@ public class HorizontalViewActivity extends AdsFragmentActivity {
         AiHighlights.get().open(this, dc.getCurrentBook().getPath());
         com.foobnix.annotation.MarksLayer.get().open(this, dc.getCurrentBook().getPath(), dc.docPageCount());
         com.foobnix.webdav.BookSync.shown(dc);
-        com.foobnix.claude.ClaudeBook.opened(this, dc);
     }
 
     /** How far the page shown sits from the DrawView: add to a DrawView point for the page view's. */

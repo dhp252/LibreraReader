@@ -41,7 +41,6 @@ public class AiSettingsDialog {
     private EditText masterPrompt;
     private EditText maxChars;
     private CheckBox mapFromIdeas;
-    private CheckBox claudeDesk;
     private CheckBox bars;
     private CheckBox sentences;
     private TextView result;
@@ -84,7 +83,6 @@ public class AiSettingsDialog {
         masterPrompt = view.findViewById(R.id.aiMasterPrompt);
         maxChars = view.findViewById(R.id.aiMaxChars);
         mapFromIdeas = view.findViewById(R.id.aiMapFromIdeas);
-        claudeDesk = view.findViewById(R.id.aiClaudeDesk);
         bars = view.findViewById(R.id.aiBars);
         sentences = view.findViewById(R.id.aiSentences);
         TxtUtils.underlineTextView(view.findViewById(R.id.aiColors));
@@ -113,7 +111,6 @@ public class AiSettingsDialog {
                 other.barsVisible = settings.barsVisible;
                 other.sentencesVisible = settings.sentencesVisible;
                 other.mapFromIdeas = settings.mapFromIdeas;
-                other.claudeDesk = settings.claudeDesk;
                 settings = other;
                 fill();
             }
@@ -132,12 +129,7 @@ public class AiSettingsDialog {
                 if (!read()) {
                     return;
                 }
-                final boolean claudeWasOn = AiSettings.load(activity).claudeDesk;
                 settings.save(activity);
-                if (settings.claudeDesk && !claudeWasOn) {
-                    // the skill goes up now (com.foobnix.claude), not at the next full sync
-                    com.foobnix.webdav.WebDav.runSyncService(activity, false);
-                }
                 AiHighlights.get().setLayers(settings.barsVisible, settings.sentencesVisible);
                 dialog.dismiss();
                 if (onSaved != null) {
@@ -157,7 +149,6 @@ public class AiSettingsDialog {
         masterPrompt.setText(settings.masterPrompt);
         maxChars.setText(String.valueOf(settings.maxChars));
         mapFromIdeas.setChecked(settings.mapFromIdeas);
-        claudeDesk.setChecked(settings.claudeDesk);
         bars.setChecked(settings.barsVisible);
         sentences.setChecked(settings.sentencesVisible);
         result.setVisibility(View.GONE);
@@ -171,7 +162,6 @@ public class AiSettingsDialog {
         settings.answerLanguage = language.getText().toString().trim();
         settings.masterPrompt = masterPrompt.getText().toString().trim();
         settings.mapFromIdeas = mapFromIdeas.isChecked();
-        settings.claudeDesk = claudeDesk.isChecked();
         settings.barsVisible = bars.isChecked();
         settings.sentencesVisible = sentences.isChecked();
         try {

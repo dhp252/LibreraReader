@@ -69,7 +69,7 @@ public class AiHighlightDialog implements AiJobs.HighlightScreen, AiProgress.Tas
             showRunning(activity, dc);
             return;
         }
-        if (!AiSettings.load(activity).canRun()) {
+        if (!AiSettings.load(activity).isReady()) {
             AiSettingsDialog.show(activity, null);
             return;
         }

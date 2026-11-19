@@ -167,8 +167,6 @@ public final class AiMenu {
         if (com.foobnix.assist.Assist.READS_YOU.isOn()) {
             com.foobnix.assist.readsyou.ReadsYou.menu(a, dc, menu);
         }
-        // answers an outside Claude writes through WebDAV (com.foobnix.claude), while that is on
-        com.foobnix.claude.ClaudeMenu.add(a, dc, menu);
         menu.show();
     }
 

@@ -50,16 +50,14 @@ final class PreQJob extends AiJobs.Job {
 
     @Override
     protected void work() throws Exception {
-        // an answer an outside Claude wrote for the whole chapter needs no API (com.foobnix.claude)
-        final boolean claude = claudeWaiting(com.foobnix.claude.ClaudeFeature.PRE_QUESTIONS, range.key);
-        if (!settings.isReady() && !claude) {
+        if (!settings.isReady()) {
             ui(screen::onNeedSettings);
             return;
         }
         final List<String> words = new ArrayList<>();
         final List<Integer> wordPage = new ArrayList<>();
         final StringBuilder plain = new StringBuilder();
-        final int max = claude ? Integer.MAX_VALUE : Math.min(MAX_CHARS, Math.max(MIN_CHARS, settings.maxChars - 4000));
+        final int max = Math.min(MAX_CHARS, Math.max(MIN_CHARS, settings.maxChars - 4000));
         try (BookText text = open()) {
             final int from = Math.max(0, range.from);
             final int to = Math.min(text.pageCount(), range.to);
@@ -84,7 +82,7 @@ final class PreQJob extends AiJobs.Job {
             return;
         }
         final String system = AiPrompts.withMaster(settings.masterPrompt, PreQ.system(settings.answerLanguage));
-        final String answer = askFor(com.foobnix.claude.ClaudeFeature.PRE_QUESTIONS, range.key, system, PreQ.user(target.title, chapterTitle(range), plain.toString()), null);
+        final String answer = ask(system, PreQ.user(target.title, chapterTitle(range), plain.toString()), null);
         checkCancelled();
         final List<PreQ.Question> parsed = PreQ.parse(answer);
         if (parsed.isEmpty()) {

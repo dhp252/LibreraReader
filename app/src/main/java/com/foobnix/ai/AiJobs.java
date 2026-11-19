@@ -172,10 +172,6 @@ public final class AiJobs {
         protected volatile String result;
         /** A failure the job already reported itself (then the task stops without retrying). */
         private volatile String reported;
-        /** Answers an outside Claude wrote that this run took instead of asking the API (com.foobnix.claude). */
-        private final List<com.foobnix.claude.ClaudeAnswers.Answer> claudeAnswers = new ArrayList<>();
-        /** The model of the settings, while an answer of Claude's stands in for it. */
-        private String apiModel;
 
         protected Job(Activity activity, Target target) {
             this.activity = activity;
@@ -199,13 +195,11 @@ public final class AiJobs {
             new Thread(() -> {
                 try {
                     work();
-                    settleClaude(cancelled ? null : reported, cancelled);
                 } catch (Cancelled e) {
                     // the screen is gone or the reader asked to stop: nothing to report
                 } catch (Throwable e) {
                     LOG.e(e);
                     if (!cancelled) {
-                        settleClaude(message(e), false);
                         failed(message(e));
                     }
                 } finally {
@@ -242,16 +236,12 @@ public final class AiJobs {
                 if (cancelled) {
                     return new Outcome(Outcome.CANCELLED, null, false, false);
                 }
-                settleClaude(reported, false);
                 return reported != null ? new Outcome(Outcome.FAILED, reported, false, true)
                         : new Outcome(Outcome.OK, result, false, false);
             } catch (Cancelled e) {
                 return new Outcome(Outcome.CANCELLED, null, false, false);
             } catch (Throwable e) {
                 LOG.e(e);
-                if (!cancelled) {
-                    settleClaude(message(e), false);
-                }
                 return cancelled ? new Outcome(Outcome.CANCELLED, null, false, false)
                         : new Outcome(Outcome.FAILED, message(e), AiRetry.retryable(e), false);
             } finally {
@@ -349,10 +339,6 @@ public final class AiJobs {
 
         private String askOnce(String system, String user, AiClient.Output output) throws IOException, Cancelled {
             checkCancelled();
-            if (!settings.isReady()) {
-                // started for answers of Claude's (AiSettings.canRun), and none waits for this request
-                throw new AiClient.AiException(string(R.string.claude_no_answer));
-            }
             final AiClient c = new AiClient(settings);
             client = c;
             try {
@@ -375,100 +361,6 @@ public final class AiJobs {
                         TxtUtils.isNotEmpty(e.getMessage()) ? e.getMessage() : e.getClass().getSimpleName()), false, true);
             } finally {
                 client = null;
-            }
-        }
-
-        /**
-         * Like {@link #ask}, but an answer an outside Claude wrote for this feature and chapter of the
-         * book (AI settings > Work with Claude through WebDAV) is taken instead of asking the API.
-         * The job then goes on as with any answer; {@code settings.model} names Claude meanwhile, so
-         * what the job stores says who wrote it. {@code chapter} is the chapter key, or
-         * {@link com.foobnix.claude.ClaudeAnswers#BOOK} for the whole book. {@code user} null: no API
-         * request is made when no usable answer is found (the caller read no text for one).
-         */
-        protected String askFor(com.foobnix.claude.ClaudeFeature feature, String chapter, String system, String user,
-                                AiClient.Output output) throws IOException, Cancelled {
-            checkCancelled();
-            final com.foobnix.claude.ClaudeAnswers.Answer answer;
-            try {
-                answer = com.foobnix.claude.Claude.take(context, target.name, feature, chapter);
-            } catch (Exception e) {
-                LOG.e(e);
-                return askApi(system, user, output);
-            }
-            if (answer == null) {
-                if (user == null) {
-                    // the caller took no text for the API: Claude's answer was there, but rejected
-                    throw new AiClient.AiException(string(R.string.claude_answer_rejected));
-                }
-                return askApi(system, user, output);
-            }
-            synchronized (claudeAnswers) {
-                claudeAnswers.add(answer);
-            }
-            if (apiModel == null) {
-                apiModel = settings.model;
-            }
-            settings.model = answer.model();
-            stopReason = null;
-            if (output != null) {
-                output.onText(answer.text);
-            }
-            return answer.text;
-        }
-
-        private String askApi(String system, String user, AiClient.Output output) throws IOException, Cancelled {
-            if (apiModel != null) {
-                settings.model = apiModel;
-            }
-            return ask(system, user, output);
-        }
-
-        /** Whether this run took an answer of Claude's (a second, repairing request is then not asked). */
-        protected boolean tookClaude() {
-            synchronized (claudeAnswers) {
-                return !claudeAnswers.isEmpty();
-            }
-        }
-
-        /**
-         * An answer of Claude's waits for this feature and chapter: the feature runs without an API
-         * key (its "needs settings" is skipped).
-         */
-        protected boolean claudeWaiting(com.foobnix.claude.ClaudeFeature feature, String chapter) {
-            try {
-                return com.foobnix.claude.Claude.waiting(context, target.name, feature, chapter);
-            } catch (Exception e) {
-                LOG.e(e);
-                return false;
-            }
-        }
-
-        /** The answers of Claude's taken so far were stored: they move to used/ now (a job of many chapters). */
-        protected void settleClaudeTaken() {
-            settleClaude(null, false);
-        }
-
-        /** The run ended: the answers of Claude's it took move to used/, or to rejected/ with the failure. */
-        private void settleClaude(String failure, boolean leave) {
-            final List<com.foobnix.claude.ClaudeAnswers.Answer> taken;
-            synchronized (claudeAnswers) {
-                taken = new ArrayList<>(claudeAnswers);
-                claudeAnswers.clear();
-            }
-            if (leave) {
-                return;
-            }
-            for (com.foobnix.claude.ClaudeAnswers.Answer a : taken) {
-                try {
-                    if (failure == null) {
-                        com.foobnix.claude.ClaudeAnswers.used(a);
-                    } else {
-                        com.foobnix.claude.ClaudeAnswers.rejected(a, "The app could not use it: " + failure);
-                    }
-                } catch (Exception e) {
-                    LOG.e(e);
-                }
             }
         }
 
@@ -678,9 +570,7 @@ public final class AiJobs {
                 // a saved summary opens at once when its chapter is known without reading the book
                 final BookChapters.Range known = wholeBook ? null : given != null ? given : knownChapter(target);
                 final String key = wholeBook ? AiStore.BOOK : known == null ? null : known.key;
-                final AiStore.Summary saved = key == null
-                        || claudeWaiting(com.foobnix.claude.ClaudeFeature.SUMMARY, key) ? null
-                        : AiStore.get().load(target.name).summary(key);
+                final AiStore.Summary saved = key == null ? null : AiStore.get().load(target.name).summary(key);
                 if (saved != null) {
                     final String title = wholeBook ? target.title : chapterTitle(known);
                     show(s -> {
@@ -700,16 +590,14 @@ public final class AiJobs {
                 final String title = wholeBook ? target.title : chapterTitle(range);
                 show(s -> s.onTitle(title));
 
-                // a summary an outside Claude wrote replaces the saved one (com.foobnix.claude)
-                final boolean fromClaude = claudeWaiting(com.foobnix.claude.ClaudeFeature.SUMMARY, range.key);
-                if (!regenerate && !fromClaude) {
+                if (!regenerate) {
                     final AiStore.Summary saved = AiStore.get().load(target.name).summary(range.key);
                     if (saved != null) {
                         show(s -> s.onDone(saved, true, null));
                         return;
                     }
                 }
-                if (!settings.isReady() && !fromClaude) {
+                if (!settings.isReady()) {
                     show(SummaryScreen::onNeedSettings);
                     return;
                 }
@@ -729,10 +617,7 @@ public final class AiJobs {
                 final String system = AiPrompts.withMaster(settings.masterPrompt, AiPrompts.summarySystem(settings.answerLanguage));
                 final AiClient.Output stream = delta -> show(s -> s.onText(delta));
                 final String answer;
-                if (fromClaude) {
-                    show(SummaryScreen::onAnswerStart);
-                    answer = askFor(com.foobnix.claude.ClaudeFeature.SUMMARY, range.key, system, null, stream);
-                } else if (total <= settings.maxChars) {
+                if (total <= settings.maxChars) {
                     final String all = join(plain, range.from, range.to);
                     status(string(R.string.ai_writing));
                     show(SummaryScreen::onAnswerStart);
@@ -891,12 +776,8 @@ public final class AiJobs {
         private volatile String status = "";
         /** A chapter given by the caller (a study chapter), else the one at the reader's page. */
         private final BookChapters.Range given;
-        /**
-         * Whole book done again: chapters marked before this time are redone; 0 = only those not done;
-         * {@link #CLAUDE_ONLY} = only the chapters an outside Claude answered.
-         */
+        /** Whole book done again: chapters marked before this time are redone; 0 = only those not done. */
         private final long redoBefore;
-        public static final long CLAUDE_ONLY = -1;
 
         public HighlightJob(Activity activity, Target target, boolean wholeBook, HighlightScreen screen) {
             this(activity, target, wholeBook, screen, null);
@@ -978,10 +859,7 @@ public final class AiJobs {
 
         @Override
         protected void work() throws Exception {
-            // without settings, only the chapters an outside Claude answered (com.foobnix.claude)
-            final boolean apiReady = settings.isReady();
-            final List<String> claudeChapters = claudeIdeaChapters();
-            if (!apiReady && claudeChapters.isEmpty()) {
+            if (!settings.isReady()) {
                 ui(() -> {
                     final HighlightScreen s = screen;
                     if (s != null) {
@@ -1006,9 +884,7 @@ public final class AiJobs {
                         // key passages from before ideas are done again; on a redo, all done before it
                         final AiStore.Chapter had = saved.chapter(chapter.key);
                         final boolean redo = redoBefore > 0 && (had == null || had.time < redoBefore);
-                        // a chapter Claude answered is taken even when done before (the newer answer)
-                        if ((apiReady && redoBefore != CLAUDE_ONLY && (redo || !saved.isDone(chapter.key)))
-                                || claudeChapters.contains(chapter.key)) {
+                        if (redo || !saved.isDone(chapter.key)) {
                             todo.add(chapter);
                         }
                     }
@@ -1022,15 +898,6 @@ public final class AiJobs {
                     if (SideMatter.isSideTitle(chapter.title)) {
                         leaveOut(chapter);
                         finished(string(R.string.ai_side_matter, chapter.title));
-                        return;
-                    }
-                    if (!apiReady && !claudeChapters.contains(chapter.key)) {
-                        ui(() -> {
-                            final HighlightScreen s = screen;
-                            if (s != null) {
-                                s.onNeedSettings();
-                            }
-                        });
                         return;
                     }
                     todo.add(chapter);
@@ -1072,16 +939,12 @@ public final class AiJobs {
                     }
 
                     // every idea of each part, with its anchors (design-2026-10-21-layered-marks.md)
-                    // an answer of Claude's covers the whole chapter in one part, and is not repaired
-                    final boolean fromClaude = claudeWaiting(com.foobnix.claude.ClaudeFeature.IDEAS, chapter.key);
-                    final List<BookChapters.Range> parts = fromClaude ? Collections.singletonList(chapter)
-                            : BookChapters.parts(Collections.singletonList(chapter), lengths,
+                    final List<BookChapters.Range> parts = BookChapters.parts(Collections.singletonList(chapter), lengths,
                             Math.min(settings.maxChars, IDEAS_PART_CHARS));
                     final List<List<AiPrompts.Idea>> partIdeas = new ArrayList<>();
                     boolean cutOff = false;
                     for (BookChapters.Range part : parts) {
-                        final AiPrompts.Ideas answer = AiPrompts.parseIdeas(askFor(com.foobnix.claude.ClaudeFeature.IDEAS,
-                                chapter.key, system, AiPrompts.ideas(target.title,
+                        final AiPrompts.Ideas answer = AiPrompts.parseIdeas(ask(system, AiPrompts.ideas(target.title,
                                 chapterTitle(chapter), join(plain, part.from, part.to), hasGoal ? goal : ""), null));
                         cutOff |= answer.cutOff || wasCutOff();
                         final List<AiPrompts.Idea> ideas = new ArrayList<>();
@@ -1101,7 +964,7 @@ public final class AiJobs {
                     for (int k = 0; k < parts.size(); k++) {
                         final List<AiPrompts.Idea> missing = IdeaMarks.unmarked(ideas.subList(first, first + partIdeas.get(k).size()), placed);
                         first += partIdeas.get(k).size();
-                        if (missing.isEmpty() || fromClaude || !apiReady) {
+                        if (missing.isEmpty()) {
                             continue;
                         }
                         status(string(R.string.ai_ideas_finding, i + 1, todo.size(), missing.size()));
@@ -1124,8 +987,6 @@ public final class AiJobs {
                             System.currentTimeMillis(), ideas, placed, wordPage, cutOff);
                     final AiStore.Book book = AiStore.get().update(target.name, b -> b.putChapter(done));
                     AiHighlights.get().set(target.name, book);
-                    // stored: Claude's answer of this chapter is done with, whatever the next chapters do
-                    settleClaudeTaken();
                     marked += ideas.size() - done.notLocated();
                     notLocated += done.notLocated();
                     anyCutOff |= cutOff;
@@ -1145,24 +1006,6 @@ public final class AiJobs {
                     message.append(' ').append(string(R.string.ai_chapters_without_text, withoutText));
                 }
                 finished(message.toString());
-            }
-        }
-
-        /** The chapters an outside Claude wrote key passages for (the run needs no API for them). */
-        private List<String> claudeIdeaChapters() {
-            try {
-                if (!com.foobnix.claude.Claude.isOn(context)) {
-                    return Collections.emptyList();
-                }
-                final List<String> out = new ArrayList<>();
-                for (String key : com.foobnix.claude.ClaudeAnswers.chapters(com.foobnix.claude.Claude.desk(target.name),
-                        com.foobnix.claude.ClaudeFeature.IDEAS.id, com.foobnix.claude.ClaudeFeature.IDEAS.format)) {
-                    out.add(key);
-                }
-                return out;
-            } catch (Exception e) {
-                LOG.e(e);
-                return Collections.emptyList();
             }
         }
 

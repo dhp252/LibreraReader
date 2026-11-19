@@ -134,17 +134,14 @@ public class AiSummaryDialog implements AiJobs.SummaryScreen, AiProgress.TaskScr
             return;
         }
         new Thread(() -> {
-            // a book summary an outside Claude wrote replaces the saved one (com.foobnix.claude)
-            final AiStore.Summary saved = regenerate || com.foobnix.claude.Claude.waiting(activity, target.name,
-                    com.foobnix.claude.ClaudeFeature.SUMMARY, AiStore.BOOK) ? null
-                    : AiStore.get().load(target.name).summary(AiStore.BOOK);
+            final AiStore.Summary saved = regenerate ? null : AiStore.get().load(target.name).summary(AiStore.BOOK);
             activity.runOnUiThread(() -> {
                 if (!dialog.isShowing()) {
                     return;
                 }
                 if (saved != null) {
                     onDone(saved, true, null);
-                } else if (!AiSettings.load(activity).canRun()) {
+                } else if (!AiSettings.load(activity).isReady()) {
                     onNeedSettings();
                 } else {
                     AiWork.enqueue(activity, AiTask.bookSummary(target, regenerate));
