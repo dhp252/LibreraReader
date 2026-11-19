@@ -194,6 +194,7 @@ public final class AiJobs {
             running.add(this);
             new Thread(() -> {
                 try {
+                    serverFirst();
                     work();
                 } catch (Cancelled e) {
                     // the screen is gone or the reader asked to stop: nothing to report
@@ -232,6 +233,7 @@ public final class AiJobs {
         public Outcome runNow() {
             running.add(this);
             try {
+                serverFirst();
                 work();
                 if (cancelled) {
                     return new Outcome(Outcome.CANCELLED, null, false, false);
@@ -246,6 +248,13 @@ public final class AiJobs {
                         : new Outcome(Outcome.FAILED, message(e), AiRetry.retryable(e), false);
             } finally {
                 running.remove(this);
+            }
+        }
+
+        /** What another device made for this book is pulled before the job looks for a stored result. */
+        private void serverFirst() {
+            if (target != null) {
+                com.foobnix.webdav.ServerFirst.pull(context, target.path);
             }
         }
 

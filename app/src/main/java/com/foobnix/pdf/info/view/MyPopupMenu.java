@@ -186,7 +186,9 @@ public class MyPopupMenu {
                 if (item.iconRes != 0 && !item.smallIcon) {
                     imageView.setVisibility(View.VISIBLE);
                     imageView.setImageResource(item.iconRes);
-                    if (item.iconRes == R.mipmap.icon_pdf_pro || Boolean.TRUE.equals(item.active)) {
+                    if (item.iconColor != null) {
+                        TintUtil.setTintImageWithAlpha(imageView, item.iconColor);
+                    } else if (item.iconRes == R.mipmap.icon_pdf_pro || Boolean.TRUE.equals(item.active)) {
                         TintUtil.setNoTintImage(imageView);
                     } else if (Boolean.FALSE.equals(item.active)) {
                         TintUtil.setTintImageWithAlpha(imageView, Color.LTGRAY);
@@ -205,7 +207,7 @@ public class MyPopupMenu {
                 if (com.foobnix.canvas.CanvasLook.isOn()) {
                     com.foobnix.canvas.dialogs.CanvasDialogs.menuRow(layout, item.isTitle,
                             TxtUtils.isNotEmpty(item.fontPath),
-                            item.iconRes != R.mipmap.icon_pdf_pro && item.active == null);
+                            item.iconRes != R.mipmap.icon_pdf_pro && item.active == null && item.iconColor == null);
                 }
                 if (item.isTitle) {
                     layout.setOnClickListener(null);
@@ -678,6 +680,8 @@ public class MyPopupMenu {
         OnMenuItemClickListener click;
         OnMenuItemClickListener onLongClick;
         Boolean active;
+        /** A colour the row's icon is drawn in instead of the menu's (e.g. AI: result stored or not). */
+        Integer iconColor;
         boolean smallIcon;
         String checkboxString;
         boolean checkboxState;
@@ -738,6 +742,12 @@ public class MyPopupMenu {
 
         public Menu active(Boolean active) {
             this.active = active;
+            return this;
+        }
+
+        /** Draws the row's icon in {@code color}; null keeps the menu's colour. */
+        public Menu iconColor(Integer color) {
+            this.iconColor = color;
             return this;
         }
 

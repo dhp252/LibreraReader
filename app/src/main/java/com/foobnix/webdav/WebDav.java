@@ -200,6 +200,8 @@ public class WebDav {
 
         // settings shared by every device (they live in a hidden folder the mirror below skips)
         SharedSettings.sync(c, client, summary);
+        // the skill that tells an AI agent how the app stores its AI results (F-016), when missing
+        summary.uploaded += AiSkill.sendIfMissing(c, client);
 
         for (String profile : profiles) {
             deleteMigratedFolders(client, new File(root, profile), profile, summary);
