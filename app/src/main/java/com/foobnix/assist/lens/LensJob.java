@@ -53,7 +53,7 @@ abstract class LensJob<T> extends AiJobs.Job {
         if (!Assist.LENS.isOn()) {
             return;
         }
-        if (!settings.isReady() && !fromClaude()) {
+        if (!settings.isReady()) {
             ui(screen::onNeedSettings);
             return;
         }
@@ -72,11 +72,6 @@ abstract class LensJob<T> extends AiJobs.Job {
     /** The request and what it stores; null when it already reported a failure. */
     abstract T make() throws Exception;
 
-    /** An answer an outside Claude wrote stands in for the request (com.foobnix.claude). */
-    boolean fromClaude() {
-        return false;
-    }
-
     String system(String prompt) {
         return AiPrompts.withMaster(settings.masterPrompt, prompt);
     }
@@ -92,16 +87,9 @@ abstract class LensJob<T> extends AiJobs.Job {
         }
 
         @Override
-        boolean fromClaude() {
-            return claudeWaiting(com.foobnix.claude.ClaudeFeature.LENS, range.key);
-        }
-
-        @Override
         LensBridge make() throws Exception {
             final AiStore.Chapter stored = AiStore.get().load(target.name).chapter(range.key);
-            // Claude answers from the chapter's text (with quotes), never from its ideas
-            final boolean claude = fromClaude();
-            final List<LensIdea> ideas = claude ? new ArrayList<LensIdea>() : LensStore.ideas(stored);
+            final List<LensIdea> ideas = LensStore.ideas(stored);
             final boolean fromIdeas = !ideas.isEmpty();
             final List<String> words = new ArrayList<>();
             final List<Integer> wordPage = new ArrayList<>();
@@ -110,8 +98,7 @@ abstract class LensJob<T> extends AiJobs.Job {
                 user = LensPrompts.bridgeUser(target.title, author, range.title, ideas);
             } else {
                 final StringBuilder plain = new StringBuilder();
-                final int max = claude ? Integer.MAX_VALUE
-                        : Math.min(LensPrompts.MAX_CHARS, Math.max(LensPrompts.MIN_CHARS, settings.maxChars - 4000));
+                final int max = Math.min(LensPrompts.MAX_CHARS, Math.max(LensPrompts.MIN_CHARS, settings.maxChars - 4000));
                 try (BookText text = open()) {
                     final int from = Math.max(0, range.from);
                     final int to = Math.min(text.pageCount(), range.to);
@@ -140,8 +127,8 @@ abstract class LensJob<T> extends AiJobs.Job {
                 }
                 user = LensPrompts.bridgeUser(target.title, author, range.title, plain.toString());
             }
-            final String answer = askFor(com.foobnix.claude.ClaudeFeature.LENS, range.key,
-                    system(LensPrompts.bridgeSystem(profile, level, settings.answerLanguage, fromIdeas)), user, null);
+            final String answer = ask(system(LensPrompts.bridgeSystem(profile, level, settings.answerLanguage, fromIdeas)),
+                    user, null);
             checkCancelled();
             final LensBridge bridge = LensBridge.parse(answer);
             if (bridge == null) {

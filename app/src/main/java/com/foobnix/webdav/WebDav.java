@@ -200,8 +200,8 @@ public class WebDav {
 
         // settings shared by every device (they live in a hidden folder the mirror below skips)
         SharedSettings.sync(c, client, summary);
-        // the skill an outside Claude reads (com.foobnix.claude), while that is on
-        summary.uploaded += com.foobnix.claude.ClaudeSync.sendSkill(c, client, getUrl(c) + "|" + getUser(c));
+        // the skill that tells an AI agent how the app stores its AI results (F-016), when missing
+        summary.uploaded += AiSkill.sendIfMissing(c, client);
 
         for (String profile : profiles) {
             deleteMigratedFolders(client, new File(root, profile), profile, summary);
@@ -313,49 +313,12 @@ public class WebDav {
     static synchronized FolderSync.Result pullBook(Context c, String bookPath) throws IOException {
         AppProfile.init(c);
         final WebDavClient client = client(c);
-        final java.util.Set<String> paths = new java.util.LinkedHashSet<>(bookFiles(bookPath));
-        paths.addAll(claudeAnswerPaths(c, client, bookPath));
-        final FolderSync.Result result = profileSync(c, client, currentProfile(), null).syncPaths(paths);
+        final FolderSync.Result result = profileSync(c, client, currentProfile(), null).syncPaths(bookFiles(bookPath));
         if (result.uploaded > 0) {
             touchMarker(c, client);
         }
         log("book", result);
         return result;
-    }
-
-    /**
-     * The answer files of a book's desk (com.foobnix.claude), on the server and here, while Work
-     * with Claude through WebDAV is on: an answer Claude just wrote comes with the book's own files.
-     * One listing of the server's answers folder; an answer this device already took is not brought
-     * back (the targeted sync deletes nothing and fetches no file it synced before).
-     */
-    static List<String> claudeAnswerPaths(Context c, WebDavClient client, String bookPath) {
-        final List<String> out = new java.util.ArrayList<>();
-        if (!com.foobnix.claude.Claude.isOn(c)) {
-            return out;
-        }
-        final String folder = com.foobnix.claude.ClaudeAnswers.FOLDER + "/" + com.foobnix.claude.ClaudeAnswers.BOOKS + "/"
-                + com.foobnix.claude.ClaudeAnswers.folderName(AiHighlights.bookName(bookPath)) + "/"
-                + com.foobnix.claude.ClaudeAnswers.ANSWERS;
-        try {
-            for (WebDavClient.Entry e : client.list(currentProfile() + "/" + folder)) {
-                if (!e.directory && e.getName().endsWith(".json")) {
-                    out.add(folder + "/" + e.getName());
-                }
-            }
-        } catch (IOException e) {
-            // none on the server yet
-        }
-        final File local = new File(new File(AppProfile.SYNC_FOLDER_ROOT, currentProfile()), folder);
-        for (String sub : new String[]{"", com.foobnix.claude.ClaudeAnswers.USED, com.foobnix.claude.ClaudeAnswers.REJECTED}) {
-            final File[] files = new File(local, sub).listFiles();
-            for (int i = 0; files != null && i < files.length; i++) {
-                if (files[i].isFile() && !files[i].getName().endsWith(".tmp")) {
-                    out.add(folder + "/" + (sub.isEmpty() ? "" : sub + "/") + files[i].getName());
-                }
-            }
-        }
-        return out;
     }
 
     /** True when another device sent something since this one last looked (one small request). */

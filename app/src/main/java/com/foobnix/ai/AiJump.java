@@ -50,12 +50,15 @@ public final class AiJump {
         }, "@T AI quote").start();
     }
 
-    /** The page holding {@code key}, nearest to the hint first, then outwards; -1 when none. Off the main thread. */
+    /**
+     * The page holding {@code key}, nearest to the hint first, then outwards; -1 when none. Without a
+     * hint (page -1, e.g. data written outside the app) and without bounds, the whole book. Off the main thread.
+     */
     static int find(BookText text, String key, int page, int lo, int hi) {
         final int pages = text.pageCount();
         final int hint = Math.max(0, Math.min(pages - 1, page));
         final int from = Math.max(0, lo >= 0 ? lo : hint - AROUND);
-        final int to = Math.min(pages - 1, hi >= 0 ? hi : hint + AROUND);
+        final int to = Math.min(pages - 1, hi >= 0 ? hi : page < 0 ? pages - 1 : hint + AROUND);
         for (int d = 0; d <= to - from; d++) {
             for (int p : d == 0 ? new int[]{hint} : new int[]{hint + d, hint - d}) {
                 if (p >= from && p <= to && !QuoteMatcher.onPage(new QuoteMatcher.Words(BookText.words(text.text(p))),

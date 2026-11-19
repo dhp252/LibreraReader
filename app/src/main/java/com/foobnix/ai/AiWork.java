@@ -76,7 +76,7 @@ public final class AiWork extends Worker {
     private Result run(Context app, AiTask task, String key) {
         AiNotifications.running(app, task);
         foreground(app, task, app.getString(R.string.ai_task_starting), 0, 0);
-        if (!AiSettings.load(app).canRun()) {
+        if (!AiSettings.load(app).isReady()) {
             final String message = app.getString(R.string.ai_task_needs_settings);
             AiProgress.ended(key, AiProgress.FAILED, message);
             AiNotifications.stopped(app, task, message);

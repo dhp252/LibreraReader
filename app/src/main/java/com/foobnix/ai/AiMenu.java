@@ -27,6 +27,9 @@ public final class AiMenu {
         final BookChapters.Range chapter = AiJobs.knownChapter(target);
         final boolean chapterSaved = chapter != null && data.summary(chapter.key) != null;
         final boolean bookSaved = data.summary(AiStore.BOOK) != null;
+        // blue icon: a result is stored (here or synced), grey: opening it asks the API (AiStored)
+        final java.util.Set<String> assist = com.foobnix.assist.AssistStore.get().items(target.name, "").keySet();
+        final String key = chapter == null ? null : chapter.key;
 
         final MyPopupMenu menu = new MyPopupMenu(a, anchor);
         // study mode (F-009): its panel once the book is studied
@@ -37,6 +40,7 @@ public final class AiMenu {
         final boolean previewBusy = AiBusyButton.isBusy(dc, AiTask.STUDY_PREVIEW);
         menu.getMenu().add(mark(a, studying ? R.string.study_panel : R.string.study_this_book, previewed, previewBusy))
                 .setIcon(R.drawable.ic_study)
+                .iconColor(AiStored.color(previewed))
                 .setOnMenuItemClickListener(item -> {
                     if (studying && !previewBusy) {
                         com.foobnix.study.StudyPanel.show(a, dc);
@@ -49,24 +53,28 @@ public final class AiMenu {
         // Skeleton first (canvas T13): the book's whole argument before reading it
         if (com.foobnix.assist.Assist.SKELETON.isOn()) {
             menu.getMenu(R.drawable.glyphicons_115_list, R.string.canvas_t13_skeleton_first,
-                    () -> com.foobnix.assist.skeleton.SkeletonScreen.show(a, dc));
+                    () -> com.foobnix.assist.skeleton.SkeletonScreen.show(a, dc))
+                    .iconColor(AiStored.color(assist.contains(com.foobnix.assist.skeleton.SkeletonData.KEY)));
         }
         // the book map (F-013), for every book
         menu.getMenu().add(mark(a, R.string.book_map, com.foobnix.bookmap.MapStore.get().has(target.name),
                         AiBusyButton.isBusy(dc, AiTask.MAP)))
                 .setIcon(R.drawable.ic_book_map)
+                .iconColor(AiStored.color(com.foobnix.bookmap.MapStore.get().has(target.name)))
                 .setOnMenuItemClickListener(item -> {
                     com.foobnix.bookmap.BookMapView.show(a, dc);
                     return true;
                 });
         menu.getMenu().add(saved(a, R.string.ai_summary_chapter, chapterSaved))
                 .setIcon(R.drawable.glyphicons_588_book_open_text)
+                .iconColor(AiStored.color(AiStored.chapterSummary(data, key)))
                 .setOnMenuItemClickListener(item -> {
                     AiSummaryDialog.show(a, dc, false);
                     return true;
                 });
         menu.getMenu().add(mark(a, R.string.ai_summary_book, bookSaved, AiBusyButton.isBusy(dc, AiTask.BOOK_SUMMARY)))
                 .setIcon(R.drawable.glyphicons_589_book_open)
+                .iconColor(AiStored.color(bookSaved))
                 .setOnMenuItemClickListener(item -> {
                     AiSummaryDialog.show(a, dc, true);
                     return true;
@@ -75,6 +83,7 @@ public final class AiMenu {
         final boolean highlightsBusy = AiHighlightDialog.isBusy(dc);
         menu.getMenu().add(mark(a, R.string.ai_key_passages, data.allMarked(), highlightsBusy) + "  ›")
                 .setIcon(R.drawable.ic_ai_sparkle)
+                .iconColor(AiStored.color(AiStored.keyPassages(data, key)))
                 .setOnMenuItemClickListener(item -> {
                     showKeyPassages(a, anchor, dc, target, data, chapter, highlightsBusy);
                     return true;
@@ -82,6 +91,7 @@ public final class AiMenu {
         // Argument X-ray (canvas, Assist.XRAY): the chapter's argument map from its key passages
         if (com.foobnix.assist.Assist.XRAY.isOn()) {
             menu.getMenu().add(a.getString(R.string.xray_title)).setIcon(R.drawable.canvas_t12_ic_xray)
+                    .iconColor(AiStored.color(AiStored.chapterItem(assist, "xray:", key)))
                     .setOnMenuItemClickListener(item -> {
                         com.foobnix.assist.xray.XrayScreen.showHere(a, dc);
                         return true;
@@ -90,6 +100,7 @@ public final class AiMenu {
         // The book, updated (canvas, Assist.UPDATED): what is known today, on this chapter
         if (com.foobnix.assist.Assist.UPDATED.isOn()) {
             menu.getMenu().add(a.getString(R.string.updated_title)).setIcon(R.drawable.canvas_t22_ic_updated)
+                    .iconColor(AiStored.color(AiStored.chapterItem(assist, com.foobnix.assist.updated.UpdatedChapter.PREFIX, key)))
                     .setOnMenuItemClickListener(item -> {
                         com.foobnix.assist.updated.UpdatedScreen.showHere(a, dc);
                         return true;
@@ -106,6 +117,7 @@ public final class AiMenu {
         // Lens (canvas, Assist.LENS): the chapter's ideas mapped to the fields the reader knows
         if (com.foobnix.assist.Assist.LENS.isOn()) {
             menu.getMenu().add(a.getString(R.string.lens_in_your_terms)).setIcon(R.drawable.canvas_t14_ic_lens)
+                    .iconColor(AiStored.color(AiStored.chapterItem(assist, com.foobnix.assist.lens.LensBridge.PREFIX, key)))
                     .setOnMenuItemClickListener(item -> {
                         com.foobnix.assist.lens.LensBridgeScreen.showHere(a, dc);
                         return true;
@@ -122,6 +134,7 @@ public final class AiMenu {
         // Semantic zoom (canvas, Assist.ZOOM): the chapter as Full / Lean / Claims / 1 line
         if (com.foobnix.assist.Assist.ZOOM.isOn()) {
             menu.getMenu().add(a.getString(R.string.zoom_title)).setIcon(R.drawable.canvas_t15_ic_zoom)
+                    .iconColor(AiStored.color(AiStored.chapterItem(assist, com.foobnix.assist.zoom.ZoomData.PREFIX, key)))
                     .setOnMenuItemClickListener(item -> {
                         com.foobnix.assist.zoom.ZoomScreen.showHere(a, dc);
                         return true;
@@ -156,19 +169,19 @@ public final class AiMenu {
         // Prose to pictures (canvas T27): the chapter as a process, a table or a causal loop
         if (com.foobnix.assist.Assist.PICTURES.isOn()) {
             menu.getMenu(R.drawable.canvas_t27_ic_picture, R.string.canvas_t27_as_picture,
-                    () -> com.foobnix.assist.pictures.PictureScreen.showHere(a, dc));
+                    () -> com.foobnix.assist.pictures.PictureScreen.showHere(a, dc))
+                    .iconColor(AiStored.color(AiStored.chapterItem(assist, com.foobnix.assist.pictures.PictureSet.PREFIX, key)));
         }
         // Fiction companion (canvas T29, Assist.FICTION): who's who as of the reader's page
         if (com.foobnix.assist.Assist.FICTION.isOn()) {
             menu.getMenu(R.drawable.canvas_t29_ic_cast, R.string.canvas_t29_whos_who,
-                    () -> com.foobnix.assist.fiction.FictionScreen.show(a, dc));
+                    () -> com.foobnix.assist.fiction.FictionScreen.show(a, dc))
+                    .iconColor(AiStored.color(assist.contains(com.foobnix.assist.fiction.FictionCast.KEY)));
         }
         // The book reads you back (canvas, Assist.READS_YOU): help for this page, and what is stored
         if (com.foobnix.assist.Assist.READS_YOU.isOn()) {
             com.foobnix.assist.readsyou.ReadsYou.menu(a, dc, menu);
         }
-        // answers an outside Claude writes through WebDAV (com.foobnix.claude), while that is on
-        com.foobnix.claude.ClaudeMenu.add(a, dc, menu);
         menu.show();
     }
 
@@ -224,6 +237,7 @@ public final class AiMenu {
                     // ✓ only for a chapter already known: the menu never reads the book
                     menu.getMenu().add(saved(a, R.string.ai_highlight_chapter, chapter != null && data.isDone(chapter.key)))
                             .setIcon(R.drawable.glyphicons_588_book_open_text)
+                            .iconColor(AiStored.color(AiStored.keyPassages(data, chapter == null ? null : chapter.key)))
                             .setOnMenuItemClickListener(item -> {
                                 AiHighlightDialog.start(a, dc, false);
                                 return true;
@@ -232,6 +246,7 @@ public final class AiMenu {
                 case HIGHLIGHT_BOOK:
                     menu.getMenu().add(saved(a, R.string.ai_highlight_book, data.allMarked()))
                             .setIcon(R.drawable.glyphicons_589_book_open)
+                            .iconColor(AiStored.color(data.allMarked()))
                             .setOnMenuItemClickListener(item -> {
                                 AiHighlightDialog.start(a, dc, true);
                                 return true;
