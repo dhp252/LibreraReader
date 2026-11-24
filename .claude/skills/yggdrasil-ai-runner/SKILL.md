@@ -1,6 +1,6 @@
 ---
 name: yggdrasil-ai-runner
-description: Run the AI-results job of the Yggdrasil / Librera reading app on its Koofr WebDAV folder with one agent per book - fill in what is missing for all books, re-check or redo all books, do one book, or do only some features (summaries, key passages, skeleton, pre-questions, X-ray, "the book, updated"). Plans the queue with scripts (no tokens spent on books that are complete), runs N agents in parallel lanes, pauses and resumes. Use for "chạy những file thiếu", "chạy lại hết", "chạy cho 1 sách", "chạy 1 số features", "fill missing AI data", "redo X-ray for book X", "pause / resume the AI run".
+description: Update the AI features of the user's Yggdrasil (Librera fork) reading app - the AI results stored on its Koofr WebDAV folder - with one agent per book. Use whenever the user says anything like "update ai feature cho yggdrasil", "cập nhật AI cho sách", "chạy những file thiếu", "chạy lại hết", "chạy cho 1 sách", "chạy 1 số features", "fill missing AI data", "redo X-ray for book X", "pause / resume the AI run". Covers chapter and book summaries, key passages, skeleton, pre-questions, X-ray ratings and "the book, updated" notes; plans the queue with scripts (no tokens spent on complete books), runs N agents in parallel lanes, pauses and resumes.
 ---
 
 # Yggdrasil AI runner
@@ -11,14 +11,26 @@ a per-book agent brief (`BRIEF.md`), a lane workflow (`lanes.js`) and a safe mer
 only thing that writes to the server.
 
 ```
-SKILL = the folder of this file          scripts/  cfg.py  plan.py  prep.py  status.py  merge.py  tally.py
-WORK  = <your scratchpad>/ygg            BRIEF.md (per-book agent)  UPGRADE_V1.md  lanes.js (workflow)
+SKILL = the folder of this file (installed skills may be read-only: never write inside it)
+        scripts/  cfg.py plan.py prep.py status.py merge.py tally.py
+        BRIEF.md (per-book agent)  UPGRADE_V1.md  lanes.js (workflow)
+WORK  = <your scratchpad>/ygg   (work dirs, queue; anything you create goes here)
 ```
+
+## Default flow (a short request such as "update ai feature cho yggdrasil")
+Do not ask for a long prompt. 1) Preconditions (section 0). 2) Plan with no options (fill in what is
+missing, all books, 1 agent). 3) Tell the user in a few lines what the plan found (queued, complete,
+skipped and why). 4) Start the run, unless it would replace results, or queue more than 30 books, or
+the user's words leave the scope unclear: then ask one short question first. Words in the request map
+to the options in section 2 (a book name -> `--book`, feature names -> `--features`, "N agents" ->
+`--lanes N`). Reply in the user's language (often Vietnamese).
 
 ## 0. Preconditions (check every session)
 1. `rclone listremotes` shows the remote of `scripts/cfg.py` (default `koofr:`; root `koofr:Yggdrasil`,
    profile `profile.Librera`; override with env `YGG_ROOT`, `YGG_PROFILE`). The environment's setup
-   script provides the login; never print or log the password. No remote: stop and tell the user.
+   script provides the login; never print or log the password. No remote: this session runs in an
+   environment without the Koofr login - tell the user to start the session in the cloud environment
+   that has it (its setup script writes the rclone config), and stop.
 2. `pdftotext` and `python3 -c "import pypdf"` work (else `apt-get install -y poppler-utils`,
    `pip install pypdf`).
 3. The app skill: `~/.claude/skills/yggdrasil-ai-data/SKILL.md`. If missing, copy it from the server:
